@@ -1,89 +1,78 @@
 # EDCP: Elite Dangerous Colonisation Planner
 
-## How to use
+A browser-based planner for Elite Dangerous system colonisation. Give it your available construction
+slots (or let it estimate them from an uploaded Journal file), pick an objective, and it uses a MILP
+solver to work out which facilities to build — taking construction points, facility dependencies, and
+the escalating cost of building multiple ports into account.
 
-Just run the application, enter your system data and what you want from a system, and the appliction
-will provide a list of facilities to build to best achieve this.
+Runs entirely client-side: no backend, no account, nothing leaves your browser. The solver
+([HiGHS](https://highs.dev/), via WebAssembly) runs locally against the data you enter.
 
-Example of questions this tool can help answer:
-* I want to get the maximum development level in my system, with at least 10 security and 20
-  standard of living, what should I build?
-* I want the minimum amount of commodities I need to haul to reach 200 system score, what should I build?
-* I want the highest possible wealth while hauling at most 50,000 tons of commodities, what
-  is my best option?
-* What to build if I want to balance between wealth and tech level?
+## Using it
 
-The tool takes into account the construction points, the dependencies between facilities, the
-increase in construction points requirements, and so much more.
+Open the app (see the GitHub Pages link at the top of this repo, or run it locally — see below) and:
 
-## Tutorial
+1. **System panel** — enter your available orbital/ground/asteroid slots and current T2/T3
+   construction points, or use **Import from journal** to upload an Elite Dangerous Journal `.log`
+   file and get a starting estimate from your scanned system data. That estimate is a best-effort
+   guess (see [Known limitations](#known-limitations)) and pre-fills editable fields — always sanity
+   check it against your in-game System Map.
+2. **Objective** — maximize a single system score (construction cost is minimized instead), or write
+   a custom expression (`sqrt(w) + sqrt(n)`, `2*w + t - abs(w - 2*t)`, etc.) over the score letters
+   `i m e t w n d c`.
+3. **System score constraints** — optional min/max bounds per score.
+4. **Buildings** — mark what's already present, and optionally pin per-building minimums/maximums.
+   After solving, hover a building's total to see its contribution to each score.
+5. Hit **Solve for a system**. Results show the resulting scores, remaining slots/points, and a
+   feasible build order respecting dependencies and construction-point requirements.
+6. **Saved plans** — save/load plans locally (browser storage), or export/import a plan as a file to
+   move it between browsers.
 
-Here is a screenshot of the application when you start it. 
+## Known limitations
 
-![EDCP screenshot at startup](screenshots/empty_interface.png)
+This is a from-scratch rewrite (see [History](#history)) of a tool that predates several game
+balance changes, rebuilt against the current ruleset as best as could be verified from public
+sources. A few pieces are explicitly best-effort and flagged as such in both the code and the UI:
 
-You should fill the number of available
-slots of each type and provide an objective (maximize wealth, minimize construction cost, ...). If
-you have already started building in the system select the first station and the other already
-present buildings. Otherwise you can select "Let the program choose for me" and the app will pick
-the best choice for your first station.
+- **Journal → slot estimate** (`src/journal/eligibility.ts`): no official formula for how scanned
+  body data maps to buildable slot counts was locatable. The heuristic there is a reasonable guess,
+  isolated in named constants for easy correction — if you compare it against a real System Map and
+  it's off, that's the file to fix.
+- **Subsequent-facility stat weighting** (`src/solver/solve.ts`, `SUBSEQUENT_FACILITY_WEIGHT`): only
+  the claim/first station is confirmed to contribute full weight to system scores, with every other
+  facility contributing less — the exact current percentages weren't confirmed from an authoritative
+  source, so best-known figures are used and clearly marked.
 
-![EDCP screenshot after setting the initial state](screenshots/initial_state_annotated.png)
+If you have more accurate numbers for either, they're both single, well-commented constants to edit.
 
-Optionally you can set minimum or maximum values in the "System stats" panel. You can also specify
-minimum or maximum numbers for some facility types. 
+Also out of scope for now: the Update 3 facility-linking/commodity-economy rework (what's actually
+buyable/sellable at a station) — this tool has only ever modeled the abstract system-score stats, not
+commodity supply and demand.
 
-![EDCP screenshot after setting additional constraints](screenshots/added_constraints_annotated.png)
+## Development
 
-Then you are ready to hit the "Solve for a system" button and let the solver provide you with a
-solution.
+```bash
+npm install
+npm run dev      # local dev server
+npm test         # vitest — solver tests run the real HiGHS WASM solver, not mocks
+npm run build    # production build to dist/
+```
 
-![EDCP screenshot after solving](screenshots/solved_annotated.png)
+Deploys automatically to GitHub Pages on push to `main` via GitHub Actions
+(`.github/workflows/deploy.yml`).
 
-If the solution is not to your liking, you can add constraints to force the solver into the right
-direction (limit construction cost, limit how many communication stations you are willing to build,
-...), and solve the system again.
+## Data source
 
-Once you are happy with the solution, you can enter a system name and plan name at the top of the
-window, and "Save". This will allow you to reload these same settings later. You can have several
-plans for a system to try different directions.
+Building stats and costs come from DaftMav's community-maintained
+["Colonization Construction v3"](https://forums.frontier.co.uk/threads/v3-of-the-colonization-construction-spreadsheet-is-now-available.635762/)
+spreadsheet.
 
-## Import / Export
+## History
 
-### Importing the already built facilities
+EDCP was originally a Python/Tkinter desktop application, built at colonisation's launch in March
+2025. It's since been fully rewritten as this stateless web app — the original source is still
+available in this repository's Git history for reference.
 
-If you have already started building and/or planning your system, and are using the great planning
-tools developed by the community, you can import this initial state into EDCP with the "Import
-initial state" button. For now EDCP supports two external tools:
-* [Colonization Construction
-  v3](https://forums.frontier.co.uk/threads/v3-of-the-colonization-construction-spreadsheet-is-now-available.635762/)
-  by DaftMav: simply copy the contents of the column 'D' from any of your Colony tabs and paste it
-  into EDCP's import text box.
-* [Scuffed](https://cmdr-nowski.github.io/scuffed/) by CMDR Nowski: use the export link at the top
-  right, and copy/paste the contents of the textbox
+## Feedback
 
-EDCP will automatically fill the list of already built facilities. You still have to specify the
-number of available slots, and any other constraint you want to give to the solver.
-
-If you are developing another tool for managing colonization, let us know and we will be happy to
-add your tool to this list!
-
-### Exporting the result
-
-Once you have found a solution you like, you can export the result back into either of these tools,
-by using the "Export Solution" button at the bottom. EDCP will provide a valid order for building
-the chosen facilities, and you can copy the result in your desired format, either to the clipboard
-or to a file.
-
-## Feedback welcome!
-
-We welcome any feedback, you are welcome to create issues here on Gitlab for bug reports, feature
-requests, or any other comment you want to provide.
-
-## Warning
-
-Always double check that the facility list is actually buildable. We might have made a mistake. If
-you see such a mistake, please take a screenshot and submit an issue!
-
-Tip for Linux users: if you want to use the correct font, please copy the `eurostile.TTF` file into
-the `${HOME}/.fonts/` directory.
+Issues and feature requests welcome.

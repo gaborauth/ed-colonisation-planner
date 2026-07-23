@@ -1,0 +1,41 @@
+.tooltip-anchor {
+  position: relative;
+  display: inline-block;
+  cursor: help;
+}
+
+/* Inside a table cell, the whole cell should be hoverable, not just the glyph the anchor wraps —
+   otherwise the tooltip only fires when the pointer lands exactly on the digit. */
+td .tooltip-anchor {
+  display: block;
+  width: 100%;
+  border-bottom: 1px dotted var(--text-faint);
+}
+
+.tooltip-bubble {
+  position: absolute;
+  z-index: 20;
+  bottom: calc(100% + 8px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--bg-inset);
+  border: 1px solid var(--accent);
+  color: var(--text);
+  padding: 8px 10px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  white-space: nowrap;
+  border-radius: 2px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.tooltip-bubble::after {
+  content: "";
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  border: 5px solid transparent;
+  border-top-color: var(--accent);
+}
