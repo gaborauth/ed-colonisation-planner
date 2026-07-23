@@ -1,29 +1,42 @@
 import { type Dispatch, useState } from "react";
 import { estimateSlots, type SlotEstimate } from "../journal/eligibility";
 import { parseJournalScans, type JournalSystem } from "../journal/parser";
+import { listSavedSystems, saveSystem } from "../persistence/journalSystems";
 import type { PlannerAction } from "../state/plannerState";
 
 interface JournalImportPanelProps {
   dispatch: Dispatch<PlannerAction>;
 }
 
+function mergeBySystemAddress(existing: JournalSystem[], incoming: JournalSystem[]): JournalSystem[] {
+  const byAddress = new Map(existing.map((s) => [s.systemAddress, s]));
+  for (const system of incoming) byAddress.set(system.systemAddress, system);
+  return Array.from(byAddress.values()).sort((a, b) => a.starSystem.localeCompare(b.starSystem));
+}
+
 export function JournalImportPanel({ dispatch }: JournalImportPanelProps) {
-  const [systems, setSystems] = useState<JournalSystem[]>([]);
-  const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
+  const [systems, setSystems] = useState<JournalSystem[]>(() => listSavedSystems());
+  const [savedAddresses, setSavedAddresses] = useState<Set<number>>(
+    () => new Set(listSavedSystems().map((s) => s.systemAddress)),
+  );
+  const [selectedAddress, setSelectedAddress] = useState<number | null>(
+    () => listSavedSystems()[0]?.systemAddress ?? null,
+  );
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
 
   async function handleFile(file: File): Promise<void> {
     setApplied(false);
+    setJustSaved(false);
     try {
       const text = await file.text();
       const parsed = parseJournalScans(text);
       if (parsed.length === 0) {
         setError("No scanned systems found in that file.");
-        setSystems([]);
         return;
       }
-      setSystems(parsed);
+      setSystems((prev) => mergeBySystemAddress(prev, parsed));
       setSelectedAddress(parsed[0].systemAddress);
       setError(null);
     } catch (e) {
@@ -41,6 +54,13 @@ export function JournalImportPanel({ dispatch }: JournalImportPanelProps) {
       patch: { slots: { space: estimate.space, ground: estimate.ground, asteroid: estimate.asteroid } },
     });
     setApplied(true);
+  }
+
+  function handleSaveSystem(): void {
+    if (!selected) return;
+    saveSystem(selected);
+    setSavedAddresses((prev) => new Set(prev).add(selected.systemAddress));
+    setJustSaved(true);
   }
 
   return (
@@ -66,22 +86,34 @@ export function JournalImportPanel({ dispatch }: JournalImportPanelProps) {
 
       {systems.length > 0 && (
         <div style={{ marginTop: 10 }}>
-          <div className="field">
-            <label htmlFor="journal-system">System</label>
-            <select
-              id="journal-system"
-              value={selectedAddress ?? ""}
-              onChange={(e) => {
-                setSelectedAddress(Number(e.target.value));
-                setApplied(false);
-              }}
-            >
-              {systems.map((s) => (
-                <option key={s.systemAddress} value={s.systemAddress}>
-                  {s.starSystem} ({s.bodies.length} bodies scanned)
-                </option>
-              ))}
-            </select>
+          <div className="row-grid">
+            <div className="field">
+              <label htmlFor="journal-system">System</label>
+              <select
+                id="journal-system"
+                value={selectedAddress ?? ""}
+                onChange={(e) => {
+                  setSelectedAddress(Number(e.target.value));
+                  setApplied(false);
+                  setJustSaved(false);
+                }}
+              >
+                {systems.map((s) => (
+                  <option key={s.systemAddress} value={s.systemAddress}>
+                    {s.starSystem} ({s.bodies.length} bodies scanned)
+                    {savedAddresses.has(s.systemAddress) ? " — saved" : ""}
+                  </option>
+                ))}
+              </select>
+            </div>
+            <button type="button" onClick={handleSaveSystem} disabled={!selected}>
+              Save system
+            </button>
+            {justSaved && (
+              <span style={{ color: "var(--success)" }}>
+                Saved — will still be here after a reload, no re-upload needed
+              </span>
+            )}
           </div>
 
           {estimate && (
