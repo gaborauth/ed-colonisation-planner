@@ -31,6 +31,18 @@ export function BuildOrderPanel({ formState, result }: BuildOrderPanelProps) {
           ))}
         </ol>
       )}
+      {result.demolished.length > 0 && (
+        <>
+          <h3>Facilities to demolish</h3>
+          <ul>
+            {result.demolished.map((d, i) => (
+              <li key={i}>
+                {toPrintable(d.building)} ({d.slotKind} slot {d.index + 1} on body {d.bodyId})
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
     </section>
   );
 }

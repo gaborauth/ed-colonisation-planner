@@ -1,5 +1,6 @@
 import type { Dispatch } from "react";
 import { ALL_BUILDINGS, ALL_CATEGORIES, BASE_SCORES, toPrintable, type Building } from "../data/buildings";
+import { derivePresentCounts } from "../domain/presentFacilities";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
 import type { SolverResult } from "../solver/solve";
 import { NumberInput } from "./NumberInput";
@@ -44,6 +45,20 @@ function contributionTooltip(building: Building, total: number) {
 }
 
 export function BuildingsTable({ formState, dispatch, result }: BuildingsTableProps) {
+  // Once a body layout is applied, already-present counts come from the System facilities panel's
+  // per-slot tree instead of this flat map (see solve.ts's alreadyPresent doc comment) — shown here
+  // read-only so the two sources of truth can't drift apart.
+  const hasBodies = formState.bodies.length > 0;
+  const presentCounts = hasBodies
+    ? derivePresentCounts(
+        formState.bodies.map((b) => ({
+          bodyId: b.bodyId,
+          space: b.presentFacilities?.space ?? [],
+          ground: b.presentFacilities?.ground ?? [],
+        })),
+      )
+    : formState.alreadyPresent;
+
   return (
     <section className="panel">
       <h2>Buildings</h2>
@@ -65,18 +80,22 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
               {names.map((name) => {
                 const building = ALL_BUILDINGS[name];
                 const built = result?.toBuild[name] ?? 0;
-                const total = (formState.alreadyPresent[name] ?? 0) + built;
+                const total = (presentCounts[name] ?? 0) + built;
                 return (
                   <tr key={name}>
                     <td>{toPrintable(name)}</td>
                     <td>
-                      <NumberInput
-                        ariaLabel={`${toPrintable(name)} already present`}
-                        value={formState.alreadyPresent[name]}
-                        onChange={(value) =>
-                          dispatch({ type: "setMapEntry", map: "alreadyPresent", name, value })
-                        }
-                      />
+                      {hasBodies ? (
+                        presentCounts[name] ?? 0
+                      ) : (
+                        <NumberInput
+                          ariaLabel={`${toPrintable(name)} already present`}
+                          value={formState.alreadyPresent[name]}
+                          onChange={(value) =>
+                            dispatch({ type: "setMapEntry", map: "alreadyPresent", name, value })
+                          }
+                        />
+                      )}
                     </td>
                     <td>
                       <NumberInput

@@ -6,7 +6,18 @@ import { deleteSystem, listSavedSystems, saveSystem } from "./journalSystems";
 const SYSTEM_A: JournalSystem = {
   starSystem: "HIP 48661",
   systemAddress: 663362718067,
-  bodies: [{ bodyName: "HIP 48661 A", bodyId: 1, kind: "star", landable: false, rings: [] }],
+  bodies: [
+    {
+      bodyName: "HIP 48661 A",
+      bodyId: 1,
+      kind: "star",
+      landable: false,
+      parents: [],
+      rings: [],
+      slots: { space: 1, ground: 0, asteroid: 0 },
+      raw: { event: "Scan", BodyName: "HIP 48661 A" },
+    },
+  ],
 };
 
 const SYSTEM_B: JournalSystem = {

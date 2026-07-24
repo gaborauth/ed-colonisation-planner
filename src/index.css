@@ -78,6 +78,77 @@ h2 {
   padding-bottom: 8px;
 }
 
+/* A panel heading with an action button alongside it (e.g. System facilities' "Save") — the
+ * divider line moves to the row itself so it spans under both, and the h2 drops its own. */
+.panel-header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+  margin: 0 0 12px;
+}
+
+.panel-header h2 {
+  border-bottom: none;
+  padding-bottom: 0;
+  margin: 0;
+}
+
+.panel-toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  background: none;
+  border: none;
+  border-bottom: 1px solid var(--border);
+  border-radius: 0;
+  padding: 0 0 8px;
+  margin: 0 0 12px;
+  cursor: pointer;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 14px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--text-dim);
+}
+
+.panel-toggle-title {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.panel-toggle-status {
+  font-family: var(--font-mono);
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 12px;
+  color: var(--success);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.panel-toggle .chevron {
+  font-family: initial;
+  text-transform: none;
+  letter-spacing: 0;
+  font-size: 22px;
+  line-height: 1;
+  flex-shrink: 0;
+  transition: transform 0.15s ease;
+}
+
+.panel-toggle[aria-expanded="false"] .chevron {
+  transform: rotate(-90deg);
+}
+
 label {
   font-size: 12px;
   letter-spacing: 0.04em;
@@ -178,6 +249,13 @@ tbody tr:hover {
   border-radius: 3px;
   padding: 16px 18px;
   margin-bottom: 16px;
+  transition: opacity 150ms ease;
+}
+
+/* Dimmed, not disabled — the System facilities panel's own slot fields are still how a user without a
+ * journal-imported layout would set things up in the first place, so inputs stay interactive. */
+.panel-unconfigured {
+  opacity: 0.55;
 }
 
 /* Signature element: angular, corner-cut HUD panel — used only for the results readout. */
@@ -285,4 +363,81 @@ tbody tr:hover {
   color: var(--accent-text);
   background: var(--bg-inset);
   padding: 4px 8px;
+}
+
+/* System facilities tree: system name (root) -> body (branch) -> per-slot facility (leaf).
+ * Indentation + a connecting vertical/horizontal line per level, instead of one separate <table>
+ * per body (which made column widths drift out of alignment across bodies). */
+.facility-tree {
+  margin-top: 16px;
+}
+
+.facility-tree-root {
+  font-family: var(--font-display);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 12px;
+  color: var(--accent-text);
+  margin-bottom: 6px;
+}
+
+.facility-tree-body {
+  position: relative;
+  margin-left: 8px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+.facility-tree-body-name {
+  position: relative;
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  color: var(--text);
+  padding: 6px 0;
+}
+
+.facility-tree-body-name::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  width: 12px;
+  border-top: 1px solid var(--border);
+}
+
+.facility-tree-slot {
+  position: relative;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+  margin-left: 8px;
+  padding: 4px 0 4px 16px;
+  border-left: 1px solid var(--border-bright);
+}
+
+.facility-tree-slot::before {
+  content: "";
+  position: absolute;
+  left: -16px;
+  top: 50%;
+  width: 12px;
+  border-top: 1px solid var(--border-bright);
+}
+
+.facility-tree-slot-label {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--text-dim);
+  min-width: 84px;
+}
+
+.facility-tree-demolish {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--text-dim);
+  white-space: nowrap;
 }

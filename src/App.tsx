@@ -3,12 +3,15 @@ import { BuildOrderPanel } from "./components/BuildOrderPanel";
 import { BuildingsTable } from "./components/BuildingsTable";
 import { ConstraintsPanel } from "./components/ConstraintsPanel";
 import { JournalImportPanel } from "./components/JournalImportPanel";
+import { LinksPanel } from "./components/LinksPanel";
 import { ObjectivePanel } from "./components/ObjectivePanel";
+import { PopulationEstimatePanel } from "./components/PopulationEstimatePanel";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { SavedPlansPanel } from "./components/SavedPlansPanel";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
+import { normalizeFacilitySlots } from "./domain/presentFacilities";
 import type { SavedPlan } from "./persistence/plans";
-import { solve, type SolverInput } from "./solver/solve";
+import { solve, type SolverBody, type SolverInput } from "./solver/solve";
 import {
   INITIAL_FORM_STATE,
   INITIAL_RESULT_STATE,
@@ -17,19 +20,37 @@ import {
 } from "./state/plannerState";
 
 function buildSolverInput(formState: typeof INITIAL_FORM_STATE): SolverInput {
+  // `formState.bodies` is only non-empty once the user has applied a journal-imported body
+  // layout — omitting `bodies` entirely (not passing `[]`) keeps aggregate mode's exact behavior
+  // for anyone who's only ever used the System facilities panel's plain slot-count fields.
+  const hasBodies = formState.bodies.length > 0;
+  const bodies: SolverBody[] | undefined = hasBodies
+    ? formState.bodies.map((b) => {
+        const slots = b.slots ?? { space: 0, ground: 0, asteroid: 0 };
+        return {
+          bodyId: b.bodyId,
+          slots,
+          presentFacilities: {
+            space: normalizeFacilitySlots(b.presentFacilities?.space, slots.space),
+            ground: normalizeFacilitySlots(b.presentFacilities?.ground, slots.ground),
+          },
+        };
+      })
+    : undefined;
   return {
     slots: formState.slots,
+    bodies,
     objective:
       formState.objectiveMode === "simple"
         ? { kind: "simple", score: formState.simpleScore }
         : { kind: "custom", expression: formState.customExpression, direction: formState.customDirection },
-    initialT2Points: formState.initialT2Points,
-    initialT3Points: formState.initialT3Points,
-    chooseFirstStation: formState.chooseFirstStation,
-    firstStationBuilding: formState.firstStationBuilding || undefined,
-    firstStationOptions: formState.firstStationOptions,
+    firstStationBuilding: formState.firstStationBuilding,
+    firstStationBodyId: formState.firstStationBodyId,
     allowCriminal: formState.allowCriminal,
-    alreadyPresent: formState.alreadyPresent,
+    // When bodies are used, already-present accounting flows entirely through each body's
+    // `presentFacilities` instead (see SolverInput.alreadyPresent's doc comment) — passing the
+    // flat map too would double-count.
+    alreadyPresent: hasBodies ? {} : formState.alreadyPresent,
     constraints: { atLeast: formState.atLeast, atMost: formState.atMost },
     scoreConstraints: { min: formState.scoreMin, max: formState.scoreMax },
   };
@@ -73,7 +94,13 @@ function App() {
       <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
 
       <div style={{ marginBottom: 16 }}>
-        <button type="button" className="primary" onClick={() => void handleSolve()} disabled={resultState.status === "solving"}>
+        <button
+          type="button"
+          className="primary"
+          onClick={() => void handleSolve()}
+          disabled={resultState.status === "solving" || !formState.firstStationBuilding}
+          title={!formState.firstStationBuilding ? "Pick a primary station in System facilities first" : undefined}
+        >
           {resultState.status === "solving" ? "Solving…" : "Solve for a system"}
         </button>
       </div>
@@ -84,6 +111,8 @@ function App() {
         <>
           <ResultsPanel result={resultState.result} />
           <BuildOrderPanel formState={formState} result={resultState.result} />
+          <LinksPanel formState={formState} result={resultState.result} />
+          <PopulationEstimatePanel result={resultState.result} />
         </>
       )}
 

@@ -5,6 +5,7 @@
 import type { JournalSystem } from "../journal/parser";
 
 const STORAGE_KEY = "edcp:journalSystems";
+const LAST_USED_KEY = "edcp:journalSystems:lastUsed";
 
 type SystemStore = Record<number, JournalSystem>; // keyed by systemAddress
 
@@ -36,4 +37,18 @@ export function deleteSystem(systemAddress: number): void {
   const store = readStore();
   delete store[systemAddress];
   writeStore(store);
+}
+
+/** Which system was last applied to the System facilities panel — lets `JournalImportPanel` restore
+ * that system (and, if it has a saved primary station, auto-apply it) on the next page load instead
+ * of always defaulting to whichever saved system sorts first alphabetically. */
+export function getLastUsedSystemAddress(): number | null {
+  const raw = localStorage.getItem(LAST_USED_KEY);
+  if (!raw) return null;
+  const parsed = Number(raw);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function setLastUsedSystemAddress(systemAddress: number): void {
+  localStorage.setItem(LAST_USED_KEY, String(systemAddress));
 }
