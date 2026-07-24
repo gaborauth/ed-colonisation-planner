@@ -252,7 +252,28 @@ describe("solve with per-body placement (input.bodies)", () => {
     expect(placement?.bodyId).toBe(2);
   }, 20000);
 
-  it("assigns the primary station to a body without consuming that body's ordinary slot capacity", async () => {
+  it("reserves one of the primary station's body's orbital slots, leaving the rest for other buildings", async () => {
+    const result = await solve(
+      baseInput({
+        firstStationBuilding: "Coriolis",
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 3, ground: 0, asteroid: 0 } }],
+        objective: { kind: "simple", score: "wealth" },
+        constraints: { atLeast: { Commercial_Outpost: 2 }, atMost: { Commercial_Outpost: 2 } },
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.firstStationBodyId).toBe(1);
+    expect(result.placements).toContainEqual({ building: "Coriolis", bodyId: 1, count: 1 });
+    // Body 1 has 3 orbital slots; 1 is reserved for the Coriolis primary, leaving exactly 2 for
+    // the forced Commercial_Outposts — a 3rd would make this infeasible if the reservation weren't
+    // being enforced.
+    expect(result.placements).toContainEqual({ building: "Commercial_Outpost", bodyId: 1, count: 2 });
+  }, 20000);
+
+  it("is infeasible when the primary station's body has no spare orbital slot for it", async () => {
+    // Body 1's single orbital slot is already fully claimed by a forced Commercial_Outpost, leaving
+    // none for the Coriolis primary's own reservation.
     const result = await solve(
       baseInput({
         firstStationBuilding: "Coriolis",
@@ -262,12 +283,20 @@ describe("solve with per-body placement (input.bodies)", () => {
         constraints: { atLeast: { Commercial_Outpost: 1 }, atMost: { Commercial_Outpost: 1 } },
       }),
     );
-    expect(result.status).toBe("optimal");
-    expect(result.firstStationBodyId).toBe(1);
-    expect(result.placements).toContainEqual({ building: "Coriolis", bodyId: 1, count: 1 });
-    // Body 1's only orbital slot went to the new Commercial_Outpost, proving Coriolis-as-primary
-    // didn't consume it — it has its own dedicated, uncounted slot.
-    expect(result.placements).toContainEqual({ building: "Commercial_Outpost", bodyId: 1, count: 1 });
+    expect(result.status).toBe("infeasible");
+  }, 20000);
+
+  it("rejects a primary station assigned to a body with no orbital slot at all", async () => {
+    const result = await solve(
+      baseInput({
+        firstStationBuilding: "Coriolis",
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 0, ground: 3, asteroid: 0 } }],
+        objective: { kind: "simple", score: "wealth" },
+      }),
+    );
+    expect(result.status).toBe("error");
+    expect(result.message).toMatch(/orbital slot/);
   }, 20000);
 
   it("leaves firstStationBodyId null when not given, even in per-body mode", async () => {

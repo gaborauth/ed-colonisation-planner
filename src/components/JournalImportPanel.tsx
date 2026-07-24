@@ -1,13 +1,24 @@
-import { type Dispatch, useEffect, useState } from "react";
+import { type Dispatch, useEffect, useRef, useState } from "react";
 import { ALL_SLOTS, type SlotKind } from "../data/buildings";
 import { estimateBodySlots } from "../journal/eligibility";
-import { compareBodyNames, parseJournalScans, type JournalBody, type JournalSystem } from "../journal/parser";
+import {
+  compareBodyNames,
+  computeSystemSlotTotals,
+  parseJournalScans,
+  type JournalBody,
+  type JournalSystem,
+} from "../journal/parser";
 import { getLastUsedSystemAddress, listSavedSystems, saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
 import type { PlannerAction } from "../state/plannerState";
 import { NumberInput } from "./NumberInput";
 
 interface JournalImportPanelProps {
   dispatch: Dispatch<PlannerAction>;
+  /** Bumped by App.tsx whenever SystemPortabilityBar's Save/Import writes a system into the shared
+   * localStorage store — this panel loads its own `systems` list once at mount, so it otherwise
+   * never notices a sibling component's write (e.g. importing a JSON file wouldn't update this
+   * panel's slot-count table for that system without this). */
+  refreshToken?: number;
 }
 
 const SLOT_KINDS = Object.keys(ALL_SLOTS) as SlotKind[];
@@ -54,22 +65,7 @@ function mergeBySystemAddress(existing: JournalSystem[], incoming: JournalSystem
   return Array.from(byAddress.values()).sort((a, b) => a.starSystem.localeCompare(b.starSystem));
 }
 
-/** An Asteroid_Base is built on an ordinary orbital slot (see eligibility.ts), so "asteroid-eligible"
- * isn't its own slot pool — it's how many of the system's orbital slots sit on a ringed/belted body
- * and can therefore host one. Per-body `slots.asteroid` is just the yes/no eligibility flag, so this
- * sums that body's *orbital* slots wherever the flag is set, not the flags themselves. */
-function totalSlots(system: JournalSystem): Record<SlotKind, number> {
-  const totals = { ...EMPTY_SLOTS };
-  for (const body of system.bodies) {
-    const slots = body.slots ?? EMPTY_SLOTS;
-    totals.space += slots.space;
-    totals.ground += slots.ground;
-    if (slots.asteroid > 0) totals.asteroid += slots.space;
-  }
-  return totals;
-}
-
-export function JournalImportPanel({ dispatch }: JournalImportPanelProps) {
+export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPanelProps) {
   const [systems, setSystems] = useState<JournalSystem[]>(() => listSavedSystems().map(normalizeSystem));
   const [savedAddresses, setSavedAddresses] = useState<Set<number>>(
     () => new Set(listSavedSystems().map((s) => s.systemAddress)),
@@ -136,13 +132,6 @@ export function JournalImportPanel({ dispatch }: JournalImportPanelProps) {
     setJustSaved(false);
   }
 
-  function persistSelected(): void {
-    if (!selected) return;
-    saveSystem(selected);
-    setSavedAddresses((prev) => new Set(prev).add(selected.systemAddress));
-    setJustSaved(true);
-  }
-
   // Also pushes the full per-body list (not just the summed totals) — this is what switches the
   // solver from aggregate mode into per-body placement mode (see plannerState.ts/solve.ts) — and
   // unlocks the System facilities, which starts locked/greyed until configured one way or another.
@@ -151,7 +140,7 @@ export function JournalImportPanel({ dispatch }: JournalImportPanelProps) {
     dispatch({
       type: "patch",
       patch: {
-        slots: totalSlots(system),
+        slots: computeSystemSlotTotals(system),
         bodies: system.bodies,
         systemConfigured: true,
         systemAddress: system.systemAddress,
@@ -196,11 +185,29 @@ export function JournalImportPanel({ dispatch }: JournalImportPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally mount-only
   }, []);
 
-  function handleSaveSystem(): void {
-    persistSelected();
-  }
+  // Re-reads the saved-systems store whenever `refreshToken` changes (see the prop's doc comment)
+  // — SystemPortabilityBar's Save/Import write straight to localStorage, bypassing this panel's own
+  // `systems` state entirely, so without this its slot-count table would keep showing stale data
+  // (or miss a freshly-imported system) until a full page reload. Skips the very first run: the
+  // initial `useState` calls above already loaded the store once at mount.
+  const isFirstRefresh = useRef(true);
+  useEffect(() => {
+    if (isFirstRefresh.current) {
+      isFirstRefresh.current = false;
+      return;
+    }
+    const saved = listSavedSystems().map(normalizeSystem);
+    setSystems(saved);
+    setSavedAddresses(new Set(saved.map((s) => s.systemAddress)));
+    const lastUsedAddress = getLastUsedSystemAddress();
+    if (lastUsedAddress !== null && saved.some((s) => s.systemAddress === lastUsedAddress)) {
+      setSelectedAddress(lastUsedAddress);
+    }
+    setApplied(true);
+    setJustSaved(true);
+  }, [refreshToken]);
 
-  const totals = selected ? totalSlots(selected) : null;
+  const totals = selected ? computeSystemSlotTotals(selected) : null;
 
   return (
     <section className="panel">
@@ -261,17 +268,14 @@ export function JournalImportPanel({ dispatch }: JournalImportPanelProps) {
                     ))}
                   </select>
                 </div>
-                <button type="button" onClick={handleSaveSystem} disabled={!selected}>
-                  Save system
-                </button>
-                <button type="button" onClick={resetToGuess} disabled={!selected}>
-                  Reset slots to guess
-                </button>
                 {justSaved && (
                   <span style={{ color: "var(--success)" }}>
                     Saved — will still be here after a reload, no re-upload needed
                   </span>
                 )}
+                <button type="button" onClick={resetToGuess} disabled={!selected} style={{ marginLeft: "auto" }}>
+                  Reset slots to guess
+                </button>
               </div>
 
               {selected && (

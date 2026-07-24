@@ -333,6 +333,20 @@ tbody tr:hover {
   align-items: flex-end;
 }
 
+/* SystemPortabilityBar's Save/Export/Import row — pinned to the viewport top so it stays reachable
+ * while the title (and everything below it) scrolls underneath. Bleeds out to #root's own padding
+ * (negative margin + matching padding) so the opaque background spans full-bleed under the sticky
+ * strip instead of leaving the page's edge padding transparent while scrolled. */
+.sticky-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  margin: 0 -20px 16px;
+  padding: 12px 20px;
+  background: var(--bg);
+  border-bottom: 1px solid var(--border);
+}
+
 .field {
   display: flex;
   flex-direction: column;
@@ -431,6 +445,21 @@ tbody tr:hover {
   font-size: 12px;
   color: var(--text-dim);
   min-width: 84px;
+}
+
+/* A fixed width (rather than each select's own content-driven default) so the primary station's
+ * slot — a disabled select with a single option — matches the width of an ordinary facility slot's
+ * select, which has the whole category's option list to size against. */
+.facility-tree-slot select {
+  width: 220px;
+}
+
+.facility-tree-slot-primary {
+  border-left-color: var(--accent);
+}
+
+.primary-badge {
+  color: var(--accent-text);
 }
 
 .facility-tree-demolish {
