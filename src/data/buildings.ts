@@ -171,14 +171,26 @@ export function isPort(building: Building): boolean {
   return building.T2points === "port" || building.T3points === "port";
 }
 
-/** T2 cost of the (nbPreviousPorts+1)-th orbital/planetary port built system-wide. */
+/** T2 cost of the (nbPreviousPorts+1)-th Tier-2-cost port (Coriolis/Asteroid_Base) built
+ * system-wide: 3, 5, 7, 9, ... — confirmed against a real in-game system's already-built T2/T3
+ * balance (see presentFacilities.ts's `computePresentPortsSeed`). Previously coded as
+ * `max(3, 2n+1)` (3, 3, 5, 7, 9, ...), which undercounts every port after the first — a real bug,
+ * not a recalibration of a flagged guess (this file's other placeholders are marked as such; this
+ * one wasn't, and should have been caught sooner). `nbPreviousPorts` must count only OTHER
+ * Tier-2-cost ports, never the primary/claim station (which is exempt from this cost entirely —
+ * see solve.ts's `initialT2Points`) and never a Tier-3-cost port (Orbis/Ocellus/Dodecahedron/
+ * Planetary_Port have their own separate sequence via `getT3PortCost`, not a shared counter). */
 export function getT2PortCost(nbPreviousPorts: number): number {
-  return Math.max(3, 2 * nbPreviousPorts + 1);
+  return 3 + 2 * nbPreviousPorts;
 }
 
-/** T3 cost of the (nbPreviousPorts+1)-th orbital/planetary port built system-wide. */
+/** T3 cost of the (nbPreviousPorts+1)-th Tier-3-cost port (Orbis_or_Ocellus/Dodecahedron/
+ * Planetary_Port) built system-wide: 6, 12, 18, 24, ... — same confirmation/correction as
+ * `getT2PortCost` above (previously `max(6, 6n)`, i.e. 6, 6, 12, 18, ..., undercounting every port
+ * after the first). `nbPreviousPorts` counts only OTHER Tier-3-cost ports — never the primary
+ * station, and never a Tier-2-cost port (separate sequence, not shared). */
 export function getT3PortCost(nbPreviousPorts: number): number {
-  return Math.max(6, 6 * nbPreviousPorts);
+  return 6 * (nbPreviousPorts + 1);
 }
 
 /** system_score_(beta), per the DaftMav "Colonization Construction" spreadsheet. */
@@ -247,6 +259,95 @@ export const ALL_CATEGORIES: Record<string, string[]> = {
   "Medium Settlement": names((n) => n.endsWith("Settlement") && n.startsWith("Medium")),
   "Large Settlement": names((n) => n.endsWith("Settlement") && n.startsWith("Large")),
 };
+
+/** Purely cosmetic real-world design/name variants for every building type, sourced verbatim from
+ * DaftMav's "Colonization Construction v3" spreadsheet's "Lists" tab (v3.4.1) — the same list that
+ * drives that sheet's own "Layout Variant" dropdown. These are named layouts observed in-game (e.g.
+ * Coriolis's "No Truss"/"Dual Truss"/"Quad Truss" hull variants, or a Scientific Outpost's single
+ * observed name "Prometheus"); they have identical stats/costs/dependencies to their building type
+ * (this app's `ALL_BUILDINGS` — and the source spreadsheet's own "Stats" tab — track only one row
+ * per building type, never per-variant), so this table exists purely for the System facilities
+ * panel's "what does this actually look like" dropdown, never consumed by the solver. The sheet's
+ * "(Primary)"/"(P)" suffixed duplicate rows (the same named layouts, listed again for when that
+ * building is the system's primary/claim station) and settlement rows' "(S)/(M)/(L)" landing-pad-
+ * size annotations are both stripped here — this table only tracks the name, not those orthogonal
+ * distinctions. `Orbis_or_Ocellus` merges two distinct real station types that share one stats row
+ * (see the row comment above): "Ocellus" has one named layout, "Orbis" has two ("Apollo"/"Artemis"),
+ * both listed with an "Orbis (...)" prefix so the merge is visible in the dropdown. The sheet's
+ * "Surface - Settlement - Research Bio" rows map to this app's Scientific Settlement buildings —
+ * "Research Bio" is the game's own name for that settlement economy (confirmed: the sheet has no
+ * separate "Scientific" settlement rows at all), not a substitution this app introduced. */
+export const BUILDING_VARIANTS: Record<string, string[]> = {
+  Coriolis: ["No Truss", "Dual Truss", "Quad Truss"],
+  Asteroid_Base: ["Ice", "Metal", "Rock"],
+  Orbis_or_Ocellus: ["Ocellus", "Orbis (Apollo)", "Orbis (Artemis)"],
+  Dodecahedron: ["No Truss Dodo", "Quint Truss", "Dec Truss"],
+
+  Commercial_Outpost: ["Plutus"],
+  Industrial_Outpost: ["Vulcan"],
+  Criminal_Outpost: ["Dysnomia"],
+  Civilian_Outpost: ["Vesta"],
+  Scientific_Outpost: ["Prometheus"],
+  Military_Outpost: ["Nemesis"],
+
+  Satellite: ["Hermes", "Angelia", "Eirene"],
+  Communication_Station: ["Pistis", "Soter", "Aletheia"],
+  Space_Farm: ["Demeter"],
+  Pirate_Base: ["Apate", "Laverna"],
+  Mining_Outpost: ["Euthenia", "Phorcys"],
+  Relay_Station: ["Enodia", "Ichnaea"],
+
+  Military: ["Vacuna", "Alastor"],
+  Security_Station: ["Dicaeosyne", "Poena", "Eunomia", "Nomos"],
+  Government: ["Harmonia"],
+  Medical: ["Asclepius", "Eupraxia"],
+  Research_Station: ["Astraeus", "Coeus", "Dodona", "Dione"],
+  Tourist: ["Hedone", "Opora", "Pasithea"],
+  Space_Bar: ["Dionysus", "Bacchus"],
+
+  Civilian_Planetary_Outpost: ["Hestia", "Decima", "Atropos", "Nona", "Lachesis", "Clotho"],
+  Industrial_Planetary_Outpost: ["Hephaestus", "Opis", "Ponos", "Tethys", "Bia", "Mefitis"],
+  Scientific_Planetary_Outpost: ["Necessitas", "Ananke", "Fauna", "Providentia", "Antevorta", "Porrima"],
+  Planetary_Port: ["Zeus", "Hera", "Poseidon", "Aphrodite"],
+
+  Extraction_Hub: ["Tartarus"],
+  Civilian_Hub: ["Aegle"],
+  Exploration_Hub: ["Tellus A"],
+  Outpost_Hub: ["Io"],
+  Scientific_Hub: ["Athena", "Caelus"],
+  Military_Hub: ["Alala", "Ares"],
+  Refinery_Hub: ["Silenus"],
+  High_Tech_Hub: ["Janus"],
+  Industrial_Hub: ["Molae", "Tellus B", "Eunostus"],
+
+  Small_Agricultural_Settlement: ["Consus"],
+  Medium_Agricultural_Settlement: ["Picumnus", "Annona"],
+  Large_Agricultural_Settlement: ["Ceres", "Fornax"],
+
+  Small_Extraction_Settlement: ["Ourea"],
+  Medium_Extraction_Settlement: ["Mantus", "Orcus"],
+  Large_Extraction_Settlement: ["Erebus", "Aerecura"],
+
+  Small_Industrial_Settlement: ["Fontus"],
+  Medium_Industrial_Settlement: ["Meteope", "Palici", "Minthe"],
+  Large_Industrial_Settlement: ["Gaea"],
+
+  Small_Military_Settlement: ["Ioke"],
+  Medium_Military_Settlement: ["Bellona", "Enyo", "Polemos"],
+  Large_Military_Settlement: ["Minerva"],
+
+  Small_Scientific_Settlement: ["Pheobe"],
+  Medium_Scientific_Settlement: ["Asteria", "Caerus"],
+  Large_Scientific_Settlement: ["Chronos"],
+
+  Small_Tourism_Settlement: ["Aergia"],
+  Medium_Tourism_Settlement: ["Comos", "Gelos"],
+  Large_Tourism_Settlement: ["Fufluns"],
+};
+
+export function getBuildingVariants(name: string): string[] | undefined {
+  return BUILDING_VARIANTS[name];
+}
 
 // --- Update 3 (May 2025) link/economy topology ------------------------------------------------
 // Sourced from official Frontier patch notes (2025-04-27 "Update 3", 2025-06-04 Station Services

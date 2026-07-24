@@ -1,10 +1,10 @@
 import type { Dispatch } from "react";
-import { ALL_CATEGORIES, isPort, ALL_BUILDINGS, toPrintable } from "../data/buildings";
+import { ALL_CATEGORIES, isPort, ALL_BUILDINGS, toPrintable, getBuildingVariants } from "../data/buildings";
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
-import { normalizeFacilitySlots, type PresentFacilitySlot } from "../domain/presentFacilities";
+import { deriveSlotUsage, normalizeFacilitySlots, toSlotUsageBodies, type PresentFacilitySlot } from "../domain/presentFacilities";
 import { compareBodyNames, type JournalBody } from "../journal/parser";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
-import { NumberInput } from "./NumberInput";
+import { SlotBar } from "./SlotBar";
 
 interface SystemConfigPanelProps {
   formState: PlannerFormState;
@@ -16,17 +16,93 @@ const SLOT_KINDS: { kind: "space" | "ground"; label: string; category: string }[
   { kind: "ground", label: "Ground", category: "Ground" },
 ];
 
+interface PrimaryStationFieldsProps {
+  firstStationBuilding: string;
+  firstStationVariant: string | undefined;
+  firstStationCustomName: string | undefined;
+  locked: boolean;
+  dispatch: Dispatch<PlannerAction>;
+}
+
+/** The same design-variant `<select>` + nickname `<input>` pair `BodySlotLeaves` renders for an
+ * ordinary already-built facility (see there), reused here for the primary station — its building
+ * type is fixed/disabled (chosen via the "Primary station" field above, not editable in the tree),
+ * but the cosmetic variant/nickname fields are still freely editable. Shared by both
+ * `PrimaryStationLeaf` (unassigned) and `PrimaryStationSlotLeaf` (assigned to a body) below so the
+ * two don't duplicate this markup. */
+function PrimaryStationFields({
+  firstStationBuilding,
+  firstStationVariant,
+  firstStationCustomName,
+  locked,
+  dispatch,
+}: PrimaryStationFieldsProps) {
+  const variants = getBuildingVariants(firstStationBuilding);
+  return (
+    <>
+      {variants && (
+        <select
+          className="facility-tree-variant"
+          aria-label="Primary station design variant"
+          value={firstStationVariant ?? (variants.length === 1 ? variants[0] : "")}
+          disabled={locked || variants.length === 1}
+          onChange={(e) =>
+            dispatch({
+              type: "patch",
+              patch: { firstStationVariant: e.target.value === "" ? undefined : e.target.value },
+            })
+          }
+        >
+          {variants.length > 1 && <option value="">— design —</option>}
+          {variants.map((v) => (
+            <option key={v} value={v}>
+              {v}
+            </option>
+          ))}
+        </select>
+      )}
+      <input
+        type="text"
+        className="facility-tree-name"
+        aria-label="Primary station nickname"
+        placeholder="Nickname (optional)"
+        value={firstStationCustomName ?? ""}
+        disabled={locked}
+        onChange={(e) =>
+          dispatch({
+            type: "patch",
+            patch: { firstStationCustomName: e.target.value === "" ? undefined : e.target.value },
+          })
+        }
+      />
+    </>
+  );
+}
+
 /** The primary station shown as an immutable leaf, used only while it's picked but not yet
  * assigned to a body — once assigned, it occupies that body's first orbital slot instead (see
  * `BodySlotLeaves`'s `PrimaryStationSlotLeaf` below), consistent with it now actually consuming
  * real orbital capacity rather than floating in its own dedicated slot. */
-function PrimaryStationLeaf({ firstStationBuilding }: { firstStationBuilding: string }) {
+function PrimaryStationLeaf({
+  firstStationBuilding,
+  firstStationVariant,
+  firstStationCustomName,
+  locked,
+  dispatch,
+}: PrimaryStationFieldsProps) {
   return (
     <div className="facility-tree-slot">
       <span className="facility-tree-slot-label">Primary station</span>
       <select aria-label="Primary station (set above)" value={firstStationBuilding} disabled>
         <option value={firstStationBuilding}>{toPrintable(firstStationBuilding)}</option>
       </select>
+      <PrimaryStationFields
+        firstStationBuilding={firstStationBuilding}
+        firstStationVariant={firstStationVariant}
+        firstStationCustomName={firstStationCustomName}
+        locked={locked}
+        dispatch={dispatch}
+      />
     </div>
   );
 }
@@ -36,7 +112,14 @@ function PrimaryStationLeaf({ firstStationBuilding }: { firstStationBuilding: st
  * a regular already-built facility. Physically slot "Orbital 1"; the solver reserves it (see
  * `solve.ts`'s `firstStationReservation`), so `BodySlotLeaves` never offers it for editing and
  * ordinary orbital slots on this body start numbering from 2. */
-function PrimaryStationSlotLeaf({ label, firstStationBuilding }: { label: string; firstStationBuilding: string }) {
+function PrimaryStationSlotLeaf({
+  label,
+  firstStationBuilding,
+  firstStationVariant,
+  firstStationCustomName,
+  locked,
+  dispatch,
+}: PrimaryStationFieldsProps & { label: string }) {
   return (
     <div className="facility-tree-slot facility-tree-slot-primary">
       <span className="facility-tree-slot-label">
@@ -45,6 +128,13 @@ function PrimaryStationSlotLeaf({ label, firstStationBuilding }: { label: string
       <select aria-label={`Primary station (${label} 1, set above)`} value={firstStationBuilding} disabled>
         <option value={firstStationBuilding}>{toPrintable(firstStationBuilding)}</option>
       </select>
+      <PrimaryStationFields
+        firstStationBuilding={firstStationBuilding}
+        firstStationVariant={firstStationVariant}
+        firstStationCustomName={firstStationCustomName}
+        locked={locked}
+        dispatch={dispatch}
+      />
       <span className="primary-badge" aria-hidden="true" title="Primary/claim station">
         ★
       </span>
@@ -61,6 +151,8 @@ interface BodySlotLeavesProps {
    * editable slot. */
   isFirstStationBody: boolean;
   firstStationBuilding: string;
+  firstStationVariant: string | undefined;
+  firstStationCustomName: string | undefined;
 }
 
 /** A scanned body's own leaves: one per physical orbital/ground slot, each a dropdown for what's
@@ -68,7 +160,15 @@ interface BodySlotLeavesProps {
  * once a facility is picked (hidden entirely for an empty slot — nothing to demolish). Ports are
  * never demolishable in this app (see domain/presentFacilities.ts's header) — the checkbox is
  * shown but disabled for them so the user understands why, rather than silently doing nothing. */
-function BodySlotLeaves({ body, locked, dispatch, isFirstStationBody, firstStationBuilding }: BodySlotLeavesProps) {
+function BodySlotLeaves({
+  body,
+  locked,
+  dispatch,
+  isFirstStationBody,
+  firstStationBuilding,
+  firstStationVariant,
+  firstStationCustomName,
+}: BodySlotLeavesProps) {
   function setSlot(kind: "space" | "ground", index: number, slot: PresentFacilitySlot | null): void {
     dispatch({ type: "setFacilitySlot", bodyId: body.bodyId, kind, index, slot });
   }
@@ -89,6 +189,7 @@ function BodySlotLeaves({ body, locked, dispatch, isFirstStationBody, firstStati
           const index = reserveFirstForPrimary ? i + 1 : i;
           const building = slot ? ALL_BUILDINGS[slot.building] : undefined;
           const buildingIsPort = building ? isPort(building) : false;
+          const variants = slot ? getBuildingVariants(slot.building) : undefined;
           return (
             <div className="facility-tree-slot" key={`${kind}-${index}`}>
               <span className="facility-tree-slot-label">
@@ -100,7 +201,20 @@ function BodySlotLeaves({ body, locked, dispatch, isFirstStationBody, firstStati
                 disabled={locked}
                 onChange={(e) => {
                   const value = e.target.value;
-                  setSlot(kind, index, value === "" ? null : { building: value, demolishable: slot?.demolishable ?? false });
+                  if (value === "") {
+                    setSlot(kind, index, null);
+                    return;
+                  }
+                  // Auto-pick the single option when the newly-selected building has only one
+                  // known design variant (see `variants` below) — nothing else to choose from, so
+                  // don't make the user open a second dropdown just to confirm it.
+                  const newVariants = getBuildingVariants(value);
+                  setSlot(kind, index, {
+                    building: value,
+                    demolishable: slot?.demolishable ?? false,
+                    customName: slot?.customName,
+                    variant: newVariants?.length === 1 ? newVariants[0] : undefined,
+                  });
                 }}
               >
                 <option value="">— empty —</option>
@@ -110,6 +224,36 @@ function BodySlotLeaves({ body, locked, dispatch, isFirstStationBody, firstStati
                   </option>
                 ))}
               </select>
+              {slot && variants && (
+                <select
+                  className="facility-tree-variant"
+                  aria-label={`${body.bodyName} ${label} slot ${index + 1} design variant`}
+                  // Falls back to the single option when there's only one — covers data saved
+                  // before this auto-pick existed (see the facility select's onChange above),
+                  // not just freshly-picked buildings.
+                  value={slot.variant ?? (variants.length === 1 ? variants[0] : "")}
+                  disabled={locked || variants.length === 1}
+                  onChange={(e) => setSlot(kind, index, { ...slot, variant: e.target.value === "" ? undefined : e.target.value })}
+                >
+                  {variants.length > 1 && <option value="">— design —</option>}
+                  {variants.map((v) => (
+                    <option key={v} value={v}>
+                      {v}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {slot && (
+                <input
+                  type="text"
+                  className="facility-tree-name"
+                  aria-label={`${body.bodyName} ${label} slot ${index + 1} nickname`}
+                  placeholder="Nickname (optional)"
+                  value={slot.customName ?? ""}
+                  disabled={locked}
+                  onChange={(e) => setSlot(kind, index, { ...slot, customName: e.target.value === "" ? undefined : e.target.value })}
+                />
+              )}
               {slot && (
                 <label
                   className="facility-tree-demolish"
@@ -120,7 +264,7 @@ function BodySlotLeaves({ body, locked, dispatch, isFirstStationBody, firstStati
                     aria-label={`${body.bodyName} ${label} slot ${index + 1} demolishable`}
                     checked={slot.demolishable}
                     disabled={locked || buildingIsPort}
-                    onChange={(e) => setSlot(kind, index, { building: slot.building, demolishable: e.target.checked })}
+                    onChange={(e) => setSlot(kind, index, { ...slot, demolishable: e.target.checked })}
                   />
                   Demolishable
                 </label>
@@ -130,7 +274,15 @@ function BodySlotLeaves({ body, locked, dispatch, isFirstStationBody, firstStati
         });
         if (reserveFirstForPrimary) {
           leaves.unshift(
-            <PrimaryStationSlotLeaf key={`${kind}-primary`} label={label} firstStationBuilding={firstStationBuilding} />,
+            <PrimaryStationSlotLeaf
+              key={`${kind}-primary`}
+              label={label}
+              firstStationBuilding={firstStationBuilding}
+              firstStationVariant={firstStationVariant}
+              firstStationCustomName={firstStationCustomName}
+              locked={locked}
+              dispatch={dispatch}
+            />,
           );
         }
         return leaves;
@@ -144,6 +296,8 @@ interface HierarchyBranchProps {
   starSystem: string;
   firstStationBodyId: number | undefined;
   firstStationBuilding: string;
+  firstStationVariant: string | undefined;
+  firstStationCustomName: string | undefined;
   locked: boolean;
   dispatch: Dispatch<PlannerAction>;
 }
@@ -155,7 +309,16 @@ interface HierarchyBranchProps {
  * (with the system name prefix, e.g. "Swoilz AW-C d52 B 10 e a") rather than just the trailing
  * "e"/"a"-style segment — a scanned body's own name is used verbatim; a synthetic (never scanned)
  * node's full name is reconstructed from the system name + its cumulative path. */
-function HierarchyBranch({ node, starSystem, firstStationBodyId, firstStationBuilding, locked, dispatch }: HierarchyBranchProps) {
+function HierarchyBranch({
+  node,
+  starSystem,
+  firstStationBodyId,
+  firstStationBuilding,
+  firstStationVariant,
+  firstStationCustomName,
+  locked,
+  dispatch,
+}: HierarchyBranchProps) {
   const isFirstStationBody = node.body?.bodyId === firstStationBodyId;
   const fullName = node.body?.bodyName ?? `${starSystem} ${node.path}`;
   return (
@@ -168,6 +331,8 @@ function HierarchyBranch({ node, starSystem, firstStationBodyId, firstStationBui
           dispatch={dispatch}
           isFirstStationBody={isFirstStationBody}
           firstStationBuilding={firstStationBuilding}
+          firstStationVariant={firstStationVariant}
+          firstStationCustomName={firstStationCustomName}
         />
       )}
       {node.children.map((child) => (
@@ -177,6 +342,8 @@ function HierarchyBranch({ node, starSystem, firstStationBodyId, firstStationBui
           starSystem={starSystem}
           firstStationBodyId={firstStationBodyId}
           firstStationBuilding={firstStationBuilding}
+          firstStationVariant={firstStationVariant}
+          firstStationCustomName={firstStationCustomName}
           locked={locked}
           dispatch={dispatch}
         />
@@ -219,41 +386,45 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
 
   const hierarchyRoot = hasBodies ? buildBodyHierarchy(formState.starSystem, formState.bodies) : null;
 
+  // Built/free counts derived from the manually-filled facilities tree below (not editable here —
+  // these are a read-only summary of it). Asteroid-eligible slots are a subset of orbital slots
+  // (an ordinary orbital slot on a ring-eligible body), not a separate pool — see
+  // `deriveSlotUsage`'s doc comment — so they're shown nested under "Orbital slots" rather than as
+  // a third sibling field.
+  const slotUsageBodies = toSlotUsageBodies(formState.bodies);
+  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots, formState.firstStationBodyId);
+
   return (
     <section id="system-panel" className={`panel${locked ? " panel-unconfigured" : ""}`}>
       <div className="panel-header">
-        <h2>System facilities</h2>
+        <h2>Actual facilities in the system</h2>
       </div>
       <div className="row-grid">
         <div className="field">
-          <label htmlFor="slot-space">Orbital slots</label>
-          <NumberInput
-            id="slot-space"
-            value={formState.slots.space}
-            blankMeans="zero"
-            disabled
-            onChange={() => {}}
-          />
+          <label>Orbital slots</label>
+          <div className="slot-usage">
+            <div className="slot-usage-main">
+              <SlotBar built={slotUsage.space.built} total={slotUsage.space.total} />
+              {slotUsage.space.built} built / {slotUsage.space.free} free
+              <span className="slot-usage-total"> of {slotUsage.space.total}</span>
+            </div>
+            <div className="slot-usage-sub">
+              <SlotBar built={slotUsage.asteroidEligibleSpace.built} total={slotUsage.asteroidEligibleSpace.total} />
+              ↳ Asteroid-eligible: {slotUsage.asteroidEligibleSpace.built} built /{" "}
+              {slotUsage.asteroidEligibleSpace.free} free
+              <span className="slot-usage-total"> of {slotUsage.asteroidEligibleSpace.total}</span>
+            </div>
+          </div>
         </div>
         <div className="field">
-          <label htmlFor="slot-ground">Ground slots</label>
-          <NumberInput
-            id="slot-ground"
-            value={formState.slots.ground}
-            blankMeans="zero"
-            disabled
-            onChange={() => {}}
-          />
-        </div>
-        <div className="field">
-          <label htmlFor="slot-asteroid">Asteroid slots</label>
-          <NumberInput
-            id="slot-asteroid"
-            value={formState.slots.asteroid}
-            blankMeans="zero"
-            disabled
-            onChange={() => {}}
-          />
+          <label>Ground slots</label>
+          <div className="slot-usage">
+            <div className="slot-usage-main">
+              <SlotBar built={slotUsage.ground.built} total={slotUsage.ground.total} />
+              {slotUsage.ground.built} built / {slotUsage.ground.free} free
+              <span className="slot-usage-total"> of {slotUsage.ground.total}</span>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -265,7 +436,19 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
             aria-required="true"
             value={formState.firstStationBuilding}
             disabled={locked}
-            onChange={(e) => dispatch({ type: "patch", patch: { firstStationBuilding: e.target.value } })}
+            onChange={(e) => {
+              const building = e.target.value;
+              // Auto-pick the single option when the newly-chosen building has only one known
+              // design variant — same reasoning as the ordinary facility-slot picker above.
+              const newVariants = getBuildingVariants(building);
+              dispatch({
+                type: "patch",
+                patch: {
+                  firstStationBuilding: building,
+                  firstStationVariant: newVariants?.length === 1 ? newVariants[0] : undefined,
+                },
+              });
+            }}
           >
             <option value="">— select —</option>
             {ALL_CATEGORIES["First Station"].map((name) => {
@@ -307,7 +490,15 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
       {hierarchyRoot && (
         <div className="facility-tree">
           <div className="facility-tree-root">{formState.starSystem || "System"}</div>
-          {primaryStationUnassigned && <PrimaryStationLeaf firstStationBuilding={formState.firstStationBuilding} />}
+          {primaryStationUnassigned && (
+            <PrimaryStationLeaf
+              firstStationBuilding={formState.firstStationBuilding}
+              firstStationVariant={formState.firstStationVariant}
+              firstStationCustomName={formState.firstStationCustomName}
+              locked={locked}
+              dispatch={dispatch}
+            />
+          )}
           {hierarchyRoot.body && (
             <div className="facility-tree-body">
               <BodySlotLeaves
@@ -316,6 +507,8 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
                 dispatch={dispatch}
                 isFirstStationBody={formState.firstStationBodyId === hierarchyRoot.body.bodyId}
                 firstStationBuilding={formState.firstStationBuilding}
+                firstStationVariant={formState.firstStationVariant}
+                firstStationCustomName={formState.firstStationCustomName}
               />
             </div>
           )}
@@ -326,6 +519,8 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
               starSystem={formState.starSystem}
               firstStationBodyId={formState.firstStationBodyId}
               firstStationBuilding={formState.firstStationBuilding}
+              firstStationVariant={formState.firstStationVariant}
+              firstStationCustomName={formState.firstStationCustomName}
               locked={locked}
               dispatch={dispatch}
             />

@@ -120,12 +120,16 @@ describe("Update 3 link-topology classification", () => {
 });
 
 describe("escalating port construction-point cost", () => {
-  it("matches the FDEV-confirmed T2 curve: 3,3,5,7,9...", () => {
-    expect([0, 1, 2, 3, 4].map(getT2PortCost)).toEqual([3, 3, 5, 7, 9]);
+  // Corrected 2026-07-24: this used to assert [3,3,5,7,9]/[6,6,12,18,24] (a `max(3,2n+1)`/
+  // `max(6,6n)` formula) — a real bug, confirmed against a real in-game system's already-built
+  // T2/T3 balance (see presentFacilities.test.ts's `computePresentPortsSeed` tests). The correct
+  // curve never repeats its first value.
+  it("matches the confirmed T2 curve: 3,5,7,9,11...", () => {
+    expect([0, 1, 2, 3, 4].map(getT2PortCost)).toEqual([3, 5, 7, 9, 11]);
   });
 
-  it("matches the FDEV-confirmed T3 curve: 6,6,12,18,24...", () => {
-    expect([0, 1, 2, 3, 4].map(getT3PortCost)).toEqual([6, 6, 12, 18, 24]);
+  it("matches the confirmed T3 curve: 6,12,18,24,30...", () => {
+    expect([0, 1, 2, 3, 4].map(getT3PortCost)).toEqual([6, 12, 18, 24, 30]);
   });
 });
 

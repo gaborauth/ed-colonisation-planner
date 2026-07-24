@@ -20,6 +20,7 @@
   --danger: #ff5c5c;
   --danger-dim: rgba(255, 92, 92, 0.12);
   --success: #6fcf97;
+  --tier2-yellow: #ffd43b;
 
   --text: #e7e6e2;
   --text-dim: #8b93a1;
@@ -347,10 +348,137 @@ tbody tr:hover {
   border-bottom: 1px solid var(--border);
 }
 
+/* System name + slot/T2/T3 summary, right-aligned in the sticky toolbar's row alongside the
+ * Save/Export/Import buttons — `margin-left: auto` pushes it to the far end while there's room;
+ * `.row-grid`'s own `flex-wrap` drops it to its own line on narrow viewports. */
+.toolbar-summary {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-left: auto;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.toolbar-summary-system {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  color: var(--accent-text);
+}
+
+.toolbar-summary-item {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
 .field {
   display: flex;
   flex-direction: column;
   gap: 3px;
+}
+
+/* Built/free slot summary in "Actual facilities in the system" (SystemConfigPanel) — read-only,
+ * derived from the manually-filled facilities tree below it (see domain/presentFacilities.ts's
+ * `deriveSlotUsage`), not an editable field like the old plain slot-count inputs it replaced. */
+.slot-usage {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  color: var(--text);
+}
+
+.slot-usage-main,
+.slot-usage-sub {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.slot-usage-total {
+  color: var(--text-faint);
+}
+
+/* The asteroid-eligible line — a subset of the orbital total above it (not a separate slot pool),
+ * so it's visually indented/dimmed rather than given equal weight as its own field. */
+.slot-usage-sub {
+  margin-left: 14px;
+  padding-left: 8px;
+  border-left: 1px solid var(--border-bright);
+  font-size: 12px;
+  color: var(--text-dim);
+}
+
+/* Built (colored fill) vs free (dim remainder) proportion of a slot pool's total — see
+ * components/SlotBar.tsx. Sized small/inline so it reads as an accent next to the built/free
+ * numbers, not a standalone chart. */
+.slot-bar {
+  position: relative;
+  display: inline-block;
+  width: 56px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.slot-bar-fill {
+  display: block;
+  height: 100%;
+  background: var(--accent);
+}
+
+/* No free capacity left in this pool — same "watch out" language as .stat-tile's negative values. */
+.slot-bar-full .slot-bar-fill {
+  background: var(--danger);
+}
+
+/* T2/T3 marker, styled after the game's own icons — see components/TierIcon.tsx. */
+.tier-icon {
+  display: inline-grid;
+  vertical-align: middle;
+}
+
+.tier-icon-box {
+  width: 6px;
+  height: 6px;
+  border-radius: 1px;
+}
+
+/* Tier 2: two yellow boxes stacked vertically. */
+.tier-icon-2 {
+  grid-template-columns: 6px;
+  grid-template-rows: repeat(2, 6px);
+  gap: 2px;
+}
+
+.tier-icon-2 .tier-icon-box {
+  background: var(--tier2-yellow);
+}
+
+/* Tier 3: three green boxes in a triangle — one centered on top, two side by side underneath. */
+.tier-icon-3 {
+  grid-template-columns: repeat(2, 6px);
+  grid-template-rows: repeat(2, 6px);
+  gap: 2px;
+  justify-content: center;
+}
+
+.tier-icon-3 .tier-icon-box {
+  background: var(--success);
+}
+
+.tier-icon-3 .tier-icon-box:first-child {
+  grid-column: 1 / span 2;
+  justify-self: center;
 }
 
 .status-banner {
@@ -449,9 +577,14 @@ tbody tr:hover {
 
 /* A fixed width (rather than each select's own content-driven default) so the primary station's
  * slot — a disabled select with a single option — matches the width of an ordinary facility slot's
- * select, which has the whole category's option list to size against. */
+ * select, which has the whole category's option list to size against. Wide enough for the longest
+ * building name ("Small/Medium/Large Agricultural Settlement", "Industrial/Scientific Planetary
+ * Outpost") without truncating. Extra right padding (beyond the global `input, select` 6px) so the
+ * browser's native dropdown-arrow icon doesn't overlap the last couple characters of a name that
+ * fills the full width — the global rule's uniform padding otherwise leaves no room for it. */
 .facility-tree-slot select {
-  width: 220px;
+  width: 300px;
+  padding-right: 22px;
 }
 
 .facility-tree-slot-primary {
@@ -460,6 +593,15 @@ tbody tr:hover {
 
 .primary-badge {
   color: var(--accent-text);
+}
+
+.facility-tree-slot select.facility-tree-variant {
+  width: 150px;
+}
+
+.facility-tree-name {
+  width: 160px;
+  font-size: 12px;
 }
 
 .facility-tree-demolish {

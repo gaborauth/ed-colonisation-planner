@@ -27,7 +27,7 @@ export function LinksPanel({ formState, result }: LinksPanelProps) {
       <h2>Links &amp; economy (Update 3)</h2>
       {formState.bodies.length === 0 && (
         <p style={{ fontSize: 12, color: "var(--text-dim)" }}>
-          Import a journal and click "Apply slots and body layout to System facilities" to see per-body
+          Import a journal and click "Apply slots and body layout to Actual facilities in the system" to see per-body
           links, economy types, and station services here — this needs a per-body layout, not just
           aggregate slot counts.
         </p>

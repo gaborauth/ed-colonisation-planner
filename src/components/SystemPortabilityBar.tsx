@@ -1,7 +1,10 @@
 import { type Dispatch, useRef, useState } from "react";
+import { deriveCurrentPoints, deriveSlotUsage, toSlotUsageBodies } from "../domain/presentFacilities";
 import { computeSystemSlotTotals, type JournalSystem } from "../journal/parser";
 import { saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
+import { SlotBar } from "./SlotBar";
+import { TierIcon } from "./TierIcon";
 
 interface SystemPortabilityBarProps {
   formState: PlannerFormState;
@@ -32,7 +35,20 @@ function systemFromFormState(formState: PlannerFormState): JournalSystem | null 
     bodies: formState.bodies,
     firstStationBuilding: formState.firstStationBuilding || undefined,
     firstStationBodyId: formState.firstStationBodyId,
+    firstStationVariant: formState.firstStationVariant,
+    firstStationCustomName: formState.firstStationCustomName,
   };
+}
+
+/** Local-time "yyyymmdd-hhmm" stamp for the export filename, so re-exporting the same system later
+ * doesn't silently overwrite an earlier download (browsers dedupe same-name downloads with a
+ * "(1)" suffix, but a timestamp makes each export's recency obvious without opening it). */
+function timestampForFilename(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
+    `-${pad(date.getHours())}${pad(date.getMinutes())}`
+  );
 }
 
 /** Save/Export/Import for a single system's full configuration — raw journal scan data, per-body
@@ -54,6 +70,13 @@ export function SystemPortabilityBar({ formState, dispatch, onImported }: System
   // store by — aggregate-only ("enter slots manually") configurations have nothing to save/export.
   const canSaveOrExport = formState.systemAddress !== null && formState.bodies.length > 0;
 
+  // Same summary SystemConfigPanel shows (built/free slots, current T2/T3 points) — reused here so
+  // it's visible without scrolling. Only meaningful once a body layout is applied, same gate as
+  // `canSaveOrExport` above.
+  const slotUsageBodies = toSlotUsageBodies(formState.bodies);
+  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots, formState.firstStationBodyId);
+  const points = deriveCurrentPoints(slotUsageBodies, formState.firstStationBuilding);
+
   function handleSave(): void {
     const system = systemFromFormState(formState);
     if (!system) return;
@@ -68,7 +91,7 @@ export function SystemPortabilityBar({ formState, dispatch, onImported }: System
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `${formState.starSystem || "system"}.json`;
+    a.download = `${formState.starSystem || "system"}-${timestampForFilename(new Date())}.json`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -94,6 +117,8 @@ export function SystemPortabilityBar({ formState, dispatch, onImported }: System
           starSystem: parsed.starSystem,
           firstStationBuilding: parsed.firstStationBuilding ?? "",
           firstStationBodyId: parsed.firstStationBodyId,
+          firstStationVariant: parsed.firstStationVariant,
+          firstStationCustomName: parsed.firstStationCustomName,
         },
       });
       setError(null);
@@ -110,7 +135,7 @@ export function SystemPortabilityBar({ formState, dispatch, onImported }: System
           type="button"
           onClick={handleSave}
           disabled={!canSaveOrExport}
-          title={!canSaveOrExport ? "Apply a system to System facilities first" : undefined}
+          title={!canSaveOrExport ? "Apply a system to Actual facilities in the system first" : undefined}
         >
           Save
         </button>
@@ -118,7 +143,7 @@ export function SystemPortabilityBar({ formState, dispatch, onImported }: System
           type="button"
           onClick={handleExport}
           disabled={!canSaveOrExport}
-          title={!canSaveOrExport ? "Apply a system to System facilities first" : undefined}
+          title={!canSaveOrExport ? "Apply a system to Actual facilities in the system first" : undefined}
         >
           Export system
         </button>
@@ -137,6 +162,27 @@ export function SystemPortabilityBar({ formState, dispatch, onImported }: System
             e.target.value = "";
           }}
         />
+        {canSaveOrExport && (
+          <div className="toolbar-summary">
+            <span className="toolbar-summary-system">{formState.starSystem}</span>
+            <span className="toolbar-summary-item">
+              <SlotBar built={slotUsage.space.built} total={slotUsage.space.total} />
+              Orbital {slotUsage.space.built}/{slotUsage.space.total}
+            </span>
+            <span className="toolbar-summary-item">
+              <SlotBar built={slotUsage.ground.built} total={slotUsage.ground.total} />
+              Ground {slotUsage.ground.built}/{slotUsage.ground.total}
+            </span>
+            <span className="toolbar-summary-item">
+              <TierIcon tier={2} />
+              {points.t2}
+            </span>
+            <span className="toolbar-summary-item">
+              <TierIcon tier={3} />
+              {points.t3}
+            </span>
+          </div>
+        )}
       </div>
       {error && <div className="status-banner">{error}</div>}
     </div>

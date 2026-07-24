@@ -29,6 +29,13 @@ export interface JournalParent {
 export interface PresentFacilitySlot {
   building: string;
   demolishable: boolean;
+  /** Purely cosmetic real-world design variant (e.g. Coriolis "Two truss", Orbis "Apollo") — see
+   * `data/buildings.ts`'s `BUILDING_VARIANTS`. Never affects stats/costs/solver behavior, only
+   * display; undefined when the building has no known named variants or none was picked. */
+  variant?: string;
+  /** Purely cosmetic user-typed nickname for this specific facility (e.g. "Jacob's hydroponics").
+   * Never affects stats/costs/solver behavior, only display. */
+  customName?: string;
 }
 
 export interface JournalBody {
@@ -76,6 +83,13 @@ export interface JournalSystem {
    * time a saved system is reloaded. */
   firstStationBuilding?: string;
   firstStationBodyId?: number;
+  /** Purely cosmetic design variant / user nickname for the primary station, same fields as
+   * `PresentFacilitySlot`'s (see `domain/presentFacilities.ts`) but stored alongside
+   * `firstStationBuilding` instead of in a body's `presentFacilities` — the primary station isn't
+   * an ordinary slot entry, it's tracked as its own flat field. Never affects stats/costs/solver
+   * behavior, only display. */
+  firstStationVariant?: string;
+  firstStationCustomName?: string;
 }
 
 /** Natural/numeric name comparator, so "System A 2" sorts before "System A 10" — used everywhere
