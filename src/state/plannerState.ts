@@ -29,6 +29,11 @@ export interface PlannerFormState {
   /** Which imported body the primary station sits on — only meaningful once `bodies` is non-empty;
    * undefined leaves it unassigned (still solves fine, just doesn't show up in the Links panel). */
   firstStationBodyId: number | undefined;
+  /** Purely cosmetic design variant / user nickname for the primary station — see
+   * `journal/parser.ts`'s `JournalSystem.firstStationVariant`/`firstStationCustomName`. Never
+   * affects stats/costs/solver behavior, only display. */
+  firstStationVariant: string | undefined;
+  firstStationCustomName: string | undefined;
   allowCriminal: boolean;
   alreadyPresent: Record<string, number>;
   atLeast: Record<string, number>;
@@ -49,6 +54,8 @@ export const INITIAL_FORM_STATE: PlannerFormState = {
   systemConfigured: false,
   firstStationBuilding: "",
   firstStationBodyId: undefined,
+  firstStationVariant: undefined,
+  firstStationCustomName: undefined,
   allowCriminal: true,
   alreadyPresent: {},
   atLeast: {},

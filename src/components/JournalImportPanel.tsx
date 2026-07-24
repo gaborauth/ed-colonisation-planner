@@ -47,19 +47,22 @@ function mergeBySystemAddress(existing: JournalSystem[], incoming: JournalSystem
       const priorBody = prior?.bodies.find((b) => b.bodyId === body.bodyId);
       const withSlots = priorBody?.slots ? { ...body, slots: priorBody.slots } : withDefaultSlots(body);
       // Preserve already-built facility tracking across re-uploads too, same as `slots` above —
-      // the System facilities panel is the only place this gets edited, so a fresh journal parse
-      // (which knows nothing about it) must not silently wipe it out.
+      // the "Actual facilities in the system" panel is the only place this gets edited, so a fresh
+      // journal parse (which knows nothing about it) must not silently wipe it out.
       return priorBody?.presentFacilities
         ? { ...withSlots, presentFacilities: priorBody.presentFacilities }
         : withSlots;
     });
-    // Same preservation for the saved primary station choice — a fresh journal parse never
-    // carries one, so without this a re-upload would silently clear it.
+    // Same preservation for the saved primary station choice (and its cosmetic variant/nickname)
+    // — a fresh journal parse never carries any of these, so without this a re-upload would
+    // silently clear them.
     byAddress.set(system.systemAddress, {
       ...system,
       bodies,
       firstStationBuilding: prior?.firstStationBuilding ?? system.firstStationBuilding,
       firstStationBodyId: prior?.firstStationBodyId ?? system.firstStationBodyId,
+      firstStationVariant: prior?.firstStationVariant ?? system.firstStationVariant,
+      firstStationCustomName: prior?.firstStationCustomName ?? system.firstStationCustomName,
     });
   }
   return Array.from(byAddress.values()).sort((a, b) => a.starSystem.localeCompare(b.starSystem));
@@ -134,7 +137,8 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
 
   // Also pushes the full per-body list (not just the summed totals) — this is what switches the
   // solver from aggregate mode into per-body placement mode (see plannerState.ts/solve.ts) — and
-  // unlocks the System facilities, which starts locked/greyed until configured one way or another.
+  // unlocks "Actual facilities in the system," which starts locked/greyed until configured one way
+  // or another.
   // Shared by the "Apply" button and the mount-time auto-apply effect below.
   function applySystem(system: JournalSystem): void {
     dispatch({
@@ -150,6 +154,8 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
         // correctly resets the field rather than leaving a previous system's choice behind.
         firstStationBuilding: system.firstStationBuilding ?? "",
         firstStationBodyId: system.firstStationBodyId,
+        firstStationVariant: system.firstStationVariant,
+        firstStationCustomName: system.firstStationCustomName,
       },
     });
     setApplied(true);
@@ -172,10 +178,10 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
   }
 
   // On first load, silently re-apply whichever system was last used — if it has both bodies and a
-  // saved primary station, the System facilities panel should already look "applied" (filled in,
-  // Journal panel folded) without the user needing to click "Apply" again every session. A system
-  // with no saved primary station yet is left alone (incomplete configuration, nothing useful to
-  // auto-apply).
+  // saved primary station, "Actual facilities in the system" should already look "applied" (filled
+  // in, Journal panel folded) without the user needing to click "Apply" again every session. A
+  // system with no saved primary station yet is left alone (incomplete configuration, nothing
+  // useful to auto-apply).
   useEffect(() => {
     const lastUsedAddress = getLastUsedSystemAddress();
     if (lastUsedAddress === null) return;
@@ -220,7 +226,7 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
         <span className="panel-toggle-title">
           Import from journal
           {collapsed && applied && (
-            <span className="panel-toggle-status">Applied to the System facilities and saved</span>
+            <span className="panel-toggle-status">Applied to Actual facilities in the system and saved</span>
           )}
         </span>
         <span className="chevron" aria-hidden="true">
@@ -325,11 +331,11 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
                         ground
                       </span>
                       <button type="button" onClick={apply}>
-                        Apply slots and body layout to System facilities
+                        Apply slots and body layout to Actual facilities in the system
                       </button>
                       {applied && (
                         <span style={{ color: "var(--success)" }}>
-                          Applied to the System facilities and saved
+                          Applied to Actual facilities in the system and saved
                         </span>
                       )}
                     </div>

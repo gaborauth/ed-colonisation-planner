@@ -5,13 +5,16 @@ import { describe, expect, it } from "vitest";
 import App from "./App";
 import FIXTURE from "./journal/fixtures/sample.jsonl?raw";
 
-// The System facilities panel's slot fields are read-only (derived from a journal import) now that "Enter
-// slots manually" no longer exists — so every end-to-end test unlocks the panel the same way a
-// real user would, by uploading a journal and applying its (guessed) body layout.
+// The "Actual facilities in the system" panel's slot fields are read-only (derived from a journal
+// import) now that "Enter slots manually" no longer exists — so every end-to-end test unlocks the
+// panel the same way a real user would, by uploading a journal and applying its (guessed) body
+// layout.
 async function importAndApplyJournal(user: ReturnType<typeof userEvent.setup>): Promise<void> {
   const file = new File([FIXTURE], "journal.log", { type: "text/plain" });
   await user.upload(screen.getByLabelText("Journal file"), file);
-  await user.click(await screen.findByRole("button", { name: "Apply slots and body layout to System facilities" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Apply slots and body layout to Actual facilities in the system" }),
+  );
 }
 
 describe("App", () => {

@@ -337,10 +337,26 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
 
   // A manually-specified first station's stats must still count toward system scores (the
   // original Python did this implicitly, since its UI treated the first-station row as just
-  // another "already present" entry). T2/T3 points are deliberately NOT bonused here: the
-  // already-present-derived starting balance above already represents the system's real current
-  // balance.
+  // another "already present" entry).
   allValues[input.firstStationBuilding] = addExpr(allValues[input.firstStationBuilding], exprConst(1));
+
+  // The primary/claim station is exempt from its own escalating port cost (it's the mandatory
+  // free first station, not something the player "pays" for — confirmed against a real in-game
+  // system's already-built T2/T3 balance, see presentFacilities.test.ts's `deriveCurrentPoints`
+  // tests) but still contributes whatever fixed point GENERATION its building type would normally
+  // provide: e.g. a Coriolis primary still grants +1 T3 point even though its own T2 cost is
+  // waived; a Tier-1 Outpost primary still grants +1 T2 point (nothing to waive there, T1
+  // buildings never cost points in the first place). A Tier-3-cost primary (Orbis_or_Ocellus/
+  // Dodecahedron) generates nothing further either way — T3 is the terminal tier.
+  const firstStationBuilding = ALL_BUILDINGS[input.firstStationBuilding];
+  if (firstStationBuilding) {
+    if (typeof firstStationBuilding.T2points === "number" && firstStationBuilding.T2points > 0) {
+      initialT2Points = addExpr(initialT2Points, exprConst(firstStationBuilding.T2points));
+    }
+    if (typeof firstStationBuilding.T3points === "number" && firstStationBuilding.T3points > 0) {
+      initialT3Points = addExpr(initialT3Points, exprConst(firstStationBuilding.T3points));
+    }
+  }
 
   if (!input.allowCriminal) {
     model.addConstraint(allVars.Pirate_Base, "==", 0);

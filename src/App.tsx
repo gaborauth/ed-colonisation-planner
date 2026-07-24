@@ -110,7 +110,7 @@ function App() {
           className="primary"
           onClick={() => void handleSolve()}
           disabled={resultState.status === "solving" || !formState.firstStationBuilding}
-          title={!formState.firstStationBuilding ? "Pick a primary station in System facilities first" : undefined}
+          title={!formState.firstStationBuilding ? "Pick a primary station in Actual facilities in the system first" : undefined}
         >
           {resultState.status === "solving" ? "Solving…" : "Solve for a system"}
         </button>

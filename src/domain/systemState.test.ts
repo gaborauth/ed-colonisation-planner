@@ -24,15 +24,17 @@ describe("SystemState.canBuild", () => {
 });
 
 describe("SystemState port cost escalation", () => {
-  it("charges the FDEV-confirmed 3,3,5 T2 curve for successive Coriolis builds", () => {
+  // Corrected 2026-07-24 along with data/buildings.ts's getT2PortCost/getT3PortCost fix — see
+  // that function's doc comment. Curve is 3,5,7,... (never repeats its first value).
+  it("charges the confirmed 3,5,7 T2 curve for successive Coriolis builds", () => {
     const state = new SystemState();
     state.T2points = 100;
     state.addBuilding("Coriolis", 1);
     expect(state.T2points).toBe(97);
     state.addBuilding("Coriolis", 1);
-    expect(state.T2points).toBe(94);
+    expect(state.T2points).toBe(92);
     state.addBuilding("Coriolis", 1);
-    expect(state.T2points).toBe(89);
+    expect(state.T2points).toBe(85);
   });
 });
 
