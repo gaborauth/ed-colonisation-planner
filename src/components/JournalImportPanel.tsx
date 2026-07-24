@@ -178,7 +178,7 @@ export function JournalImportPanel({ dispatch }: JournalImportPanelProps) {
     // Deferred one frame so the fold has already committed/laid out before we measure where to
     // scroll — doing this synchronously would scroll based on the pre-collapse layout.
     requestAnimationFrame(() => {
-      document.getElementById("system-panel")?.scrollIntoView({ behavior: "smooth", block: "start" });
+      document.getElementById("system-panel")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
     });
   }
 
