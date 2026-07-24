@@ -115,6 +115,19 @@ export function ObjectivePanel({ formState, dispatch }: ObjectivePanelProps) {
           </div>
         </div>
       )}
+
+      <div className="row-grid" style={{ marginTop: 14 }}>
+        <div className="field">
+          <label>
+            <input
+              type="checkbox"
+              checked={formState.allowCriminal}
+              onChange={(e) => dispatch({ type: "patch", patch: { allowCriminal: e.target.checked } })}
+            />{" "}
+            Allow criminal buildings
+          </label>
+        </div>
+      </div>
     </section>
   );
 }

@@ -162,6 +162,11 @@ export const ALL_BUILDINGS: Record<string, Building> = Object.fromEntries([
   row({ name: "Large_Tourism_Settlement", slot: "ground", ip: 1, mp: 1, sec: -1, w: 5, cost: 8538, t2: -1, t3: 2, dependencies: ["Satellite"] }),
 ]);
 
+/** WARNING: "port" means two different things in this file. This predicate is narrow — "subject
+ * to the escalating T2/T3 port-slot cost curve" (5 buildings: Orbis_or_Ocellus, Dodecahedron,
+ * Coriolis, Asteroid_Base, Planetary_Port). For Update 3's link-topology "Port" classification (14
+ * buildings, also including Outposts and Planetary Outposts), see `isPortRole`/
+ * `PORT_ROLE_BUILDINGS` below. Don't use this one where that one is meant. */
 export function isPort(building: Building): boolean {
   return building.T2points === "port" || building.T3points === "port";
 }
@@ -241,6 +246,106 @@ export const ALL_CATEGORIES: Record<string, string[]> = {
   "Small Settlement": names((n) => n.endsWith("Settlement") && n.startsWith("Small")),
   "Medium Settlement": names((n) => n.endsWith("Settlement") && n.startsWith("Medium")),
   "Large Settlement": names((n) => n.endsWith("Settlement") && n.startsWith("Large")),
+};
+
+// --- Update 3 (May 2025) link/economy topology ------------------------------------------------
+// Sourced from official Frontier patch notes (2025-04-27 "Update 3", 2025-06-04 Station Services
+// follow-up, 2025-11-11 Dodec Update) — see CLAUDE.md for the full source list.
+
+export type EconomyType =
+  | "Agriculture"
+  | "Extraction"
+  | "HighTech"
+  | "Industrial"
+  | "Refinery"
+  | "Tourism"
+  | "Military"
+  | "Terraforming"
+  | "Colony";
+
+/** Update 3's link-topology "Ports" bucket (14 buildings): Outposts, Coriolis/Orbis/Ocellus/
+ * Dodecahedron, Asteroid Base, Planetary Port, and the Planetary Port Outposts — i.e.
+ * `ALL_CATEGORIES["Star/Ground Port"]` (8) unioned with the 6 `*_Outpost` space buildings. This is
+ * NOT the same set as `isPort()` above (5 buildings, a narrower "escalating-cost-curve" concept) —
+ * see that function's doc comment. */
+export const PORT_ROLE_BUILDINGS: string[] = [
+  ...ALL_CATEGORIES["Star/Ground Port"],
+  "Commercial_Outpost",
+  "Industrial_Outpost",
+  "Criminal_Outpost",
+  "Civilian_Outpost",
+  "Scientific_Outpost",
+  "Military_Outpost",
+];
+
+export function isPortRole(name: string): boolean {
+  return PORT_ROLE_BUILDINGS.includes(name);
+}
+
+/** Update 3's other link-topology bucket: Settlements, Installations, and Hubs — everything that
+ * isn't a Port (`PORT_ROLE_BUILDINGS`). */
+export const SUPPORTING_FACILITY_BUILDINGS: string[] = Object.keys(ALL_BUILDINGS).filter(
+  (name) => !isPortRole(name),
+);
+
+/** Port tier for link-topology "highest tier port on this body" comparisons, matching the
+ * official "Tier 1/2/3 Port" vocabulary (2025-06-04 Station Services patch note) — derived from
+ * the same `T2points`/`T3points === "port"` escalation fields `isPort()` already uses, not a
+ * separate hand-authored table. Tier 1 = never escalates past a plain T2-point cost (the 6
+ * Outposts + 3 Planetary Outposts); Tier 2 = escalates via T2 points (Coriolis, Asteroid_Base);
+ * Tier 3 = escalates via T3 points (Orbis_or_Ocellus, Dodecahedron, Planetary_Port). Only
+ * meaningful for `PORT_ROLE_BUILDINGS` — throws for anything else. */
+export function getPortTier(name: string): 1 | 2 | 3 {
+  if (!isPortRole(name)) throw new Error(`"${name}" is not a Port-role building`);
+  const building = ALL_BUILDINGS[name];
+  if (building.T3points === "port") return 3;
+  if (building.T2points === "port") return 2;
+  return 1;
+}
+
+// UNVERIFIED, best-effort. Update 3's body-attribute -> Colony-override table (see
+// domain/economyOverrides.ts) and the strong-link boost/decrease table are verbatim from official
+// patch notes, but no verbatim mapping from every Hub/Settlement/Installation building to an
+// economy type was ever given — this is inferred from naming convention where it's unambiguous,
+// and left deliberately unmapped (contributes no additional economy type via links) where it
+// isn't, rather than guessed. Revise freely — this is exactly the kind of constant the
+// FIRST_STATION_BONUS/GROUND_SLOT_RADIUS_THRESHOLDS precedent calls for: named, commented, easy to
+// correct once confirmed in-game. Deliberately left unmapped (no confident naming signal):
+// Government, Medical, Communication_Station, Relay_Station, Pirate_Base, Outpost_Hub, Space_Farm.
+export const FACILITY_ECONOMY_GUESS: Partial<Record<string, EconomyType[]>> = {
+  Extraction_Hub: ["Extraction"],
+  Small_Extraction_Settlement: ["Extraction"],
+  Medium_Extraction_Settlement: ["Extraction"],
+  Large_Extraction_Settlement: ["Extraction"],
+  Mining_Outpost: ["Extraction"],
+  Industrial_Hub: ["Industrial"],
+  Small_Industrial_Settlement: ["Industrial"],
+  Medium_Industrial_Settlement: ["Industrial"],
+  Large_Industrial_Settlement: ["Industrial"],
+  Civilian_Hub: ["Agriculture"],
+  Small_Agricultural_Settlement: ["Agriculture"],
+  Medium_Agricultural_Settlement: ["Agriculture"],
+  Large_Agricultural_Settlement: ["Agriculture"],
+  High_Tech_Hub: ["HighTech"],
+  Scientific_Hub: ["HighTech"],
+  Research_Station: ["HighTech"],
+  Small_Scientific_Settlement: ["HighTech"],
+  Medium_Scientific_Settlement: ["HighTech"],
+  Large_Scientific_Settlement: ["HighTech"],
+  Exploration_Hub: ["HighTech"],
+  Refinery_Hub: ["Refinery"],
+  Military_Hub: ["Military"],
+  Military: ["Military"],
+  Security_Station: ["Military"],
+  Small_Military_Settlement: ["Military"],
+  Medium_Military_Settlement: ["Military"],
+  Large_Military_Settlement: ["Military"],
+  Tourist: ["Tourism"],
+  Space_Bar: ["Tourism"],
+  Satellite: ["Tourism"],
+  Small_Tourism_Settlement: ["Tourism"],
+  Medium_Tourism_Settlement: ["Tourism"],
+  Large_Tourism_Settlement: ["Tourism"],
 };
 
 export function toPrintable(name: string): string {

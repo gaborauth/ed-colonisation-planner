@@ -2,11 +2,33 @@
 // per-system, per-body data needed for eligibility.ts's slot estimate. Only `Scan` events are used
 // — per the project plan, there's no construction-progress tracking here, just body/system data.
 
+import type { SlotKind } from "../data/buildings";
+
 export interface JournalRing {
   name: string;
   ringClass: string;
   reserveLevel?: string;
   massMT: number;
+}
+
+/** One link in a body's parent hierarchy (e.g. a moon's immediate parent planet, that planet's
+ * parent star). `type` is usually "Star"/"Planet"/"Ring"/"Null" but kept as a string fallback
+ * since the Journal occasionally adds new parent types. Used by economyOverrides.ts to walk a
+ * moon's tidal-lock chain up to its star. */
+export interface JournalParent {
+  type: string;
+  bodyId: number;
+}
+
+/** One already-built facility occupying a specific orbital/ground slot on a body, entered by the
+ * user in the System facilities panel — never derived from journal Scan data (the Journal has no
+ * construction-progress events, see CLAUDE.md's scope boundaries). `demolishable` flags it as a
+ * candidate the solver may choose to remove (refunding its stat/T2/T3 contribution and freeing its
+ * slot) if replacing it scores better — always `false`/ignored for the 5 escalating-cost-curve port
+ * buildings (`isPort()` in data/buildings.ts), which are never demolishable in this app. */
+export interface PresentFacilitySlot {
+  building: string;
+  demolishable: boolean;
 }
 
 export interface JournalBody {
@@ -17,16 +39,50 @@ export interface JournalBody {
   planetClass?: string;
   landable: boolean;
   surfaceGravity?: number;
+  surfaceTemperature?: number;
   radius?: number;
   atmosphere?: string;
   terraformState?: string;
+  tidalLocked?: boolean;
+  parents: JournalParent[];
   rings: JournalRing[];
+  /** Manually entered slot counts. The Journal doesn't report real per-body slot counts (they
+   * vary and aren't derivable from Scan data) — this stays undefined until the user fills it in
+   * via JournalImportPanel, which pre-fills it with eligibility.ts's best-effort guess. */
+  slots?: Record<SlotKind, number>;
+  /** What's already built in this body's slots today, entered by the user in the System
+   * facilities panel — index-aligned with `slots.space`/`slots.ground` (a `null` entry or an
+   * array shorter than the slot count means that slot is empty). Undefined until the user starts
+   * marking facilities. See `domain/presentFacilities.ts` for the normalization/derivation logic
+   * that reads this. */
+  presentFacilities?: {
+    space: (PresentFacilitySlot | null)[];
+    ground: (PresentFacilitySlot | null)[];
+  };
+  /** The full raw Scan event JSON, kept verbatim alongside the typed fields above so future slot
+   * heuristics can use fields we don't parse today without needing the user to re-upload the
+   * journal. */
+  raw: Record<string, unknown>;
 }
 
 export interface JournalSystem {
   starSystem: string;
   systemAddress: number;
   bodies: JournalBody[];
+  /** The primary/claim station choice for this system, set by the System facilities panel's
+   * "Save" button — never derived from journal Scan data. Undefined until saved once; restored
+   * into form state when this saved system is selected and applied again (see
+   * `JournalImportPanel.apply()`), so picking a primary station doesn't need to be redone every
+   * time a saved system is reloaded. */
+  firstStationBuilding?: string;
+  firstStationBodyId?: number;
+}
+
+/** Natural/numeric name comparator, so "System A 2" sorts before "System A 10" — used everywhere
+ * bodies are listed for the user (JournalImportPanel's table, SystemConfigPanel's primary-station
+ * body picker) so the ordering matches the journal's own body list, not a plain string sort. */
+export function compareBodyNames(a: JournalBody, b: JournalBody): number {
+  return a.bodyName.localeCompare(b.bodyName, undefined, { numeric: true });
 }
 
 interface RawScanEvent {
@@ -39,9 +95,12 @@ interface RawScanEvent {
   PlanetClass?: string;
   Landable?: boolean;
   SurfaceGravity?: number;
+  SurfaceTemperature?: number;
   Radius?: number;
   Atmosphere?: string;
   TerraformState?: string;
+  TidalLock?: boolean;
+  Parents?: Record<string, number>[];
   Rings?: { Name: string; RingClass: string; ReserveLevel?: string; MassMT: number }[];
 }
 
@@ -58,7 +117,7 @@ function isRealBodyScan(value: unknown): value is RawScanEvent {
   );
 }
 
-function toJournalBody(raw: RawScanEvent): JournalBody {
+function toJournalBody(raw: RawScanEvent, rawJson: Record<string, unknown>): JournalBody {
   return {
     bodyName: raw.BodyName,
     bodyId: raw.BodyID,
@@ -67,15 +126,22 @@ function toJournalBody(raw: RawScanEvent): JournalBody {
     planetClass: raw.PlanetClass,
     landable: raw.Landable ?? false,
     surfaceGravity: raw.SurfaceGravity,
+    surfaceTemperature: raw.SurfaceTemperature,
     radius: raw.Radius,
     atmosphere: raw.Atmosphere || undefined,
     terraformState: raw.TerraformState || undefined,
+    tidalLocked: raw.TidalLock,
+    parents: (raw.Parents ?? []).map((p) => {
+      const [type, bodyId] = Object.entries(p)[0];
+      return { type, bodyId };
+    }),
     rings: (raw.Rings ?? []).map((r) => ({
       name: r.Name,
       ringClass: r.RingClass,
       reserveLevel: r.ReserveLevel,
       massMT: r.MassMT,
     })),
+    raw: rawJson,
   };
 }
 
@@ -101,7 +167,7 @@ export function parseJournalScans(text: string): JournalSystem[] {
       system = { starSystem: parsed.StarSystem, systemAddress: parsed.SystemAddress, bodies: [] };
       systems.set(parsed.SystemAddress, system);
     }
-    const body = toJournalBody(parsed);
+    const body = toJournalBody(parsed, parsed as unknown as Record<string, unknown>);
     const existingIndex = system.bodies.findIndex((b) => b.bodyId === body.bodyId);
     if (existingIndex === -1) {
       system.bodies.push(body);

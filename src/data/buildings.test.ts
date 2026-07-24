@@ -3,9 +3,14 @@ import {
   ALL_BUILDINGS,
   ALL_CATEGORIES,
   computeCompoundScore,
+  FACILITY_ECONOMY_GUESS,
+  getPortTier,
   getT2PortCost,
   getT3PortCost,
   isPort,
+  isPortRole,
+  PORT_ROLE_BUILDINGS,
+  SUPPORTING_FACILITY_BUILDINGS,
 } from "./buildings";
 
 describe("buildings data", () => {
@@ -63,6 +68,53 @@ describe("buildings data", () => {
       const hub = ALL_BUILDINGS[name];
       expect(hub.initial_population_increase, name).toBe(1);
       expect(hub.max_population_increase, name).toBe(1);
+    }
+  });
+});
+
+describe("Update 3 link-topology classification", () => {
+  it("PORT_ROLE_BUILDINGS and SUPPORTING_FACILITY_BUILDINGS partition all 54 buildings with no overlap", () => {
+    expect(PORT_ROLE_BUILDINGS).toHaveLength(14);
+    expect(SUPPORTING_FACILITY_BUILDINGS).toHaveLength(40);
+    const overlap = PORT_ROLE_BUILDINGS.filter((n) => SUPPORTING_FACILITY_BUILDINGS.includes(n));
+    expect(overlap).toEqual([]);
+    const union = new Set([...PORT_ROLE_BUILDINGS, ...SUPPORTING_FACILITY_BUILDINGS]);
+    expect(union).toEqual(new Set(Object.keys(ALL_BUILDINGS)));
+  });
+
+  it("isPortRole agrees with PORT_ROLE_BUILDINGS membership", () => {
+    for (const name of Object.keys(ALL_BUILDINGS)) {
+      expect(isPortRole(name), name).toBe(PORT_ROLE_BUILDINGS.includes(name));
+    }
+  });
+
+  it("getPortTier groups ports into the official Tier 1/2/3 vocabulary", () => {
+    const byTier = { 1: [] as string[], 2: [] as string[], 3: [] as string[] };
+    for (const name of PORT_ROLE_BUILDINGS) byTier[getPortTier(name)].push(name);
+    expect(new Set(byTier[1])).toEqual(
+      new Set([
+        "Commercial_Outpost",
+        "Industrial_Outpost",
+        "Criminal_Outpost",
+        "Civilian_Outpost",
+        "Scientific_Outpost",
+        "Military_Outpost",
+        "Civilian_Planetary_Outpost",
+        "Industrial_Planetary_Outpost",
+        "Scientific_Planetary_Outpost",
+      ]),
+    );
+    expect(new Set(byTier[2])).toEqual(new Set(["Coriolis", "Asteroid_Base"]));
+    expect(new Set(byTier[3])).toEqual(new Set(["Orbis_or_Ocellus", "Dodecahedron", "Planetary_Port"]));
+  });
+
+  it("getPortTier throws for a non-Port-role building", () => {
+    expect(() => getPortTier("Government")).toThrow();
+  });
+
+  it("FACILITY_ECONOMY_GUESS only maps Supporting Facility buildings", () => {
+    for (const name of Object.keys(FACILITY_ECONOMY_GUESS)) {
+      expect(SUPPORTING_FACILITY_BUILDINGS, name).toContain(name);
     }
   });
 });

@@ -12,6 +12,7 @@ interface NumberInputProps {
   blankMeans?: "undefined" | "zero";
   ariaLabel?: string;
   id?: string;
+  disabled?: boolean;
 }
 
 function isValidWhileTyping(text: string, allowNegative: boolean): boolean {
@@ -28,6 +29,7 @@ export function NumberInput({
   blankMeans = "undefined",
   ariaLabel,
   id,
+  disabled,
 }: NumberInputProps) {
   const [text, setText] = useState(value === undefined ? "" : String(value));
 
@@ -59,6 +61,7 @@ export function NumberInput({
       inputMode="numeric"
       aria-label={ariaLabel}
       value={text}
+      disabled={disabled}
       onChange={(e) => handleChange(e.target.value)}
       onBlur={handleBlur}
     />

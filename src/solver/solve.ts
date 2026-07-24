@@ -1,7 +1,8 @@
 // Ported from solver.py's Solver.setup()/get_result(). Builds the same MILP structure (building
-// counts, escalating-cost sequential port slots, dependency unlocking, first-station choice,
-// slot capacity, min/max constraints) but targets HiGHS via LP-format text instead of SCIP,
-// since this now runs client-side in the browser via WASM instead of a desktop Python process.
+// counts, escalating-cost sequential port slots, dependency unlocking, a fixed primary/claim
+// station, slot capacity, min/max constraints) but targets HiGHS via LP-format text instead of
+// SCIP, since this now runs client-side in the browser via WASM instead of a desktop Python
+// process.
 //
 // Deviations from the original Python, made deliberately while porting (not left as silent bugs):
 //  - Dependency constraints used SCIP's native indicator constraints; HiGHS's LP-text interface
@@ -10,16 +11,15 @@
 //    and thus obligated to actually satisfy the guarded constraint — when beneficial to the
 //    objective) is preserved exactly, just expressed with a big-M pair instead of a native
 //    indicator constraint.
-//  - The original's first-station T2/T3 point bonus only wired up whichever building happened to
-//    be last in a Python dict-iteration order (effectively always "Military_Outpost", a loop-
-//    variable leak bug), instead of applying each candidate's own bonus. Fixed here to match what
-//    SystemState.addFirstStation already does correctly elsewhere in the same original codebase.
 //  - Custom objective expressions no longer go through eval() (flagged in the original source as
 //    a security risk); see objective.ts for the safe parser + LP-linearization replacement.
+//  - The original (and an earlier version of this port) let the solver pick the primary/claim
+//    station from a set of candidates. Removed: every colonised system requires one fixed, upfront
+//    choice of primary station type before anything else can be built — it's not a value worth
+//    optimizing over, it's a precondition. `firstStationBuilding` is now always required input.
 
 import {
   ALL_BUILDINGS,
-  ALL_CATEGORIES,
   ALL_SCORES,
   type Score,
   computeCompoundScore,
@@ -27,10 +27,22 @@ import {
   getT3PortCost,
   isPort,
 } from "../data/buildings";
+import type { BuildingPlacement } from "../domain/links";
+import {
+  computeHardNonPortSeed,
+  computePresentPortsSeed,
+  splitPresentFacilities,
+  type PresentFacilitiesBody,
+  type PresentFacilityRef,
+  type PresentFacilitySlot,
+} from "../domain/presentFacilities";
 import { addExpr, exprConst, exprVar, type LPExpr, scaleExpr, subExpr } from "./lpExpr";
 import { boundExpr, evalExprAt, INFINITY, LPModel } from "./lpModel";
 import { compileObjective, type Direction, type ScoreBounds } from "./objective";
 import type { ScoreLetter } from "./expressionParser";
+
+export type { BuildingPlacement } from "../domain/links";
+export type { PresentFacilitySlot } from "../domain/presentFacilities";
 
 export type { Direction } from "./objective";
 
@@ -38,20 +50,29 @@ const DEPENDENCY_BIG_M = 1000;
 const DEFAULT_BUILDING_COUNT_CAP = 300;
 const DEFAULT_MAX_NEW_PORTS = 20;
 
-// UNVERIFIED, best-known figures — no official source with exact current numbers was locatable
-// (forums/official docs block automated fetching). Confirmed mechanic: only the claim/first
-// station contributes its full stat weight to these five system scores; every other facility
-// (already-present or newly built) contributes at a reduced weight. Values below are the
-// originally-reported reductions, except wealth, where one report mentioned a later correction
-// from -70% to -25% that's reflected here. Retune these against your own game experience if
-// they're off — they're the only place this mechanic's numbers live.
-// Population increase and construction cost are not known to be affected and stay full-weight.
-const SUBSEQUENT_FACILITY_WEIGHT: Partial<Record<Score, number>> = {
-  development_level: 0.4, // -60%
-  security: 0.8, // -20%
-  standard_of_living: 0.48, // -52%
-  tech_level: 0.34, // -66%
-  wealth: 0.75, // -25% (corrected down from an initially-reported -70%)
+// SOURCED: Dodec Update patch notes (2025-11-11), "Balanced how building certain facilities
+// affects system development level, security, standard of living, tech level, and wealth." The
+// claim/first station's own contribution to these five scores is BOOSTED by FIRST_STATION_BONUS;
+// every other facility's contribution (already-present or newly built) is REDUCED by
+// SUBSEQUENT_FACILITY_REDUCTION. This replaced an earlier "unverified, best-known figures"
+// version of this constant that used a single full-weight-vs-fraction split with different
+// (guessed) magnitudes — the official numbers differ substantially for some scores (e.g.
+// development_level's subsequent-facility reduction is only -10%, not the previously-guessed -60%)
+// and add a first-station bonus the old version didn't model at all.
+// Population increase and construction cost are not listed as affected and stay full-weight.
+const FIRST_STATION_BONUS: Partial<Record<Score, number>> = {
+  development_level: 0.4, // +40%
+  security: 0.4, // +40%
+  standard_of_living: 0.4, // +40%
+  tech_level: 0.2, // +20%
+  wealth: 0.4, // +40%
+};
+const SUBSEQUENT_FACILITY_REDUCTION: Partial<Record<Score, number>> = {
+  development_level: 0.1, // -10%
+  security: 0.1, // -10%
+  standard_of_living: 0.2, // -20%
+  tech_level: 0.25, // -25%
+  wealth: 0.25, // -25%
 };
 
 export interface SlotAvailability {
@@ -60,11 +81,28 @@ export interface SlotAvailability {
   asteroid: number;
 }
 
-export interface FirstStationOptions {
-  allowCoriolis: boolean;
-  allowAsteroidBase: boolean;
-  allowOrbisOrOcellus: boolean;
-  allowDodecahedron: boolean;
+/** Per-body capacity input for the per-body placement mode (see the header comment block above
+ * "--- Per-body placement" further down for the full design). `slots.asteroid` keeps
+ * `JournalBody.slots.asteroid`'s existing 0/1 semantics — a positive value means this body is
+ * ring/belt-eligible for an Asteroid_Base, not a count of anything. Deliberately a small,
+ * solver-local shape (not `JournalBody`): the MILP only ever needs capacity, never astrophysical
+ * attributes — those belong to the post-solve links/economy layer (`domain/links.ts`,
+ * `domain/economyOverrides.ts`), which solve.ts stays decoupled from.
+ *
+ * `slots.space`/`slots.ground` are the body's TOTAL physical slot counts (matching what
+ * `eligibility.ts` estimates and what Journal Import's table edits) — NOT "remaining capacity" as
+ * an earlier version of this doc comment said. `solve.ts` now computes remaining capacity itself:
+ * total minus whatever `presentFacilities` occupies (see "--- Already-present facilities" below),
+ * so the caller no longer needs to manually pre-subtract already-built stuff. */
+export interface SolverBody {
+  bodyId: number;
+  slots: SlotAvailability;
+  /** What's already built in this body's slots — see `domain/presentFacilities.ts`'s header for
+   * the hard-vs-demolishable distinction. Absent/undefined arrays are treated as "all empty". */
+  presentFacilities?: {
+    space: (PresentFacilitySlot | null)[];
+    ground: (PresentFacilitySlot | null)[];
+  };
 }
 
 export type ObjectiveInput =
@@ -74,18 +112,34 @@ export type ObjectiveInput =
 export interface SolverInput {
   slots: SlotAvailability;
   objective: ObjectiveInput;
-  initialT2Points: number;
-  initialT3Points: number;
-  chooseFirstStation: boolean;
-  /** Required when chooseFirstStation is false. */
-  firstStationBuilding?: string;
-  /** Used when chooseFirstStation is true; defaults to allowing all three. */
-  firstStationOptions?: FirstStationOptions;
+  /** The primary/claim station's building type — required. Every colonised system has exactly one,
+   * it must be built first, and it occupies its own dedicated slot separate from the ordinary
+   * orbital slot pool (see `bodies`/`firstStationBodyId` below), so this is always a fixed input to
+   * the solver, never something the solver picks. Must be one of
+   * `ALL_CATEGORIES["First Station"]` (every orbital Port-role building — Outposts, Coriolis,
+   * Asteroid Base, Orbis/Ocellus, Dodecahedron; ground ports and Supporting Facilities aren't
+   * eligible, matching the game's own rule). */
+  firstStationBuilding: string;
+  /** Which imported body the primary station sits on. Only meaningful (and optional even then)
+   * when `bodies` is present — the primary station's dedicated slot doesn't count against that
+   * body's ordinary space/ground capacity, so this only affects `SolverResult.placements` (and
+   * hence the Links & economy panel), never feasibility. */
+  firstStationBodyId?: number;
   allowCriminal: boolean;
-  /** Building name -> count already present, excluding whatever was picked as the first station. */
+  /** Building name -> count already present, excluding whatever was picked as the first station.
+   * Only consulted in aggregate mode (`bodies` absent/empty) — when `bodies` is present, already-
+   * present accounting (including the T2/T3 starting balance) comes entirely from each body's
+   * `presentFacilities` instead, so callers should pass `{}` here to avoid double-counting. */
   alreadyPresent: Record<string, number>;
   constraints?: { atLeast?: Record<string, number>; atMost?: Record<string, number> };
   scoreConstraints?: { min?: Partial<Record<Score, number>>; max?: Partial<Record<Score, number>> };
+  /** Absent/empty => today's exact aggregate behavior (a single implicit slot pool, no per-body
+   * constraints, `SolverResult.placements` comes back empty). Present => every buildable slot is
+   * additionally capacity-constrained per body (including whatever each body's `presentFacilities`
+   * occupies), and the solution reports which body each new building landed on. `atLeast`/`atMost`
+   * buildings stay body-unassigned either way — only newly solved-for buildings (and the primary
+   * station, if `firstStationBodyId` is given) get placed. */
+  bodies?: SolverBody[];
 }
 
 export interface SolverResult {
@@ -99,6 +153,18 @@ export interface SolverResult {
   finalT3Points: number;
   slotsRemaining: SlotAvailability;
   objectiveValue: number | null;
+  /** Which body each newly-built unit landed on — empty in aggregate mode (`input.bodies` absent),
+   * or when a body couldn't be determined (see `SolverInput.bodies`'s doc comment for what stays
+   * unassigned even in per-body mode). Consumed by `domain/links.ts`'s post-solve computation. */
+  placements: BuildingPlacement[];
+  /** Echoes `input.firstStationBodyId` when `input.bodies` is present and it was given; null
+   * otherwise (aggregate mode, or per-body mode without a chosen body for the primary station). */
+  firstStationBodyId: number | null;
+  /** Already-present, demolishable facilities the solver chose to actually remove (refunding their
+   * stat/T2/T3 contribution and freeing their slot) — always empty in aggregate mode, and never
+   * contains a port (ports are never demolishable in this app; see
+   * `domain/presentFacilities.ts`'s header). Tells the UI what to actually tear down. */
+  demolished: { bodyId: number; slotKind: "space" | "ground"; index: number; building: string }[];
 }
 
 const SCORE_LETTER_TO_SCORE: Record<ScoreLetter, Score> = {
@@ -124,17 +190,38 @@ function errorResult(message: string): SolverResult {
     finalT3Points: 0,
     slotsRemaining: { space: 0, ground: 0, asteroid: 0 },
     objectiveValue: null,
+    placements: [],
+    firstStationBodyId: null,
+    demolished: [],
   };
 }
 
 export async function solve(input: SolverInput): Promise<SolverResult> {
-  if (!input.chooseFirstStation && !(input.firstStationBuilding && input.firstStationBuilding in ALL_BUILDINGS)) {
+  // Deliberately permissive here (any known building, not just orbital Port-role ones) — the
+  // "must be an orbital station, not a facility" rule is enforced by the UI's dropdown offering
+  // only `ALL_CATEGORIES["First Station"]`, not by the solver itself, so tests/API callers can
+  // still pass an arbitrary building to isolate specific stat effects if useful.
+  if (!input.firstStationBuilding || !(input.firstStationBuilding in ALL_BUILDINGS)) {
     return errorResult("Error: pick your first station");
   }
 
-  const nbPortsAlreadyPresent = Object.entries(input.alreadyPresent)
-    .filter(([name]) => isPort(ALL_BUILDINGS[name]))
-    .reduce((sum, [, nb]) => sum + nb, 0);
+  // Already-present facilities per body (see domain/presentFacilities.ts's header for the
+  // hard-vs-demolishable split, and SolverBody's doc comment for why `presentFacilities` replaces
+  // the flat `alreadyPresent` map's role entirely once `bodies` is used). Computed unconditionally
+  // — both lists are simply empty when `input.bodies` is absent/empty.
+  const presentBodies: PresentFacilitiesBody[] = (input.bodies ?? []).map((b) => ({
+    bodyId: b.bodyId,
+    space: b.presentFacilities?.space ?? [],
+    ground: b.presentFacilities?.ground ?? [],
+  }));
+  const presentSplit = splitPresentFacilities(presentBodies);
+
+  const nbPortsAlreadyPresent =
+    input.bodies && input.bodies.length > 0
+      ? presentSplit.hard.filter((f) => isPort(ALL_BUILDINGS[f.building])).length
+      : Object.entries(input.alreadyPresent)
+          .filter(([name]) => isPort(ALL_BUILDINGS[name]))
+          .reduce((sum, [, nb]) => sum + nb, 0);
   const maxNbPorts = DEFAULT_MAX_NEW_PORTS + nbPortsAlreadyPresent;
 
   const model = new LPModel();
@@ -142,7 +229,6 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // --- Decision variables --------------------------------------------------------------
   const allVars: Record<string, LPExpr> = {}; // newly-built count, per building
   const portVars: Record<string, string[]> = {}; // port name -> [slot var names], length maxNbPorts
-  const firstStationVars: Record<string, string> = {}; // First-Station category name -> binary var name
 
   for (const [name, building] of Object.entries(ALL_BUILDINGS)) {
     if (!isPort(building)) {
@@ -158,59 +244,91 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     }
   }
 
+  // --- Per-body placement (additive, not replacing) ---------------------------------------
+  // `allVars[name]` above is already an EXPRESSION (a single var for normal buildings, a sum of
+  // `port_k` binaries for ports) — not a raw solver variable. So per-body placement doesn't need
+  // to change what `allVars`/`allValues` ARE; it just adds a parallel decomposition layer tied to
+  // the existing aggregate via an equality constraint (`sum over bodies == allVars[name]`),
+  // exactly mirroring the `port_k` naming-convention pattern already used above. Every downstream
+  // consumer of `allVars`/`allValues` (system scores, dependency big-M, atLeast/atMost, min/max
+  // score constraints, the T2/T3 escalating-cost curve) keeps reading the same expression it
+  // always did and needs zero changes. Absent/empty `input.bodies` (the common case — a user who
+  // only filled in aggregate slot counts, never imported per-body journal data) skips this
+  // entirely: `bodyVars` stays `{}`, no new variables or constraints are added, and every branch
+  // below that reads it degrades to exactly today's behavior. See the plan's Decision 1 for why
+  // ports don't get a body dimension threaded through their `port_k` index specifically (approx.
+  // same-tier tie-break in the links layer instead of exact fidelity here).
+  const bodyVars: Record<string, Record<number, string>> = {};
+  if (input.bodies && input.bodies.length > 0) {
+    for (const name of Object.keys(ALL_BUILDINGS)) {
+      bodyVars[name] = {};
+      let bodySum: LPExpr = exprConst(0);
+      for (const b of input.bodies) {
+        // Asteroid_Base is hard-restricted to ring/belt-eligible bodies here, replacing the old
+        // system-wide `Asteroid_Base <= input.slots.asteroid` pseudo-pool entirely in this mode.
+        const ub = name === "Asteroid_Base" && b.slots.asteroid === 0 ? 0 : DEFAULT_BUILDING_COUNT_CAP;
+        const v = model.addVar(`${name}__body_${b.bodyId}`, "integer", 0, ub);
+        bodyVars[name][b.bodyId] = v;
+        bodySum = addExpr(bodySum, exprVar(v, 1));
+      }
+      model.addConstraint(subExpr(bodySum, allVars[name]), "==", 0, `body_split_${name}`);
+    }
+  }
+
+  // --- Already-present facility demolition (per-body only — see domain/presentFacilities.ts) ---
+  // Each demolishable present facility gets a "keep" binary: 1 = still present (default-feasible
+  // outcome, the solver never has to touch it), 0 = the solver chose to demolish it, refunding its
+  // stat/T2/T3 contribution (below) and freeing its slot (in the capacity block below). Hard
+  // present facilities (including every present port — never demolishable, see the module header)
+  // get no variable at all; they're folded in as plain constants instead.
+  const presentKeepVars: (PresentFacilityRef & { keepVar: string })[] = presentSplit.demolishable.map((d) => ({
+    ...d,
+    keepVar: model.addVar(`present_${d.bodyId}_${d.kind}_${d.index}`, "binary"),
+  }));
+
   const allValues: Record<string, LPExpr> = { ...allVars };
 
-  let initialT2Points: LPExpr = exprConst(input.initialT2Points);
-  let initialT3Points: LPExpr = exprConst(input.initialT3Points);
-
-  if (input.chooseFirstStation) {
-    const options: FirstStationOptions = input.firstStationOptions ?? {
-      allowCoriolis: true,
-      allowAsteroidBase: true,
-      allowOrbisOrOcellus: true,
-      allowDodecahedron: true,
-    };
-    for (const name of ALL_CATEGORIES["First Station"]) {
-      const v = model.addVar(`${name}__first_station`, "binary");
-      firstStationVars[name] = v;
-      allValues[name] = addExpr(allValues[name], exprVar(v, 1));
-
-      const building = ALL_BUILDINGS[name];
-      if (building.T2points !== "port" && building.T2points > 0) {
-        initialT2Points = addExpr(initialT2Points, exprVar(v, building.T2points));
-      }
-      if (building.T3points !== "port" && building.T3points > 0) {
-        initialT3Points = addExpr(initialT3Points, exprVar(v, building.T3points));
-      }
-    }
-    if (!options.allowCoriolis && firstStationVars.Coriolis) {
-      model.addConstraint(exprVar(firstStationVars.Coriolis), "==", 0);
-    }
-    if (!options.allowAsteroidBase && firstStationVars.Asteroid_Base) {
-      model.addConstraint(exprVar(firstStationVars.Asteroid_Base), "==", 0);
-    }
-    if (!options.allowOrbisOrOcellus && firstStationVars.Orbis_or_Ocellus) {
-      model.addConstraint(exprVar(firstStationVars.Orbis_or_Ocellus), "==", 0);
-    }
-    if (!options.allowDodecahedron && firstStationVars.Dodecahedron) {
-      model.addConstraint(exprVar(firstStationVars.Dodecahedron), "==", 0);
-    }
-    if (!input.allowCriminal && firstStationVars.Criminal_Outpost) {
-      model.addConstraint(exprVar(firstStationVars.Criminal_Outpost), "==", 0);
-    }
-    model.addConstraint(
-      Object.values(firstStationVars).reduce((acc, v) => addExpr(acc, exprVar(v, 1)), exprConst(0)),
-      "==",
-      1,
-    );
-  } else if (input.firstStationBuilding && input.firstStationBuilding in ALL_BUILDINGS) {
-    // Bug fix vs. an earlier version of this port: a manually-specified first station's stats
-    // must still count toward system scores (the original Python did this implicitly, since its
-    // UI treated the manual first-station row as just another "already present" entry). T2/T3
-    // points are deliberately NOT bonused here, matching the original: in manual mode the user's
-    // `initialT2Points`/`initialT3Points` inputs already represent their real current balance.
-    allValues[input.firstStationBuilding] = addExpr(allValues[input.firstStationBuilding], exprConst(1));
+  for (const h of presentSplit.hard) {
+    allValues[h.building] = addExpr(allValues[h.building], exprConst(1));
   }
+  for (const d of presentKeepVars) {
+    allValues[d.building] = addExpr(allValues[d.building], exprVar(d.keepVar, 1));
+  }
+  if (
+    !input.allowCriminal &&
+    [...presentSplit.hard, ...presentSplit.demolishable].some(
+      (f) => f.building === "Pirate_Base" || f.building === "Criminal_Outpost",
+    )
+  ) {
+    return errorResult(
+      "Error: criminal outpost or pirate base already present, but you do not want criminal outposts to be built",
+    );
+  }
+
+  // T2/T3 starting balance, derived entirely from already-present facilities (never manually
+  // entered — see CLAUDE.md's scope-boundary note on the System facilities panel). Hard non-port
+  // facilities and present ports contribute fixed amounts; demolishable ones are scaled by their
+  // `keepVar` since the solver may zero out their contribution.
+  const hardSeed = computeHardNonPortSeed(presentSplit.hard);
+  const portsSeed = computePresentPortsSeed(presentSplit.hard);
+  let initialT2Points: LPExpr = exprConst(hardSeed.t2 + portsSeed.t2);
+  let initialT3Points: LPExpr = exprConst(hardSeed.t3 + portsSeed.t3);
+  for (const d of presentKeepVars) {
+    const building = ALL_BUILDINGS[d.building];
+    if (typeof building.T2points === "number" && building.T2points !== 0) {
+      initialT2Points = addExpr(initialT2Points, exprVar(d.keepVar, building.T2points));
+    }
+    if (typeof building.T3points === "number" && building.T3points !== 0) {
+      initialT3Points = addExpr(initialT3Points, exprVar(d.keepVar, building.T3points));
+    }
+  }
+
+  // A manually-specified first station's stats must still count toward system scores (the
+  // original Python did this implicitly, since its UI treated the first-station row as just
+  // another "already present" entry). T2/T3 points are deliberately NOT bonused here: the
+  // already-present-derived starting balance above already represents the system's real current
+  // balance.
+  allValues[input.firstStationBuilding] = addExpr(allValues[input.firstStationBuilding], exprConst(1));
 
   if (!input.allowCriminal) {
     model.addConstraint(allVars.Pirate_Base, "==", 0);
@@ -226,9 +344,42 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       .filter(([, b]) => b.slot === "ground")
       .reduce((acc, [name]) => addExpr(acc, allVars[name]), exprConst(0)),
   };
-  model.addConstraint(allVars.Asteroid_Base, "<=", input.slots.asteroid);
-  model.addConstraint(usedSlots.space, "<=", input.slots.space);
-  model.addConstraint(usedSlots.ground, "<=", input.slots.ground);
+  if (input.bodies && input.bodies.length > 0) {
+    // Per-body capacity replaces the 3 aggregate pools below entirely in this mode — deliberately
+    // excludes the primary station (it occupies its own dedicated slot, see
+    // SolverInput.firstStationBodyId's doc comment). `b.slots` is the body's TOTAL physical slot
+    // count (see SolverBody's doc comment) — occupied-by-already-present capacity is subtracted
+    // here: hard-present facilities always occupy their slot; demolishable ones do too unless the
+    // solver's `keepVar` for that slot solves to 0.
+    for (const b of input.bodies) {
+      let spaceUsage: LPExpr = exprConst(0);
+      let groundUsage: LPExpr = exprConst(0);
+      for (const [name, building] of Object.entries(ALL_BUILDINGS)) {
+        const contribution = exprVar(bodyVars[name][b.bodyId], 1);
+        if (building.slot === "space") spaceUsage = addExpr(spaceUsage, contribution);
+        else groundUsage = addExpr(groundUsage, contribution);
+      }
+      let hardSpaceCount = 0;
+      let hardGroundCount = 0;
+      for (const h of presentSplit.hard) {
+        if (h.bodyId !== b.bodyId) continue;
+        if (h.kind === "space") hardSpaceCount++;
+        else hardGroundCount++;
+      }
+      for (const d of presentKeepVars) {
+        if (d.bodyId !== b.bodyId) continue;
+        const contribution = exprVar(d.keepVar, 1);
+        if (d.kind === "space") spaceUsage = addExpr(spaceUsage, contribution);
+        else groundUsage = addExpr(groundUsage, contribution);
+      }
+      model.addConstraint(spaceUsage, "<=", b.slots.space - hardSpaceCount, `body_${b.bodyId}_space`);
+      model.addConstraint(groundUsage, "<=", b.slots.ground - hardGroundCount, `body_${b.bodyId}_ground`);
+    }
+  } else {
+    model.addConstraint(allVars.Asteroid_Base, "<=", input.slots.asteroid);
+    model.addConstraint(usedSlots.space, "<=", input.slots.space);
+    model.addConstraint(usedSlots.ground, "<=", input.slots.ground);
+  }
 
   // --- Already-present buildings, folded into allValues as constants ---------------------
   for (const [name, nb] of Object.entries(input.alreadyPresent)) {
@@ -281,18 +432,14 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       const source = score === "construction_cost" ? allVars[name] : allValues[name];
       systemScores[score] = addExpr(systemScores[score] ?? exprConst(0), scaleExpr(source, statValue));
 
-      if (score in SUBSEQUENT_FACILITY_WEIGHT) {
-        if (input.chooseFirstStation && name in firstStationVars) {
-          firstStationContribution[score] = addExpr(
-            firstStationContribution[score] ?? exprConst(0),
-            exprVar(firstStationVars[name], statValue),
-          );
-        } else if (!input.chooseFirstStation && name === input.firstStationBuilding) {
-          firstStationContribution[score] = addExpr(
-            firstStationContribution[score] ?? exprConst(0),
-            exprConst(statValue),
-          );
-        }
+      if (
+        (score in FIRST_STATION_BONUS || score in SUBSEQUENT_FACILITY_REDUCTION) &&
+        name === input.firstStationBuilding
+      ) {
+        firstStationContribution[score] = addExpr(
+          firstStationContribution[score] ?? exprConst(0),
+          exprConst(statValue),
+        );
       }
     }
   }
@@ -300,27 +447,22 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     if (!(score in systemScores)) systemScores[score] = exprConst(0);
   }
 
-  // Reweight: full weight for the claim/first station's share, reduced weight for everything else.
-  for (const entry of Object.entries(SUBSEQUENT_FACILITY_WEIGHT)) {
-    const [score, weight] = entry as [Score, number];
+  // Reweight: boost the claim/first station's own share, reduce everything else's.
+  const reweightedScores = new Set([
+    ...Object.keys(FIRST_STATION_BONUS),
+    ...Object.keys(SUBSEQUENT_FACILITY_REDUCTION),
+  ]) as Set<Score>;
+  for (const score of reweightedScores) {
+    const bonus = FIRST_STATION_BONUS[score] ?? 0;
+    const reduction = SUBSEQUENT_FACILITY_REDUCTION[score] ?? 0;
     const firstStationPart = firstStationContribution[score] ?? exprConst(0);
     const subsequentPart = subExpr(systemScores[score], firstStationPart);
-    systemScores[score] = addExpr(firstStationPart, scaleExpr(subsequentPart, weight));
+    systemScores[score] = addExpr(
+      scaleExpr(firstStationPart, 1 + bonus),
+      scaleExpr(subsequentPart, 1 - reduction),
+    );
   }
 
-  if (input.chooseFirstStation) {
-    let firstStationCost = exprConst(0);
-    for (const [name, v] of Object.entries(firstStationVars)) {
-      const building = ALL_BUILDINGS[name];
-      if (building.construction_cost !== 0) {
-        firstStationCost = addExpr(
-          firstStationCost,
-          exprVar(v, building.construction_cost * (1 + building.first_station_offset)),
-        );
-      }
-    }
-    systemScores.construction_cost = addExpr(systemScores.construction_cost, firstStationCost);
-  }
   systemScores.system_score_beta = addExpr(
     addExpr(systemScores.security, systemScores.tech_level),
     addExpr(systemScores.wealth, systemScores.standard_of_living),
@@ -506,13 +648,21 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     }
   }
 
-  let firstStation: string | null = null;
-  if (input.chooseFirstStation) {
-    for (const [name, v] of Object.entries(firstStationVars)) {
-      if (Math.round(colValues[v] ?? 0) === 1) firstStation = name;
+  const firstStation: string = input.firstStationBuilding;
+
+  const placements: BuildingPlacement[] = [];
+  let firstStationBodyId: number | null = null;
+  if (input.bodies && input.bodies.length > 0) {
+    for (const name of Object.keys(ALL_BUILDINGS)) {
+      for (const b of input.bodies) {
+        const count = Math.round(colValues[bodyVars[name][b.bodyId]] ?? 0);
+        if (count > 0) placements.push({ building: name, bodyId: b.bodyId, count });
+      }
     }
-  } else {
-    firstStation = input.firstStationBuilding ?? null;
+    if (input.firstStationBodyId !== undefined) {
+      placements.push({ building: firstStation, bodyId: input.firstStationBodyId, count: 1 });
+      firstStationBodyId = input.firstStationBodyId;
+    }
   }
 
   const scores = Object.fromEntries(
@@ -520,6 +670,10 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   ) as Record<Score, number>;
   // Recompute the compound score from the rounded base scores for display consistency.
   scores.system_score_beta = computeCompoundScore("system_score_beta", scores);
+
+  const demolished = presentKeepVars
+    .filter((d) => Math.round(colValues[d.keepVar] ?? 1) === 0)
+    .map((d) => ({ bodyId: d.bodyId, slotKind: d.kind, index: d.index, building: d.building }));
 
   void auxVarsFromObjective; // present in the model for completeness; not surfaced individually
 
@@ -537,5 +691,8 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       asteroid: input.slots.asteroid - Math.round(evalExprAt(allVars.Asteroid_Base, colValues)),
     },
     objectiveValue: evalExprAt(exprVar(objectiveVar, 1), colValues),
+    placements,
+    firstStationBodyId,
+    demolished,
   };
 }
