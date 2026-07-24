@@ -113,17 +113,22 @@ export interface SolverInput {
   slots: SlotAvailability;
   objective: ObjectiveInput;
   /** The primary/claim station's building type — required. Every colonised system has exactly one,
-   * it must be built first, and it occupies its own dedicated slot separate from the ordinary
-   * orbital slot pool (see `bodies`/`firstStationBodyId` below), so this is always a fixed input to
-   * the solver, never something the solver picks. Must be one of
-   * `ALL_CATEGORIES["First Station"]` (every orbital Port-role building — Outposts, Coriolis,
-   * Asteroid Base, Orbis/Ocellus, Dodecahedron; ground ports and Supporting Facilities aren't
-   * eligible, matching the game's own rule). */
+   * it must be built first, and (matching how other community tools account for it) it occupies
+   * one of its body's ordinary orbital slots rather than a separate dedicated one — see
+   * `bodies`/`firstStationBodyId` below for the capacity consequence. Always a fixed input to the
+   * solver, never something the solver picks. Must be one of `ALL_CATEGORIES["First Station"]`
+   * (every orbital Port-role building — Outposts, Coriolis, Asteroid Base, Orbis/Ocellus,
+   * Dodecahedron; ground ports and Supporting Facilities aren't eligible, matching the game's own
+   * rule — so the primary always needs a body with at least one orbital slot). */
   firstStationBuilding: string;
-  /** Which imported body the primary station sits on. Only meaningful (and optional even then)
-   * when `bodies` is present — the primary station's dedicated slot doesn't count against that
-   * body's ordinary space/ground capacity, so this only affects `SolverResult.placements` (and
-   * hence the Links & economy panel), never feasibility. */
+  /** Which imported body the primary station sits on. Only meaningful when `bodies` is present.
+   * When given, that body must have at least one orbital slot (`slots.space >= 1`) — the solver
+   * reserves one of its physical orbital slots for the primary station, reducing what's left for
+   * ordinary new construction on that body by 1 (e.g. a 3-orbital-slot body has 2 left for the
+   * solver/user to fill). Left undefined, no body's capacity is reserved — this only affects
+   * `SolverResult.placements` (and hence the Links & economy panel) display, not feasibility, same
+   * as before; the UI is expected to require an assignment once bodies are in play, but the solver
+   * itself stays permissive for API callers that don't need placement display. */
   firstStationBodyId?: number;
   allowCriminal: boolean;
   /** Building name -> count already present, excluding whatever was picked as the first station.
@@ -203,6 +208,13 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // still pass an arbitrary building to isolate specific stat effects if useful.
   if (!input.firstStationBuilding || !(input.firstStationBuilding in ALL_BUILDINGS)) {
     return errorResult("Error: pick your first station");
+  }
+
+  if (input.bodies && input.firstStationBodyId !== undefined) {
+    const firstStationBody = input.bodies.find((b) => b.bodyId === input.firstStationBodyId);
+    if (firstStationBody && firstStationBody.slots.space < 1) {
+      return errorResult("Error: the primary station needs a body with at least one orbital slot");
+    }
   }
 
   // Already-present facilities per body (see domain/presentFacilities.ts's header for the
@@ -345,12 +357,13 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       .reduce((acc, [name]) => addExpr(acc, allVars[name]), exprConst(0)),
   };
   if (input.bodies && input.bodies.length > 0) {
-    // Per-body capacity replaces the 3 aggregate pools below entirely in this mode — deliberately
-    // excludes the primary station (it occupies its own dedicated slot, see
-    // SolverInput.firstStationBodyId's doc comment). `b.slots` is the body's TOTAL physical slot
-    // count (see SolverBody's doc comment) — occupied-by-already-present capacity is subtracted
-    // here: hard-present facilities always occupy their slot; demolishable ones do too unless the
-    // solver's `keepVar` for that slot solves to 0.
+    // Per-body capacity replaces the 3 aggregate pools below entirely in this mode. `b.slots` is
+    // the body's TOTAL physical slot count (see SolverBody's doc comment) — occupied-by-already-
+    // present capacity is subtracted here: hard-present facilities always occupy their slot;
+    // demolishable ones do too unless the solver's `keepVar` for that slot solves to 0. The
+    // primary station's body (if assigned, see SolverInput.firstStationBodyId) has one further
+    // orbital slot reserved for it, on top of whatever's already present — it's a real physical
+    // slot like any other, just fixed to the chosen firstStationBuilding instead of solved for.
     for (const b of input.bodies) {
       let spaceUsage: LPExpr = exprConst(0);
       let groundUsage: LPExpr = exprConst(0);
@@ -372,7 +385,13 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
         if (d.kind === "space") spaceUsage = addExpr(spaceUsage, contribution);
         else groundUsage = addExpr(groundUsage, contribution);
       }
-      model.addConstraint(spaceUsage, "<=", b.slots.space - hardSpaceCount, `body_${b.bodyId}_space`);
+      const firstStationReservation = b.bodyId === input.firstStationBodyId ? 1 : 0;
+      model.addConstraint(
+        spaceUsage,
+        "<=",
+        b.slots.space - hardSpaceCount - firstStationReservation,
+        `body_${b.bodyId}_space`,
+      );
       model.addConstraint(groundUsage, "<=", b.slots.ground - hardGroundCount, `body_${b.bodyId}_ground`);
     }
   } else {

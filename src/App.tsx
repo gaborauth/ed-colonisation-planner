@@ -9,6 +9,7 @@ import { PopulationEstimatePanel } from "./components/PopulationEstimatePanel";
 import { ResultsPanel } from "./components/ResultsPanel";
 import { SavedPlansPanel } from "./components/SavedPlansPanel";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
+import { SystemPortabilityBar } from "./components/SystemPortabilityBar";
 import { normalizeFacilitySlots } from "./domain/presentFacilities";
 import type { SavedPlan } from "./persistence/plans";
 import { solve, type SolverBody, type SolverInput } from "./solver/solve";
@@ -61,6 +62,10 @@ function App() {
   const [resultState, setResultState] = useState<PlannerResultState>(INITIAL_RESULT_STATE);
   const [systemName, setSystemName] = useState("");
   const [planName, setPlanName] = useState("");
+  // Bumped by SystemPortabilityBar after a successful import — JournalImportPanel keeps its own
+  // copy of the saved-systems list in local state (loaded once at mount), so writing a fresh
+  // system into localStorage from a sibling component wouldn't otherwise be noticed there.
+  const [journalStoreVersion, setJournalStoreVersion] = useState(0);
 
   async function handleSolve(): Promise<void> {
     setResultState({ status: "solving", result: null, message: null });
@@ -87,7 +92,13 @@ function App() {
     <main>
       <h1>Elite Dangerous Colonisation Planner</h1>
 
-      <JournalImportPanel dispatch={dispatch} />
+      <SystemPortabilityBar
+        formState={formState}
+        dispatch={dispatch}
+        onImported={() => setJournalStoreVersion((v) => v + 1)}
+      />
+
+      <JournalImportPanel dispatch={dispatch} refreshToken={journalStoreVersion} />
       <SystemConfigPanel formState={formState} dispatch={dispatch} />
       <ObjectivePanel formState={formState} dispatch={dispatch} />
       <ConstraintsPanel formState={formState} dispatch={dispatch} />

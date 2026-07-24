@@ -3,7 +3,6 @@ import { ALL_CATEGORIES, isPort, ALL_BUILDINGS, toPrintable } from "../data/buil
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
 import { normalizeFacilitySlots, type PresentFacilitySlot } from "../domain/presentFacilities";
 import { compareBodyNames, type JournalBody } from "../journal/parser";
-import { saveSystem } from "../persistence/journalSystems";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
 import { NumberInput } from "./NumberInput";
 
@@ -17,11 +16,10 @@ const SLOT_KINDS: { kind: "space" | "ground"; label: string; category: string }[
   { kind: "ground", label: "Ground", category: "Ground" },
 ];
 
-/** The primary station shown as an immutable leaf of the tree — its own dropdown ("Primary
- * station" above) and body assignment ("On body" above) are the actual controls; this is a
- * read-only mirror so the tree shows the complete picture of what's on each body. No demolishable
- * control at all (unlike ordinary slots, which show one disabled for a port) — the primary/claim
- * station can never be demolished, full stop, so there's nothing to show. */
+/** The primary station shown as an immutable leaf, used only while it's picked but not yet
+ * assigned to a body — once assigned, it occupies that body's first orbital slot instead (see
+ * `BodySlotLeaves`'s `PrimaryStationSlotLeaf` below), consistent with it now actually consuming
+ * real orbital capacity rather than floating in its own dedicated slot. */
 function PrimaryStationLeaf({ firstStationBuilding }: { firstStationBuilding: string }) {
   return (
     <div className="facility-tree-slot">
@@ -33,10 +31,36 @@ function PrimaryStationLeaf({ firstStationBuilding }: { firstStationBuilding: st
   );
 }
 
+/** The primary station rendered as the body's actual first orbital slot — fixed/disabled like an
+ * ordinary present port (never demolishable), marked with a ★ badge so it reads as distinct from
+ * a regular already-built facility. Physically slot "Orbital 1"; the solver reserves it (see
+ * `solve.ts`'s `firstStationReservation`), so `BodySlotLeaves` never offers it for editing and
+ * ordinary orbital slots on this body start numbering from 2. */
+function PrimaryStationSlotLeaf({ label, firstStationBuilding }: { label: string; firstStationBuilding: string }) {
+  return (
+    <div className="facility-tree-slot facility-tree-slot-primary">
+      <span className="facility-tree-slot-label">
+        {label} 1
+      </span>
+      <select aria-label={`Primary station (${label} 1, set above)`} value={firstStationBuilding} disabled>
+        <option value={firstStationBuilding}>{toPrintable(firstStationBuilding)}</option>
+      </select>
+      <span className="primary-badge" aria-hidden="true" title="Primary/claim station">
+        ★
+      </span>
+    </div>
+  );
+}
+
 interface BodySlotLeavesProps {
   body: JournalBody;
   locked: boolean;
   dispatch: Dispatch<PlannerAction>;
+  /** Set when this body is the primary station's assigned body — reserves this body's first
+   * orbital slot for it (see `PrimaryStationSlotLeaf` above) instead of offering it as an ordinary
+   * editable slot. */
+  isFirstStationBody: boolean;
+  firstStationBuilding: string;
 }
 
 /** A scanned body's own leaves: one per physical orbital/ground slot, each a dropdown for what's
@@ -44,7 +68,7 @@ interface BodySlotLeavesProps {
  * once a facility is picked (hidden entirely for an empty slot — nothing to demolish). Ports are
  * never demolishable in this app (see domain/presentFacilities.ts's header) — the checkbox is
  * shown but disabled for them so the user understands why, rather than silently doing nothing. */
-function BodySlotLeaves({ body, locked, dispatch }: BodySlotLeavesProps) {
+function BodySlotLeaves({ body, locked, dispatch, isFirstStationBody, firstStationBuilding }: BodySlotLeavesProps) {
   function setSlot(kind: "space" | "ground", index: number, slot: PresentFacilitySlot | null): void {
     dispatch({ type: "setFacilitySlot", bodyId: body.bodyId, kind, index, slot });
   }
@@ -54,7 +78,15 @@ function BodySlotLeaves({ body, locked, dispatch }: BodySlotLeavesProps) {
       {SLOT_KINDS.flatMap(({ kind, label, category }) => {
         const count = body.slots?.[kind] ?? 0;
         const slots = normalizeFacilitySlots(body.presentFacilities?.[kind], count);
-        return slots.map((slot, index) => {
+        // The primary station's own reservation is only ever the first *orbital* slot (it's always
+        // an orbital Port-role building, see SolverInput.firstStationBuilding) — ground slots are
+        // never affected, and this body's index 0 space slot is expected to stay empty in
+        // `presentFacilities` (the reservation is tracked flatly in the solver, not as a present
+        // facility entry) even though it's no longer offered here for editing.
+        const reserveFirstForPrimary = kind === "space" && isFirstStationBody && count > 0;
+        const editableSlots = reserveFirstForPrimary ? slots.slice(1) : slots;
+        const leaves = editableSlots.map((slot, i) => {
+          const index = reserveFirstForPrimary ? i + 1 : i;
           const building = slot ? ALL_BUILDINGS[slot.building] : undefined;
           const buildingIsPort = building ? isPort(building) : false;
           return (
@@ -96,6 +128,12 @@ function BodySlotLeaves({ body, locked, dispatch }: BodySlotLeavesProps) {
             </div>
           );
         });
+        if (reserveFirstForPrimary) {
+          leaves.unshift(
+            <PrimaryStationSlotLeaf key={`${kind}-primary`} label={label} firstStationBuilding={firstStationBuilding} />,
+          );
+        }
+        return leaves;
       })}
     </>
   );
@@ -123,10 +161,15 @@ function HierarchyBranch({ node, starSystem, firstStationBodyId, firstStationBui
   return (
     <div className="facility-tree-body">
       <div className="facility-tree-body-name">{fullName}</div>
-      {node.body && isFirstStationBody && firstStationBuilding && (
-        <PrimaryStationLeaf firstStationBuilding={firstStationBuilding} />
+      {node.body && (
+        <BodySlotLeaves
+          body={node.body}
+          locked={locked}
+          dispatch={dispatch}
+          isFirstStationBody={isFirstStationBody}
+          firstStationBuilding={firstStationBuilding}
+        />
       )}
-      {node.body && <BodySlotLeaves body={node.body} locked={locked} dispatch={dispatch} />}
       {node.children.map((child) => (
         <HierarchyBranch
           key={child.path}
@@ -150,10 +193,14 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
     formState.bodies.filter((b) => (b.slots?.asteroid ?? 0) > 0).map((b) => b.bodyId),
   );
   const noRingEligibleBody = hasBodies && ringEligibleBodyIds.size === 0;
+  // The primary station always occupies one of its body's orbital slots (see solve.ts), so it can
+  // only ever be assigned to a body that has at least one — same idea as the Asteroid_Base
+  // ring-eligibility filter below, just unconditional instead of building-specific.
+  const orbitalEligibleBodies = formState.bodies.filter((b) => (b.slots?.space ?? 0) > 0);
   const stationBodyOptions = (
     formState.firstStationBuilding === "Asteroid_Base"
-      ? formState.bodies.filter((b) => ringEligibleBodyIds.has(b.bodyId))
-      : formState.bodies
+      ? orbitalEligibleBodies.filter((b) => ringEligibleBodyIds.has(b.bodyId))
+      : orbitalEligibleBodies
   )
     .slice()
     .sort(compareBodyNames);
@@ -172,24 +219,10 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
 
   const hierarchyRoot = hasBodies ? buildBodyHierarchy(formState.starSystem, formState.bodies) : null;
 
-  function handleSave(): void {
-    if (formState.systemAddress === null) return;
-    saveSystem({
-      systemAddress: formState.systemAddress,
-      starSystem: formState.starSystem,
-      bodies: formState.bodies,
-      firstStationBuilding: formState.firstStationBuilding || undefined,
-      firstStationBodyId: formState.firstStationBodyId,
-    });
-  }
-
   return (
     <section id="system-panel" className={`panel${locked ? " panel-unconfigured" : ""}`}>
       <div className="panel-header">
         <h2>System facilities</h2>
-        <button type="button" onClick={handleSave} disabled={locked || formState.systemAddress === null}>
-          Save
-        </button>
       </div>
       <div className="row-grid">
         <div className="field">
@@ -277,10 +310,13 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
           {primaryStationUnassigned && <PrimaryStationLeaf firstStationBuilding={formState.firstStationBuilding} />}
           {hierarchyRoot.body && (
             <div className="facility-tree-body">
-              {formState.firstStationBodyId === hierarchyRoot.body.bodyId && formState.firstStationBuilding && (
-                <PrimaryStationLeaf firstStationBuilding={formState.firstStationBuilding} />
-              )}
-              <BodySlotLeaves body={hierarchyRoot.body} locked={locked} dispatch={dispatch} />
+              <BodySlotLeaves
+                body={hierarchyRoot.body}
+                locked={locked}
+                dispatch={dispatch}
+                isFirstStationBody={formState.firstStationBodyId === hierarchyRoot.body.bodyId}
+                firstStationBuilding={formState.firstStationBuilding}
+              />
             </div>
           )}
           {hierarchyRoot.children.map((child) => (

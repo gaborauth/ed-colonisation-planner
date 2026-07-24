@@ -85,6 +85,23 @@ export function compareBodyNames(a: JournalBody, b: JournalBody): number {
   return a.bodyName.localeCompare(b.bodyName, undefined, { numeric: true });
 }
 
+/** An Asteroid_Base is built on an ordinary orbital slot (see eligibility.ts), so "asteroid-eligible"
+ * isn't its own slot pool — it's how many of the system's orbital slots sit on a ringed/belted body
+ * and can therefore host one. Per-body `slots.asteroid` is just the yes/no eligibility flag, so this
+ * sums that body's *orbital* slots wherever the flag is set, not the flags themselves. Shared by
+ * JournalImportPanel (applying a selected system) and SystemPortabilityBar (importing an exported
+ * one) — both need to derive the aggregate `PlannerFormState.slots` from a JournalSystem's bodies. */
+export function computeSystemSlotTotals(system: JournalSystem): Record<SlotKind, number> {
+  const totals: Record<SlotKind, number> = { space: 0, ground: 0, asteroid: 0 };
+  for (const body of system.bodies) {
+    const slots = body.slots ?? { space: 0, ground: 0, asteroid: 0 };
+    totals.space += slots.space;
+    totals.ground += slots.ground;
+    if (slots.asteroid > 0) totals.asteroid += slots.space;
+  }
+  return totals;
+}
+
 interface RawScanEvent {
   event: "Scan";
   StarSystem: string;
