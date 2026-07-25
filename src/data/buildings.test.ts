@@ -10,6 +10,7 @@ import {
   isPort,
   isPortRole,
   PORT_ROLE_BUILDINGS,
+  PORT_FIXED_ECONOMY,
   SUPPORTING_FACILITY_BUILDINGS,
 } from "./buildings";
 
@@ -116,6 +117,38 @@ describe("Update 3 link-topology classification", () => {
     for (const name of Object.keys(FACILITY_ECONOMY_GUESS)) {
       expect(SUPPORTING_FACILITY_BUILDINGS, name).toContain(name);
     }
+  });
+
+  it("PORT_FIXED_ECONOMY only maps Port-role buildings, one economy each — sourced from DaftMav-v3.4.1.ods's Stats tab", () => {
+    for (const [name, economies] of Object.entries(PORT_FIXED_ECONOMY)) {
+      expect(PORT_ROLE_BUILDINGS, name).toContain(name);
+      expect(economies, name).toHaveLength(1);
+    }
+    expect(new Set(Object.keys(PORT_FIXED_ECONOMY))).toEqual(
+      new Set([
+        "Asteroid_Base",
+        "Military_Outpost",
+        "Industrial_Outpost",
+        "Scientific_Outpost",
+        "Industrial_Planetary_Outpost",
+        "Scientific_Planetary_Outpost",
+      ]),
+    );
+  });
+
+  it("Asteroid Base and the Military/Industrial/Scientific Outposts (space + ground) get their sheet-confirmed named economy, not a guess", () => {
+    expect(PORT_FIXED_ECONOMY.Asteroid_Base).toEqual(["Extraction"]);
+    expect(PORT_FIXED_ECONOMY.Military_Outpost).toEqual(["Military"]);
+    expect(PORT_FIXED_ECONOMY.Industrial_Outpost).toEqual(["Industrial"]);
+    expect(PORT_FIXED_ECONOMY.Scientific_Outpost).toEqual(["HighTech"]);
+    expect(PORT_FIXED_ECONOMY.Industrial_Planetary_Outpost).toEqual(["Industrial"]);
+    expect(PORT_FIXED_ECONOMY.Scientific_Planetary_Outpost).toEqual(["HighTech"]);
+  });
+
+  it("Civilian/Commercial Outposts (space) and Civilian Planetary Outpost (ground) are NOT in PORT_FIXED_ECONOMY — the sheet lists them as plain Colony, so they take the body-derived economy like the other generic ports", () => {
+    expect(PORT_FIXED_ECONOMY.Civilian_Outpost).toBeUndefined();
+    expect(PORT_FIXED_ECONOMY.Commercial_Outpost).toBeUndefined();
+    expect(PORT_FIXED_ECONOMY.Civilian_Planetary_Outpost).toBeUndefined();
   });
 });
 

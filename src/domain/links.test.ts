@@ -111,4 +111,129 @@ describe("computeSystemLinks", () => {
     const result = computeSystemLinks([body], placements, ["Coriolis"]);
     expect(result.weakLinks).toEqual([]);
   });
+
+  it("a facility on a port-less body still weak-links system-wide, even though it can't strong-link locally", () => {
+    // Reproduces a user-reported real in-game discrepancy: 3 port-less bodies whose only content
+    // was Agricultural settlements (which can't strong-link — no port on their own body) turned out
+    // to be the system's ONLY Agriculture source at all, and were still confirmed in-game to
+    // contribute weak links elsewhere.
+    const body1 = makeBody(1, { planetClass: "Rocky body" });
+    const body2 = makeBody(2, { planetClass: "Rocky body" });
+    const placements: BuildingPlacement[] = [
+      { building: "Coriolis", bodyId: 1, count: 1 },
+      { building: "Medium_Agricultural_Settlement", bodyId: 2, count: 1 },
+    ];
+    const result = computeSystemLinks([body1, body2], placements, ["Coriolis"]);
+
+    expect(result.warnings.some((w) => w.includes("Body 2") && w.includes("no port"))).toBe(true);
+    const coriolis = result.ports.find((p) => p.building === "Coriolis")!;
+    expect(coriolis.marketLinks.find((m) => m.economy === "Agriculture")).toEqual({
+      economy: "Agriculture",
+      strongCount: 0,
+      weakCount: 1,
+    });
+  });
+
+  it("doesn't double-count a ground->space forwarding hop as its own separate weak-link giver", () => {
+    // Reproduces the other half of the same user-reported discrepancy: a chain body's ground port
+    // forwarding to its space port must NOT also independently weak-link the same economy a second
+    // time — only a same-side non-dominant port (Coriolis here, tier 2, losing to Orbis_or_Ocellus's
+    // tier 3) should count as an additional weak-link giver alongside the chain body's own sources.
+    const chainBody = makeBody(1, { planetClass: "Rocky body" }); // Rocky -> Refinery
+    const receiverBody = makeBody(2, { planetClass: "Icy body" }); // Icy -> Industrial, not Refinery
+    const placements: BuildingPlacement[] = [
+      { building: "Civilian_Planetary_Outpost", bodyId: 1, count: 1 }, // ground port, chains to space
+      { building: "Coriolis", bodyId: 1, count: 1 }, // space, non-dominant (tier 2)
+      { building: "Orbis_or_Ocellus", bodyId: 1, count: 1 }, // space, dominant (tier 3)
+      { building: "Military_Outpost", bodyId: 2, count: 1 }, // the receiver, elsewhere in the system
+    ];
+    const result = computeSystemLinks([chainBody, receiverBody], placements, ["Civilian_Planetary_Outpost", "Orbis_or_Ocellus", "Coriolis"]);
+
+    const militaryOutpost = result.ports.find((p) => p.building === "Military_Outpost")!;
+    // Exactly 1 (from Coriolis alone) — NOT 2 (which would double-count Civilian_Planetary_Outpost's
+    // forwarding hop as an additional, separate weak-link giver for the same Refinery value).
+    expect(militaryOutpost.marketLinks.find((m) => m.economy === "Refinery")).toEqual({
+      economy: "Refinery",
+      strongCount: 0,
+      weakCount: 1,
+    });
+  });
+
+  it("accumulates strong-link economy contributions up a T1->T2 chain — reproduces a user-reported real in-game example", () => {
+    // Rocky + geologicals + pristine resources + volcanism -> Civilian Planetary Outpost's own
+    // economy (Colony-default, per DaftMav-v3.4.1.ods) is Extraction 180%/Refinery 140%/
+    // Industrial 140% (100% base + boosts). A Small Military Settlement (link-contribution tier
+    // 1, from its own T2points=1) strong-links Military to it at the flat tier-1 rate (40%, since
+    // Military has no strong-link boost/decrease rule at all) — confirmed in-game: the settlement's
+    // own Military value is 100%, but only 40% of it lands on the Outpost. The Outpost (also
+    // tier 1) then forwards EVERYTHING it carries — its own 3 economies plus the received
+    // Military — onward to Coriolis, each at 40% + that economy's own per-link boost/decrease
+    // delta on this body (Extraction has 2 applicable boosts = +80%; Refinery/Industrial have 1
+    // = +40%; Military has none = +0%), landing exactly on the real observed totals.
+    const body = makeBody(1, {
+      planetClass: "Rocky body",
+      landable: true,
+      hasGeologicalSignals: true,
+      hasBiologicalSignals: false,
+      reserveLevel: "Pristine",
+      raw: { Volcanism: "minor metallic magma volcanism" },
+    });
+    const placements: BuildingPlacement[] = [
+      { building: "Small_Military_Settlement", bodyId: 1, count: 1 },
+      { building: "Civilian_Planetary_Outpost", bodyId: 1, count: 1 },
+      { building: "Coriolis", bodyId: 1, count: 1 },
+    ];
+    const result = computeSystemLinks([body], placements, ["Civilian_Planetary_Outpost", "Coriolis"]);
+
+    const civilianOutpost = result.ports.find((p) => p.building === "Civilian_Planetary_Outpost")!;
+    const outpostRatio = (economy: string) => civilianOutpost.economyRatios.find((r) => r.economy === economy)!;
+    expect(outpostRatio("Extraction").totalPercent).toBe(180);
+    expect(outpostRatio("Refinery").totalPercent).toBe(140);
+    expect(outpostRatio("Industrial").totalPercent).toBe(140);
+    expect(outpostRatio("Military")).toEqual({ economy: "Military", ownPercent: 0, strongPercent: 40, weakPercent: 0, totalPercent: 40 });
+
+    const coriolis = result.ports.find((p) => p.building === "Coriolis")!;
+    const coriolisRatio = (economy: string) => coriolis.economyRatios.find((r) => r.economy === economy)!;
+    expect(coriolisRatio("Extraction").totalPercent).toBe(300);
+    expect(coriolisRatio("Refinery").totalPercent).toBe(220);
+    expect(coriolisRatio("Industrial").totalPercent).toBe(220);
+    expect(coriolisRatio("Military").totalPercent).toBe(40);
+  });
+
+  it("gives every strong-link giver a system-wide 5% weak link to every OTHER body's representative port", () => {
+    // Body 1: Small Military Settlement strong-links Military to Coriolis (its only local port).
+    // Body 2: Small Agricultural Settlement strong-links Agriculture to Planetary_Port likewise.
+    // Per the user's rule, each settlement ALSO weak-links its economy to the OTHER body's
+    // representative port at a flat 5% (no tier-scaling, no boost/decrease) — so Coriolis should
+    // pick up a 5% Agriculture weak link from body 2, and Planetary_Port a 5% Military weak link
+    // from body 1, alongside their own local 40% strong links (tier 1, no applicable boost/decrease
+    // for either economy on a plain Rocky body). `marketLinks` counts the number of contributing
+    // building instances (1 settlement each here), not a percentage — that's `economyRatios`'s job.
+    const body1 = makeBody(1, { planetClass: "Rocky body" });
+    const body2 = makeBody(2, { planetClass: "Rocky body" });
+    const placements: BuildingPlacement[] = [
+      { building: "Small_Military_Settlement", bodyId: 1, count: 1 },
+      { building: "Coriolis", bodyId: 1, count: 1 },
+      { building: "Small_Agricultural_Settlement", bodyId: 2, count: 1 },
+      { building: "Planetary_Port", bodyId: 2, count: 1 },
+    ];
+    const result = computeSystemLinks([body1, body2], placements, ["Coriolis", "Planetary_Port"]);
+
+    const coriolis = result.ports.find((p) => p.building === "Coriolis")!;
+    const coriolisRatio = (economy: string) => coriolis.economyRatios.find((r) => r.economy === economy)!;
+    expect(coriolisRatio("Military")).toEqual({ economy: "Military", ownPercent: 0, strongPercent: 40, weakPercent: 0, totalPercent: 40 });
+    expect(coriolisRatio("Agriculture")).toEqual({ economy: "Agriculture", ownPercent: 0, strongPercent: 0, weakPercent: 5, totalPercent: 5 });
+
+    const coriolisMarket = (economy: string) => coriolis.marketLinks.find((m) => m.economy === economy);
+    expect(coriolisMarket("Military")).toEqual({ economy: "Military", strongCount: 1, weakCount: 0 });
+    expect(coriolisMarket("Agriculture")).toEqual({ economy: "Agriculture", strongCount: 0, weakCount: 1 });
+    // Refinery is Coriolis's own body-derived economy (Rocky), never contributed via any link —
+    // it should not appear in marketLinks at all.
+    expect(coriolisMarket("Refinery")).toBeUndefined();
+
+    const planetaryPort = result.ports.find((p) => p.building === "Planetary_Port")!;
+    const portMarket = (economy: string) => planetaryPort.marketLinks.find((m) => m.economy === economy);
+    expect(portMarket("Agriculture")).toEqual({ economy: "Agriculture", strongCount: 1, weakCount: 0 });
+    expect(portMarket("Military")).toEqual({ economy: "Military", strongCount: 0, weakCount: 1 });
+  });
 });

@@ -78,6 +78,18 @@ also revisable:
   to Update 3 economy types. The official body-attribute override table is verbatim-sourced (see
   below), but no official per-building economy mapping was ever published; several buildings are
   deliberately left unmapped rather than guessed (see the comment above the constant).
+- `PORT_FIXED_ECONOMY` in `src/data/buildings.ts` — the subset of `PORT_ROLE_BUILDINGS` with a
+  fixed, non-"Colony" economy instead of the body-attribute-override behavior every other port gets
+  (e.g. a Military Outpost is always 100% Military regardless of the body). Mostly *not* a guess —
+  sourced verbatim from `DaftMav-v3.4.1.ods`'s "Stats" tab, "Facility Economy" column, and
+  user-confirmed in-game for the two entries the sheet doesn't cover cleanly:
+  `Civilian_Outpost`/`Commercial_Outpost` (space) and `Civilian_Planetary_Outpost` (ground) are
+  deliberately left OUT of this table (they take the body-derived economy like generic ports,
+  confirmed in-game — an earlier version of this table wrongly hardcoded them to fixed Colony 100%,
+  which was the original bug report that started this). Known gap: `Criminal_Outpost`'s sheet
+  economy is "Contraband," not one of this app's 9 `EconomyType` values at all (not in any of the
+  officially-sourced Update 3 tables either) — left out of this table for lack of anywhere to put
+  it, falling through to the Colony-default approximation instead of a confirmed value.
 - `populationEstimate.ts`'s growth curve — genuinely invented, not derived from anything. No
   official population-growth formula has ever been published; this is a shaped curve chosen only to
   match the patch notes' qualitative "fast then slowing" description. Never treat its numbers as
@@ -110,6 +122,15 @@ also revisable:
   of the React app/build), meant as a general "current known issues" page — add future entries there
   too, not just more inline hover disclaimers. Revert by re-adding the `isTerraformable(body)` boost
   call at each of the three sites (search the constant's usages) if Frontier ever fixes this in-game.
+- `LINK_TIER_CONTRIBUTION_RATE` (0.4/0.8/1.2) and `WEAK_LINK_CONTRIBUTION` (flat 0.05) in
+  `src/domain/links.ts` — how much of a linked economy a facility/port contributes *to a linked
+  port* through a strong or weak link respectively (distinct from `BOOST_DECREASE_DELTA` above,
+  which is about a facility's *own* displayed ratio). The tier-scaled strong-link number is
+  community-sourced (`EconomicEffects.ods`'s "Strong Link Modifiers" sheet); the flat weak-link 5%
+  is a user-supplied rule with no official-source equivalent at all (the patch notes only say weak
+  links exist, never a number). Both cross-validated against a real in-game system's exact reported
+  percentages/counts (see `links.test.ts`'s two dedicated regression tests) rather than just
+  theoretical — but still flagged the same way as everything else in this section.
 
 ## Gotchas worth knowing before touching the solver
 
@@ -312,6 +333,50 @@ spent on it yet), which this app's solver doesn't track at all (only aggregate p
 `stationServices.ts` documents this gap in its header: treating every instance of a tier-2/3-capable
 building type as already at its ceiling is an optimistic approximation that can overstate service
 availability for a freshly-built, not-yet-upgraded port.
+
+### Per-facility economy ratio accumulation (System facilities panel hover — user-supplied, not verbatim source text)
+
+The System facilities panel's per-facility hover ("i" icon on a built slot) shows an "Economy
+ratios" block (per economy: total, then a body/strong-link/weak-link breakdown) and a "Market
+links" block (a 3-column Economy/Strong link/Weak link table of *counts*, not percentages) — this
+is entirely user-supplied real-game-testing rules, not from any official patch note text (which
+only ever says links "supply a proportion" of an economy, never a number). Implemented in
+`domain/links.ts`'s `computeSystemLinks` (`PortEconomyLine`/`MarketLinkLine`), consumed by
+`SystemConfigPanel.tsx`'s `facilityEconomyRatios`/`facilityMarketLinks`. Rules, in order of
+discovery/confirmation:
+
+- **Strong-link contribution** = `LINK_TIER_CONTRIBUTION_RATE[giver's tier]` (0.4/0.8/1.2 for
+  Tier 1/2/3) `+` that economy's own strong-link boost/decrease delta on the shared body —
+  regardless of what percentage the economy shows on the giving facility itself. Confirmed against
+  a real example: a Military Settlement's own Military value is 100%, but it only contributes 40%
+  to a linked port. "Tier" here is `getLinkContributionTier()` (`data/buildings.ts`) — a *different*
+  computation from `getPortTier()`'s official Tier 1/2/3 Port vocabulary, derived from whether a
+  building grants a flat T2 point (Tier 1), a flat T3 point (Tier 2, "flat" meaning non-escalating —
+  Coriolis/Asteroid_Base still land here despite being "T2 ports" under `getPortTier()`, since that
+  data point is a coincidence of two unrelated computations), or neither (Tier 3 — only
+  Orbis_or_Ocellus/Dodecahedron/Planetary_Port, whose own escalation currency IS T3 itself).
+- **Weak-link contribution** = a flat `WEAK_LINK_CONTRIBUTION` (5%, no tier-scaling, no
+  boost/decrease — consistent with the official "weak links are unaffected by that mechanic" rule),
+  from every strong-link giver system-wide to every OTHER body's representative port. "System-wide"
+  is literal: a facility on a body with no port at all still weak-links elsewhere even though it
+  can't strong-link locally (nothing on its own body to strong-link to) — confirmed against a real
+  system where 3 port-less bodies' Agricultural settlements were the system's *only* Agriculture
+  source, and real play showed exactly as many Agriculture weak links as settlement instances.
+- **The ground->space forwarding hop is excluded from being its own additional weak-link giver**
+  (`addStrongLink`'s `skipWeakGiver` option) — the ground-dominant port forwarding its
+  already-locally-strong-linked economies onward to the space-dominant port must not ALSO
+  separately broadcast them as a weak link, since that economy already reached the system through
+  its own original sources; double-counting it here was confirmed (via the same real system above)
+  to overcount a Refinery weak-link total by exactly the redundant amount. A same-side non-dominant
+  port (e.g. a tier-2 Coriolis losing dominance to a tier-3 Orbis on the same body) is NOT excluded
+  this way — it still counts as its own independent weak-link giver.
+- The "Market links" table's counts are the number of contributing *building instances*, not a
+  weighted amount — i.e. the same `count` each `addStrongLink`/weak-giver entry already carries,
+  summed per economy, with zero rendered as "-" in the UI.
+
+All of the above is validated end-to-end in `links.test.ts` against the exact numbers from a real
+exported system (`jsons/*.json` — the user's own save data, not committed) rather than just
+theoretical worked examples.
 
 ## Workflow constraints
 

@@ -404,6 +404,27 @@ export function getPortTier(name: string): 1 | 2 | 3 {
   return 1;
 }
 
+/** How much of a linked economy a building contributes onward through a strong link — a different
+ * axis than `getPortTier()`'s official "Tier 1/2/3 Port" vocabulary above (that's about escalating
+ * construction cost and same-body strong-link dominance priority, and only applies to
+ * `PORT_ROLE_BUILDINGS`; this applies to every building, ports and supporting facilities alike, and
+ * is purely about how big a proportion of its economy a link carries). User-supplied rule, derived
+ * directly from a building's own T2/T3 point generation (the same `T2points`/`T3points` fields
+ * `getPortTier`/`isPort` already use, i.e. no new hand-authored table): a building that grants a
+ * flat T2 point is Tier 1; one that grants a flat T3 point instead (1 or 2 — the amount doesn't
+ * matter, only that it's a fixed positive number, not the escalating `"port"` sentinel) is Tier 2;
+ * a building that grants neither a fixed T2 nor T3 amount (only the 3 buildings whose own
+ * escalation currency IS T3 itself — `Orbis_or_Ocellus`/`Dodecahedron`/`Planetary_Port`) is Tier 3.
+ * `Coriolis`/`Asteroid_Base` escalate via T2 cost but still grant a flat, non-escalating T3points=1,
+ * so they land in Tier 2 here — coincidentally the same number `getPortTier` gives them, but from an
+ * entirely different computation (that one reads T2points==="port"; this one reads T3points>0). */
+export function getLinkContributionTier(name: string): 1 | 2 | 3 {
+  const building = ALL_BUILDINGS[name];
+  if (typeof building.T2points === "number" && building.T2points > 0) return 1;
+  if (typeof building.T3points === "number" && building.T3points > 0) return 2;
+  return 3;
+}
+
 // UNVERIFIED, best-effort. Update 3's body-attribute -> Colony-override table (see
 // domain/economyOverrides.ts) and the strong-link boost/decrease table are verbatim from official
 // patch notes, but no verbatim mapping from every Hub/Settlement/Installation building to an
@@ -447,6 +468,36 @@ export const FACILITY_ECONOMY_GUESS: Partial<Record<string, EconomyType[]>> = {
   Small_Tourism_Settlement: ["Tourism"],
   Medium_Tourism_Settlement: ["Tourism"],
   Large_Tourism_Settlement: ["Tourism"],
+};
+
+// Sourced verbatim from DaftMav-v3.4.1.ods's "Stats" tab, "Facility Economy" column (column O) —
+// of the 14 `PORT_ROLE_BUILDINGS`, these are the ones with a fixed, non-"Colony" facility economy
+// there (`Asteroid Base` -> Extraction; `Military`/`Industrial`/`Scientific Outpost` (space) and
+// `Industrial`/`Scientific Planetary Outpost` (ground) -> their own named economy). Everything else
+// in `PORT_ROLE_BUILDINGS` (the sheet lists it as plain "Colony", not fixed) defaults to "Colony"
+// and picks up `economyOverrides.ts`'s `computeBodyEconomyOverrides` body-attribute table on top,
+// per the official patch notes' "every port's economy defaults to Colony... gets this ADDED based
+// on the body" rule — including `Civilian_Outpost`/`Commercial_Outpost` (space) and
+// `Civilian_Planetary_Outpost` (ground), despite sharing the Military/Industrial/Scientific
+// Outposts' naming convention: this was the actual bug the user found (`Civilian_Planetary_Outpost`
+// was wrongly hardcoded to fixed Colony 100% instead of the body-derived economy, confirmed
+// in-game), and the sheet confirms `Civilian`/`Commercial_Outpost` should get the same treatment,
+// not the fixed-100%-Colony one an earlier version of this table gave them (see
+// `SystemConfigPanel.tsx`'s `facilityBaseEconomies` — this table takes priority over the body-driven
+// branch only for the entries actually listed here).
+//
+// `Criminal_Outpost`'s sheet economy is "Contraband" — not one of this app's `EconomyType` union
+// values at all (Contraband isn't in any of the officially-sourced Update 3 tables CLAUDE.md
+// documents either), so there's no way to represent it; deliberately left OUT of this table
+// (falls through to the Colony-default branch instead, which is a known-approximate placeholder,
+// not a confirmed value) rather than guessed at. Revisit if this app ever adds Contraband support.
+export const PORT_FIXED_ECONOMY: Partial<Record<string, EconomyType[]>> = {
+  Asteroid_Base: ["Extraction"],
+  Military_Outpost: ["Military"],
+  Industrial_Outpost: ["Industrial"],
+  Scientific_Outpost: ["HighTech"],
+  Industrial_Planetary_Outpost: ["Industrial"],
+  Scientific_Planetary_Outpost: ["HighTech"],
 };
 
 export function toPrintable(name: string): string {
