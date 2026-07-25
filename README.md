@@ -59,6 +59,9 @@ the solver recommends building:
   link is penalized on an icy or tidally-locked body.
 - The panel also shows which station services (Commodities Market, Shipyard, Outfitting, Black
   Market, etc.) each port would unlock, per the June 2025 follow-up patch's activation rules.
+- In the **System facilities** panel, hovering a built facility's "i" icon shows an "Economy
+  ratios" breakdown (total economy per type, broken down into body/strong-link/weak-link sources)
+  and a "Market links" table (how many strong- and weak-link building instances feed each economy).
 
 A few of the game's own trigger conditions (a body having organics, geologicals, or volcanism; a
 system's overall resource richness) aren't reported anywhere in the Elite Dangerous Journal files
@@ -85,6 +88,13 @@ sources. A few pieces are explicitly best-effort and flagged as such in both the
 - **Population growth curve** (`src/domain/populationEstimate.ts`): purely illustrative. No official
   growth formula has ever been published — do not treat its numbers as predictions; the UI carries
   a permanent disclaimer for the same reason.
+- **Strong/weak link contribution rates** (`src/domain/links.ts`): the official patch notes only say
+  a link "supplies a proportion" of an economy, never a number. The tier-scaled strong-link rate is
+  community-sourced; the flat 5% weak-link rate has no official-source equivalent at all. Both have
+  been checked against a real in-game system's exact reported percentages and link counts, but treat
+  them the same as everything else here. Separately, one specific Outpost type (Criminal) has a real
+  in-game economy ("Contraband") this tool has no way to represent at all — it falls back to an
+  approximation rather than a confirmed value.
 
 If you have more accurate numbers for any of these, they're all single, well-commented constants to
 edit. (The first-station/subsequent-facility stat-weighting split used to be listed here too — it's

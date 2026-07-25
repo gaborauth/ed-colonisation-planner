@@ -24,7 +24,7 @@
 // actually has in-game. Callers should surface `null`/"unevaluated" distinctly from a
 // confidently-computed absence.
 
-import type { EconomyType } from "../data/buildings";
+import { FACILITY_ECONOMY_GUESS, isPortRole, PORT_FIXED_ECONOMY, type EconomyType } from "../data/buildings";
 import type { JournalBody } from "../journal/parser";
 
 function planetClassLower(body: JournalBody): string {
@@ -255,6 +255,27 @@ export function computeBodyEconomyOverrides(body: JournalBody): OverrideResult {
   return { economies: Array.from(economies), appliedRules, unevaluatedRules };
 }
 
+/** A facility/port's own base economy type(s), before any body-feature boost/decrease or strong-link
+ * contribution is applied. Three cases, checked in order: a port with a sheet-confirmed fixed,
+ * non-"Colony" economy — its `PORT_FIXED_ECONOMY` entry (e.g. Military Outpost is always 100%
+ * Military, regardless of the body — checked first since these buildings are also `isPortRole`); a
+ * generic Colony-default port's `computeBodyEconomyOverrides(body).economies` (defaulting to
+ * `["Colony"]` when empty, same convention `LinksPanel.tsx` already uses for display); or a
+ * supporting facility's single `FACILITY_ECONOMY_GUESS` entry (empty for a deliberately-unmapped
+ * building, which correctly omits the Economy ratios section entirely for those). Shared by
+ * `SystemConfigPanel.tsx` (a facility's own displayed ratio) and `links.ts` (what a port/facility
+ * forwards through a strong link) — lives here rather than in either caller so both use the exact
+ * same base-economy determination. */
+export function facilityBaseEconomies(building: string, body: JournalBody): EconomyType[] {
+  const specialized = PORT_FIXED_ECONOMY[building];
+  if (specialized) return specialized;
+  if (isPortRole(building)) {
+    const economies = computeBodyEconomyOverrides(body).economies;
+    return economies.length > 0 ? economies : ["Colony"];
+  }
+  return FACILITY_ECONOMY_GUESS[building] ?? [];
+}
+
 export interface BoostDecreaseResult {
   boosted: EconomyType[];
   decreased: EconomyType[];
@@ -454,11 +475,14 @@ export interface EconomyRatio {
 /** Each economy type a facility/port carries at all starts at a flat 100% (`EconomicEffects.ods`
  * R30/R91: "the resulting economy is 1", "all Odyssey settlements have 1 in their corresponding
  * economy" — not tier-scaled; the sheet's separate 0.4/0.8/1.2 tier-scaled numbers are about how
- * much a facility *contributes to a linked port*, not its own displayed ratio, and aren't used
- * here), then shifted by `computeBoostDecrease`'s per-economy `deltas` (already in the same ±0.4
- * community-sourced units), floored at `ECONOMY_RATIO_FLOOR_PERCENT`. Deliberately body-driven only
- * — no strong/weak link contribution is folded in yet (that's link-topology territory, still a
- * separate deferred step). `economies` is the facility/port's own base set: a port's
+ * much a facility *contributes to a linked port*, not its own displayed ratio), then shifted by
+ * `computeBoostDecrease`'s per-economy `deltas` (already in the same ±0.4 community-sourced units),
+ * floored at `ECONOMY_RATIO_FLOOR_PERCENT`. Deliberately body-driven only, own-economy-only — this
+ * function itself never folds in a strong/weak link contribution; `links.ts`'s `computeSystemLinks`
+ * is the link-aware caller that does (its `PortEconomyLine.ownPercent` is exactly this function's
+ * output for a port's own base economies, with the 0.4/0.8/1.2 tier-scaled numbers this docstring
+ * mentions finally applied there, per link, via `getLinkContributionTier`). `economies` is the
+ * facility/port's own base set: a port's
  * `computeBodyEconomyOverrides(body).economies` (or `["Colony"]` if empty — ports without an
  * override default to Colony, same convention `LinksPanel.tsx` already uses for display), or a
  * supporting facility's single `FACILITY_ECONOMY_GUESS` entry. Sorted descending by percent, since

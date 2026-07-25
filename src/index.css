@@ -612,6 +612,40 @@ tbody tr:hover {
   border-top: 1px solid var(--border);
 }
 
+/* An economy ratio's "+ strong links" / "= total" rows — same indented/dimmed treatment as
+ * `.slot-usage-sub`, since these are a breakdown of the row directly above them, not their own
+ * independent economy line. */
+.facility-info-economy-sub {
+  margin-left: 10px;
+  padding-left: 6px;
+  border-left: 1px solid var(--border-bright);
+  font-size: 11px;
+  color: var(--text-dim);
+}
+
+/* The "Market links" hover table (Economy / Strong link / Weak link) — a plain 3-column grid rather
+ * than a real `<table>`, matching every other block in this tooltip's simple stacked-div style.
+ * One grid container for the WHOLE table (header + every data row's cells as direct children, not
+ * one nested grid per row) — column tracks are sized once across all of them, so every row's cells
+ * line up under the matching header regardless of how wide that particular row's own content is;
+ * a per-row grid (the first version of this) sized each row's `auto` columns independently, so a
+ * short data row's numbers visibly drifted out from under the (wider) header text. */
+.facility-info-market-links {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 4px 10px;
+}
+
+.facility-info-market-links > span:not(:nth-child(3n + 1)) {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.facility-info-market-links-header {
+  color: var(--text-dim);
+  font-size: 11px;
+}
+
 /* Body-info hover's "Ports with a 'Colony' economy will start with the following:" disclaimer and
  * the Economy/Value/Effects breakdown table beneath it (see SystemConfigPanel.tsx's
  * `computeColonyEconomyBreakdown` usage). The bubble itself has no fixed width (see Tooltip.css),

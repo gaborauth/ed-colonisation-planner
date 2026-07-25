@@ -1,21 +1,19 @@
-import { useMemo, type Dispatch, type ReactNode } from "react";
+import { Fragment, useMemo, type Dispatch, type ReactNode } from "react";
 import {
   ALL_CATEGORIES,
   BASE_SCORES,
-  FACILITY_ECONOMY_GUESS,
   isPort,
   isPortRole,
   ALL_BUILDINGS,
   toPrintable,
   getBuildingVariants,
-  type EconomyType,
 } from "../data/buildings";
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
 import {
-  computeBodyEconomyOverrides,
   computeColonyEconomyBreakdown,
   computeEconomyRatios,
   computeStrongLinkBreakdown,
+  facilityBaseEconomies,
   hasGeologicals,
   hasOrganics,
   hasRings,
@@ -25,9 +23,8 @@ import {
   TERRAFORMABLE_AGRICULTURE_BUG_LINK,
   TERRAFORMABLE_AGRICULTURE_BUG_NOTE,
   type EconomyBreakdown,
-  type EconomyRatio,
 } from "../domain/economyOverrides";
-import type { SystemLinksResult } from "../domain/links";
+import type { MarketLinkLine, PortEconomyLine, SystemLinksResult } from "../domain/links";
 import { deriveSlotUsage, normalizeFacilitySlots, toSlotUsageBodies, type PresentFacilitySlot } from "../domain/presentFacilities";
 import { computePresentSystemLinks, strongLinkedInstances, type StrongLinkedInstance } from "../domain/presentLinks";
 import { compareBodyNames, type JournalBody } from "../journal/parser";
@@ -45,17 +42,37 @@ const SLOT_KINDS: { kind: "space" | "ground"; label: string; category: string }[
   { kind: "ground", label: "Ground", category: "Ground" },
 ];
 
-/** A facility/port's own base economy type(s), before any body-feature boost/decrease is applied —
- * a port's `computeBodyEconomyOverrides(body).economies` (defaulting to `["Colony"]` when empty,
- * same convention `LinksPanel.tsx` already uses for display), or a supporting facility's single
- * `FACILITY_ECONOMY_GUESS` entry (empty for a deliberately-unmapped building — see that constant's
- * header comment — which correctly omits the Economy Ratios section entirely for those). */
-function facilityBaseEconomies(building: string, body: JournalBody): EconomyType[] {
+/** A facility/port's full "Economy ratios" breakdown for the hover box: for a port-role building,
+ * `linksResult.ports` already has this precomputed (own value + summed incoming-strong-link
+ * contribution + summed incoming-weak-link contribution + their sum — see `links.ts`'s
+ * `PortEconomyLine`), so this just looks that entry up; a non-port supporting facility never
+ * receives a strong OR weak link (only port<->facility or port<->port links exist, per CLAUDE.md's
+ * link topology), so it falls back to its own-only ratio via `computeEconomyRatios`/
+ * `facilityBaseEconomies`, with `strongPercent`/`weakPercent` fixed at 0 — this keeps one shared row
+ * shape (`PortEconomyLine`) for both cases, so `facilityInfoContent` below doesn't need two
+ * different rendering paths. The `linksResult.ports` lookup falling through to the same own-only
+ * fallback (rather than an empty list) is a safety net for a body/building combination
+ * `computeSystemLinks` hasn't recorded yet, not an expected steady-state path. */
+function facilityEconomyRatios(building: string, body: JournalBody, allBodies: JournalBody[], linksResult: SystemLinksResult): PortEconomyLine[] {
   if (isPortRole(building)) {
-    const economies = computeBodyEconomyOverrides(body).economies;
-    return economies.length > 0 ? economies : ["Colony"];
+    const port = linksResult.ports.find((p) => p.bodyId === body.bodyId && p.building === building);
+    if (port) return port.economyRatios;
   }
-  return FACILITY_ECONOMY_GUESS[building] ?? [];
+  return computeEconomyRatios(facilityBaseEconomies(building, body), body, allBodies).map((r) => ({
+    economy: r.economy,
+    ownPercent: r.percent,
+    strongPercent: 0,
+    weakPercent: 0,
+    totalPercent: r.percent,
+  }));
+}
+
+/** The "Market links" hover table's rows — a supporting facility never receives any link itself
+ * (only ports do, per CLAUDE.md's link topology), so this is always empty for one; `links.ts`'s
+ * `PortSummary.marketLinks` already has everything precomputed for a port. */
+function facilityMarketLinks(building: string, body: JournalBody, linksResult: SystemLinksResult): MarketLinkLine[] {
+  if (!isPortRole(building)) return [];
+  return linksResult.ports.find((p) => p.bodyId === body.bodyId && p.building === building)?.marketLinks ?? [];
 }
 
 interface FacilityInfoProps {
@@ -64,19 +81,30 @@ interface FacilityInfoProps {
   slotLabel: string;
   nickname: string | undefined;
   variant: string | undefined;
-  economyRatios: EconomyRatio[];
+  economyRatios: PortEconomyLine[];
+  marketLinks: MarketLinkLine[];
   strongLinks: StrongLinkedInstance[];
+}
+
+/** 0 renders as "-" — used both for a `MarketLinkLine`'s counts (whole point is showing which of
+ * the two link types actually contributes, so a column of zeroes among nonzero values reads worse
+ * than a plain dash) and, with `unit` supplied, for percentages elsewhere. */
+function numberOrDash(value: number, unit = ""): string {
+  return value === 0 ? "-" : `${value}${unit}`;
 }
 
 /** Hover-box body for `FacilityInfoIcon` below: a "Basic data" block (nickname/build type/body/
  * slot/status — status is always "Built", since this panel only ever shows already-built
- * facilities), an "Economy ratios" block (body-driven only — see `facilityBaseEconomies`/
- * `computeEconomyRatios`; no strong/weak link contribution folded in yet, a deliberately deferred
- * follow-up), a "Strong market link(s)" block (only for ports — see `strongLinkedInstances`; the
- * header itself is singular/plural/absent depending on the count), and a "System effects and haul"
- * block (this building's non-zero score contributions, T2/T3 point cost, and construction cost
- * standing in for "haul" — no real commodity/tonnage model exists, see CLAUDE.md's scope
- * boundaries). */
+ * facilities), an "Economy ratios" block (leads with the total — the headline number, UX-wise —
+ * then, only when at least one economy actually has a nonzero strong- or weak-link contribution, a
+ * source-by-source breakdown underneath it: body/strong link/weak link, each only shown if it's
+ * actually nonzero; see `facilityEconomyRatios` above), a "Market links" block (only for ports, only
+ * when at least one economy has an incoming strong or weak link — a 3-column Economy/Strong
+ * link/Weak link table of *counts*, not percentages, see `facilityMarketLinks` above), a "Strong
+ * market link(s)" block (only for ports — see `strongLinkedInstances`; the header itself is
+ * singular/plural/absent depending on the count), and a "System effects and haul" block (this
+ * building's non-zero score contributions, T2/T3 point cost, and construction cost standing in for
+ * "haul" — no real commodity/tonnage model exists, see CLAUDE.md's scope boundaries). */
 function facilityInfoContent({
   building: name,
   bodyName,
@@ -84,6 +112,7 @@ function facilityInfoContent({
   nickname,
   variant,
   economyRatios,
+  marketLinks,
   strongLinks,
 }: FacilityInfoProps) {
   const building = ALL_BUILDINGS[name];
@@ -111,11 +140,40 @@ function facilityInfoContent({
       {economyRatios.length > 0 && (
         <>
           <div className="facility-info-section-header">Economy ratios</div>
-          {economyRatios.map((r) => (
-            <div key={r.economy}>
-              {r.economy}: {r.percent}%
-            </div>
-          ))}
+          {economyRatios.map((r) => {
+            const hasLinkContribution = r.strongPercent > 0 || r.weakPercent > 0;
+            return (
+              <Fragment key={r.economy}>
+                <div>
+                  {r.economy}: {r.totalPercent}%
+                </div>
+                {hasLinkContribution && (
+                  <>
+                    {r.ownPercent > 0 && <div className="facility-info-economy-sub">body: {r.ownPercent}%</div>}
+                    {r.strongPercent > 0 && <div className="facility-info-economy-sub">strong link: {r.strongPercent}%</div>}
+                    {r.weakPercent > 0 && <div className="facility-info-economy-sub">weak link: {r.weakPercent}%</div>}
+                  </>
+                )}
+              </Fragment>
+            );
+          })}
+        </>
+      )}
+      {marketLinks.length > 0 && (
+        <>
+          <div className="facility-info-section-header">Market links</div>
+          <div className="facility-info-market-links">
+            <span className="facility-info-market-links-header">Economy</span>
+            <span className="facility-info-market-links-header">Strong link</span>
+            <span className="facility-info-market-links-header">Weak link</span>
+            {marketLinks.map((m) => (
+              <Fragment key={m.economy}>
+                <span>{m.economy}</span>
+                <span>{numberOrDash(m.strongCount)}</span>
+                <span>{numberOrDash(m.weakCount)}</span>
+              </Fragment>
+            ))}
+          </div>
         </>
       )}
       {strongLinks.length > 0 && (
@@ -150,6 +208,7 @@ function FacilityInfoIcon({
   nickname,
   variant,
   economyRatios,
+  marketLinks,
   strongLinks,
 }: {
   building: string | undefined;
@@ -157,7 +216,8 @@ function FacilityInfoIcon({
   slotLabel: string;
   nickname: string | undefined;
   variant: string | undefined;
-  economyRatios: EconomyRatio[];
+  economyRatios: PortEconomyLine[];
+  marketLinks: MarketLinkLine[];
   strongLinks: StrongLinkedInstance[];
 }) {
   if (!building) {
@@ -169,7 +229,7 @@ function FacilityInfoIcon({
   }
   return (
     <Tooltip
-      content={facilityInfoContent({ building, bodyName, slotLabel, nickname, variant, economyRatios, strongLinks })}
+      content={facilityInfoContent({ building, bodyName, slotLabel, nickname, variant, economyRatios, marketLinks, strongLinks })}
       pinnable
     >
       <span className="facility-info-icon" aria-label={`${toPrintable(building)} info`}>
@@ -448,7 +508,8 @@ function PrimaryStationSlotLeaf({
   linksResult: SystemLinksResult;
 }) {
   const strongLinks = isPortRole(firstStationBuilding) ? strongLinkedInstances(linksResult, body, firstStationBuilding) : [];
-  const economyRatios = computeEconomyRatios(facilityBaseEconomies(firstStationBuilding, body), body, allBodies);
+  const economyRatios = facilityEconomyRatios(firstStationBuilding, body, allBodies, linksResult);
+  const marketLinks = facilityMarketLinks(firstStationBuilding, body, linksResult);
   return (
     <div className="facility-tree-slot facility-tree-slot-primary">
       <FacilityInfoIcon
@@ -458,6 +519,7 @@ function PrimaryStationSlotLeaf({
         nickname={firstStationCustomName}
         variant={firstStationVariant}
         economyRatios={economyRatios}
+        marketLinks={marketLinks}
         strongLinks={strongLinks}
       />
       <span className="facility-tree-slot-label">
@@ -533,7 +595,8 @@ function BodySlotLeaves({
           const buildingIsPort = building ? isPort(building) : false;
           const variants = slot ? getBuildingVariants(slot.building) : undefined;
           const strongLinks = slot && isPortRole(slot.building) ? strongLinkedInstances(linksResult, body, slot.building) : [];
-          const economyRatios = slot ? computeEconomyRatios(facilityBaseEconomies(slot.building, body), body, allBodies) : [];
+          const economyRatios = slot ? facilityEconomyRatios(slot.building, body, allBodies, linksResult) : [];
+          const marketLinks = slot ? facilityMarketLinks(slot.building, body, linksResult) : [];
           return (
             <div className="facility-tree-slot" key={`${kind}-${index}`}>
               <FacilityInfoIcon
@@ -543,6 +606,7 @@ function BodySlotLeaves({
                 nickname={slot?.customName}
                 variant={slot?.variant}
                 economyRatios={economyRatios}
+                marketLinks={marketLinks}
                 strongLinks={strongLinks}
               />
               <span className="facility-tree-slot-label">

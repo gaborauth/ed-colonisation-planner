@@ -1,0 +1,3838 @@
+{
+  "starSystem": "Swoilz AW-C d52",
+  "systemAddress": 1797250861443,
+  "bodies": [
+    {
+      "bodyName": "Swoilz AW-C d52",
+      "bodyId": 0,
+      "kind": "star",
+      "starType": "F",
+      "landable": false,
+      "surfaceTemperature": 6865,
+      "radius": 872070528,
+      "parents": [],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:35:45Z",
+        "event": "Scan",
+        "ScanType": "AutoScan",
+        "BodyName": "Swoilz AW-C d52",
+        "BodyID": 0,
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 0,
+        "StarType": "F",
+        "Subclass": 4,
+        "StellarMass": 1.304688,
+        "Radius": 872070528,
+        "AbsoluteMagnitude": 3.589828,
+        "Age_MY": 3062,
+        "SurfaceTemperature": 6865,
+        "Luminosity": "Vb",
+        "RotationPeriod": 238416.723869,
+        "AxialTilt": 0,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Pistis",
+            "customName": "Kafka Horizons"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Pistis",
+            "customName": "Landsteiner Platform"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Pistis",
+            "customName": "Richards Relay"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 9",
+      "bodyId": 35,
+      "kind": "planet",
+      "planetClass": "Sudarsky class I gas giant",
+      "landable": false,
+      "surfaceGravity": 9.387954,
+      "surfaceTemperature": 141.420883,
+      "radius": 33553414,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d52 9 A Ring",
+          "ringClass": "eRingClass_MetalRich",
+          "massMT": 15462000000
+        },
+        {
+          "name": "Swoilz AW-C d52 9 B Ring",
+          "ringClass": "eRingClass_MetalRich",
+          "massMT": 203290000000
+        }
+      ],
+      "reserveLevel": "PristineResources",
+      "raw": {
+        "timestamp": "2025-03-27T10:35:58Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 9",
+        "BodyID": 35,
+        "Parents": [
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2723.556073,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Sudarsky class I gas giant",
+        "Atmosphere": "",
+        "AtmosphereComposition": [
+          {
+            "Name": "Hydrogen",
+            "Percent": 73.390236
+          },
+          {
+            "Name": "Helium",
+            "Percent": 26.60977
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 26.517641,
+        "Radius": 33553414,
+        "SurfaceGravity": 9.387954,
+        "SurfaceTemperature": 141.420883,
+        "SurfacePressure": 0,
+        "Landable": false,
+        "SemiMajorAxis": 815999382734.2987,
+        "Eccentricity": 0.003526,
+        "OrbitalInclination": 0.64877,
+        "Periapsis": 349.39692,
+        "OrbitalPeriod": 349252545.833588,
+        "AscendingNode": 51.282245,
+        "MeanAnomaly": 99.852278,
+        "RotationPeriod": 145136.186482,
+        "AxialTilt": 0.507725,
+        "Rings": [
+          {
+            "Name": "Swoilz AW-C d52 9 A Ring",
+            "RingClass": "eRingClass_MetalRich",
+            "MassMT": 15462000000,
+            "InnerRad": 55363000,
+            "OuterRad": 61230000
+          },
+          {
+            "Name": "Swoilz AW-C d52 9 B Ring",
+            "RingClass": "eRingClass_MetalRich",
+            "MassMT": 203290000000,
+            "InnerRad": 61330000,
+            "OuterRad": 111100000
+          }
+        ],
+        "ReserveLevel": "PristineResources",
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 9 b",
+      "bodyId": 39,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 0.68873,
+      "surfaceTemperature": 162.021164,
+      "radius": 603040.375,
+      "atmosphere": "thin carbon dioxide atmosphere",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 35
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": true,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "timestamp": "2025-03-27T10:36:02Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 9 b",
+        "BodyID": 39,
+        "Parents": [
+          {
+            "Planet": 35
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2726.043822,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "thin carbon dioxide atmosphere",
+        "AtmosphereType": "CarbonDioxide",
+        "AtmosphereComposition": [
+          {
+            "Name": "CarbonDioxide",
+            "Percent": 99.009911
+          },
+          {
+            "Name": "SulphurDioxide",
+            "Percent": 0.990099
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 0.000628,
+        "Radius": 603040.375,
+        "SurfaceGravity": 0.68873,
+        "SurfaceTemperature": 162.021164,
+        "SurfacePressure": 929.491699,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 19.039829
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 18.433615
+          },
+          {
+            "Name": "carbon",
+            "Percent": 15.500763
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.400928
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 9.923854
+          },
+          {
+            "Name": "chromium",
+            "Percent": 8.562842
+          },
+          {
+            "Name": "germanium",
+            "Percent": 5.425842
+          },
+          {
+            "Name": "zinc",
+            "Percent": 5.174313
+          },
+          {
+            "Name": "tellurium",
+            "Percent": 1.405304
+          },
+          {
+            "Name": "niobium",
+            "Percent": 1.301271
+          },
+          {
+            "Name": "mercury",
+            "Percent": 0.831438
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 860655784.606934,
+        "Eccentricity": 0.001775,
+        "OrbitalInclination": -0.154484,
+        "Periapsis": 246.286622,
+        "OrbitalPeriod": 1543039.679527,
+        "AscendingNode": -158.062356,
+        "MeanAnomaly": 199.547226,
+        "RotationPeriod": 1524184.759569,
+        "AxialTilt": -0.514889,
+        "WasDiscovered": true,
+        "WasMapped": true
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Medium_Agricultural_Settlement",
+            "demolishable": false,
+            "variant": "Picumnus",
+            "customName": "Bahuguna Nutrition Collection"
+          },
+          {
+            "building": "Medium_Agricultural_Settlement",
+            "demolishable": false,
+            "variant": "Picumnus",
+            "customName": "Ledesma Hydroponics Centre"
+          },
+          {
+            "building": "Medium_Agricultural_Settlement",
+            "demolishable": false,
+            "variant": "Picumnus",
+            "customName": "Mnogogrishny Nutrition Nursery"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 9 a",
+      "bodyId": 38,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": false,
+      "surfaceGravity": 0.552048,
+      "surfaceTemperature": 201.420044,
+      "radius": 484915.78125,
+      "atmosphere": "carbon dioxide atmosphere",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 35
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:36:03Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 9 a",
+        "BodyID": 38,
+        "Parents": [
+          {
+            "Planet": 35
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2724.049698,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "carbon dioxide atmosphere",
+        "AtmosphereType": "CarbonDioxide",
+        "AtmosphereComposition": [
+          {
+            "Name": "CarbonDioxide",
+            "Percent": 98.957916
+          },
+          {
+            "Name": "SulphurDioxide",
+            "Percent": 1.041591
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 0.000326,
+        "Radius": 484915.78125,
+        "SurfaceGravity": 0.552048,
+        "SurfaceTemperature": 201.420044,
+        "SurfacePressure": 18514.722656,
+        "Landable": false,
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 342610239.982605,
+        "Eccentricity": 0.000186,
+        "OrbitalInclination": 0.354434,
+        "Periapsis": 54.823128,
+        "OrbitalPeriod": 387554.991245,
+        "AscendingNode": 63.557489,
+        "MeanAnomaly": 159.725427,
+        "RotationPeriod": 375401.238465,
+        "AxialTilt": 0.294863,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 9 e",
+      "bodyId": 42,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 0.559615,
+      "surfaceTemperature": 158.759003,
+      "radius": 491476.6875,
+      "atmosphere": "thin carbon dioxide atmosphere",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 35
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": true,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "timestamp": "2025-03-27T10:36:04Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 9 e",
+        "BodyID": 42,
+        "Parents": [
+          {
+            "Planet": 35
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2731.033775,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "thin carbon dioxide atmosphere",
+        "AtmosphereType": "CarbonDioxide",
+        "AtmosphereComposition": [
+          {
+            "Name": "CarbonDioxide",
+            "Percent": 100
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 0.000339,
+        "Radius": 491476.6875,
+        "SurfaceGravity": 0.559615,
+        "SurfaceTemperature": 158.759003,
+        "SurfacePressure": 607.58136,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 19.634716
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 19.009562
+          },
+          {
+            "Name": "carbon",
+            "Percent": 15.985075
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.850876
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 10.233918
+          },
+          {
+            "Name": "manganese",
+            "Percent": 8.108937
+          },
+          {
+            "Name": "germanium",
+            "Percent": 5.595369
+          },
+          {
+            "Name": "arsenic",
+            "Percent": 2.502325
+          },
+          {
+            "Name": "cadmium",
+            "Percent": 1.524725
+          },
+          {
+            "Name": "niobium",
+            "Percent": 1.341928
+          },
+          {
+            "Name": "ruthenium",
+            "Percent": 1.212569
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 2430142760.276794,
+        "Eccentricity": 0.00423,
+        "OrbitalInclination": 7.931077,
+        "Periapsis": 324.511088,
+        "OrbitalPeriod": 7321170.628071,
+        "AscendingNode": -151.876517,
+        "MeanAnomaly": 268.194878,
+        "RotationPeriod": 80952.172196,
+        "AxialTilt": -0.013146,
+        "WasDiscovered": true,
+        "WasMapped": true
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 9 c",
+      "bodyId": 40,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 0.535204,
+      "surfaceTemperature": 158.206177,
+      "radius": 470302.03125,
+      "atmosphere": "thin carbon dioxide atmosphere",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 35
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": true,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "timestamp": "2025-03-27T10:36:06Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 9 c",
+        "BodyID": 40,
+        "Parents": [
+          {
+            "Planet": 35
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2725.365955,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "thin carbon dioxide atmosphere",
+        "AtmosphereType": "CarbonDioxide",
+        "AtmosphereComposition": [
+          {
+            "Name": "CarbonDioxide",
+            "Percent": 100
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 0.000297,
+        "Radius": 470302.03125,
+        "SurfaceGravity": 0.535204,
+        "SurfaceTemperature": 158.206177,
+        "SurfacePressure": 555.731445,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 20.196224
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 19.553194
+          },
+          {
+            "Name": "carbon",
+            "Percent": 16.442213
+          },
+          {
+            "Name": "nickel",
+            "Percent": 15.275578
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 10.526586
+          },
+          {
+            "Name": "chromium",
+            "Percent": 9.082912
+          },
+          {
+            "Name": "selenium",
+            "Percent": 3.06024
+          },
+          {
+            "Name": "arsenic",
+            "Percent": 2.573886
+          },
+          {
+            "Name": "cadmium",
+            "Percent": 1.568328
+          },
+          {
+            "Name": "tin",
+            "Percent": 1.201257
+          },
+          {
+            "Name": "polonium",
+            "Percent": 0.51958
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 1291165947.914124,
+        "Eccentricity": 0.000051,
+        "OrbitalInclination": 3.258187,
+        "Periapsis": 307.327312,
+        "OrbitalPeriod": 2835344.672203,
+        "AscendingNode": 67.504088,
+        "MeanAnomaly": 57.000149,
+        "RotationPeriod": 2812787.449381,
+        "AxialTilt": -0.208356,
+        "WasDiscovered": true,
+        "WasMapped": true
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Medium_Agricultural_Settlement",
+            "demolishable": false,
+            "variant": "Picumnus",
+            "customName": "Correia Hydroponics"
+          },
+          null,
+          null
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 9 d",
+      "bodyId": 41,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 0.543547,
+      "surfaceTemperature": 158.383698,
+      "radius": 477541.375,
+      "atmosphere": "thin carbon dioxide atmosphere",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 35
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": true,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "timestamp": "2025-03-27T10:36:08Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 9 d",
+        "BodyID": 41,
+        "Parents": [
+          {
+            "Planet": 35
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2724.770429,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "thin carbon dioxide atmosphere",
+        "AtmosphereType": "CarbonDioxide",
+        "AtmosphereComposition": [
+          {
+            "Name": "CarbonDioxide",
+            "Percent": 100
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 0.000311,
+        "Radius": 477541.375,
+        "SurfaceGravity": 0.543547,
+        "SurfaceTemperature": 158.383698,
+        "SurfacePressure": 573.191162,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 19.167791
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 18.557505
+          },
+          {
+            "Name": "carbon",
+            "Percent": 15.60494
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.497714
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 9.99055
+          },
+          {
+            "Name": "chromium",
+            "Percent": 8.620392
+          },
+          {
+            "Name": "germanium",
+            "Percent": 5.462308
+          },
+          {
+            "Name": "vanadium",
+            "Percent": 4.706942
+          },
+          {
+            "Name": "tellurium",
+            "Percent": 1.414749
+          },
+          {
+            "Name": "tin",
+            "Percent": 1.140086
+          },
+          {
+            "Name": "mercury",
+            "Percent": 0.837026
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 1799648404.121399,
+        "Eccentricity": 0.010722,
+        "OrbitalInclination": -3.278659,
+        "Periapsis": 187.338719,
+        "OrbitalPeriod": 4665673.196316,
+        "AscendingNode": 130.626804,
+        "MeanAnomaly": 342.60819,
+        "RotationPeriod": 4639439.524057,
+        "AxialTilt": -0.441675,
+        "WasDiscovered": true,
+        "WasMapped": true
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 2",
+      "bodyId": 12,
+      "kind": "planet",
+      "planetClass": "Sudarsky class III gas giant",
+      "landable": false,
+      "surfaceGravity": 91.010715,
+      "surfaceTemperature": 459.178925,
+      "radius": 76253056,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 11
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d52 2 A Ring",
+          "ringClass": "eRingClass_MetalRich",
+          "massMT": 3916900000000
+        }
+      ],
+      "reserveLevel": "PristineResources",
+      "raw": {
+        "timestamp": "2025-03-27T10:36:20Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 2",
+        "BodyID": 12,
+        "Parents": [
+          {
+            "Null": 11
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 1111.471411,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Sudarsky class III gas giant",
+        "Atmosphere": "",
+        "AtmosphereComposition": [
+          {
+            "Name": "Hydrogen",
+            "Percent": 73.390236
+          },
+          {
+            "Name": "Helium",
+            "Percent": 26.609766
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 1327.692993,
+        "Radius": 76253056,
+        "SurfaceGravity": 91.010715,
+        "SurfaceTemperature": 459.178925,
+        "SurfacePressure": 0,
+        "Landable": false,
+        "SemiMajorAxis": 7089752.674103,
+        "Eccentricity": 0.169569,
+        "OrbitalInclination": -2.354014,
+        "Periapsis": 310.379755,
+        "OrbitalPeriod": 4725301.44453,
+        "AscendingNode": -47.89943,
+        "MeanAnomaly": 196.359984,
+        "RotationPeriod": 72321.657483,
+        "AxialTilt": -0.055563,
+        "Rings": [
+          {
+            "Name": "Swoilz AW-C d52 2 A Ring",
+            "RingClass": "eRingClass_MetalRich",
+            "MassMT": 3916900000000,
+            "InnerRad": 119210000,
+            "OuterRad": 382630000
+          }
+        ],
+        "ReserveLevel": "PristineResources",
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 0,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 2 a",
+      "bodyId": 14,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 1.998445,
+      "surfaceTemperature": 288.878296,
+      "radius": 1691102.625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 12
+        },
+        {
+          "type": "Null",
+          "bodyId": 11
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "timestamp": "2025-03-27T10:36:24Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 2 a",
+        "BodyID": 14,
+        "Parents": [
+          {
+            "Planet": 12
+          },
+          {
+            "Null": 11
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 1112.040154,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "major silicate vapour geysers volcanism",
+        "MassEM": 0.014339,
+        "Radius": 1691102.625,
+        "SurfaceGravity": 1.998445,
+        "SurfaceTemperature": 288.878296,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 19.77664
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 19.146973
+          },
+          {
+            "Name": "carbon",
+            "Percent": 16.100622
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.958223
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 10.307894
+          },
+          {
+            "Name": "manganese",
+            "Percent": 8.167551
+          },
+          {
+            "Name": "zinc",
+            "Percent": 5.374551
+          },
+          {
+            "Name": "selenium",
+            "Percent": 2.996663
+          },
+          {
+            "Name": "ruthenium",
+            "Percent": 1.221334
+          },
+          {
+            "Name": "tungsten",
+            "Percent": 1.085936
+          },
+          {
+            "Name": "mercury",
+            "Percent": 0.863613
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 409773391.485214,
+        "Eccentricity": 0.000701,
+        "OrbitalInclination": -0.361752,
+        "Periapsis": 77.465738,
+        "OrbitalPeriod": 71644.506454,
+        "AscendingNode": 20.771285,
+        "MeanAnomaly": 158.762326,
+        "RotationPeriod": 71645.254676,
+        "AxialTilt": 0.307769,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Medium_Agricultural_Settlement",
+            "demolishable": false,
+            "variant": "Picumnus",
+            "customName": "Biggs Hydroponics Garden"
+          },
+          {
+            "building": "Medium_Agricultural_Settlement",
+            "demolishable": false,
+            "variant": "Picumnus",
+            "customName": "Kolsuk Cultivation Exchange"
+          },
+          {
+            "building": "Medium_Agricultural_Settlement",
+            "demolishable": false,
+            "variant": "Picumnus",
+            "customName": "Teixeira Agricultural Estate"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 3",
+      "bodyId": 15,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 12.428725,
+      "surfaceTemperature": 1443.351685,
+      "radius": 6719919.5,
+      "atmosphere": "hot thick water atmosphere",
+      "terraformState": "Terraformable",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 11
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d52 3 A Ring",
+          "ringClass": "eRingClass_MetalRich",
+          "massMT": 6159000000
+        },
+        {
+          "name": "Swoilz AW-C d52 3 B Ring",
+          "ringClass": "eRingClass_Rocky",
+          "massMT": 51695000000
+        }
+      ],
+      "reserveLevel": "PristineResources",
+      "raw": {
+        "timestamp": "2025-03-27T10:36:27Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 3",
+        "BodyID": 15,
+        "Parents": [
+          {
+            "Null": 11
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 1136.391892,
+        "TidalLock": true,
+        "TerraformState": "Terraformable",
+        "PlanetClass": "High metal content body",
+        "Atmosphere": "hot thick water atmosphere",
+        "AtmosphereType": "Water",
+        "AtmosphereComposition": [
+          {
+            "Name": "Water",
+            "Percent": 99.869461
+          },
+          {
+            "Name": "Nitrogen",
+            "Percent": 0.125848
+          }
+        ],
+        "Volcanism": "minor silicate vapour geysers volcanism",
+        "MassEM": 1.408138,
+        "Radius": 6719919.5,
+        "SurfaceGravity": 12.428725,
+        "SurfaceTemperature": 1443.351685,
+        "SurfacePressure": 411271840,
+        "Landable": false,
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.66551,
+          "Metal": 0.33449
+        },
+        "SemiMajorAxis": 6684484243.392944,
+        "Eccentricity": 0.169569,
+        "OrbitalInclination": -2.354014,
+        "Periapsis": 130.37976,
+        "OrbitalPeriod": 4725301.44453,
+        "AscendingNode": -47.89943,
+        "MeanAnomaly": 196.360502,
+        "RotationPeriod": 4727806.356526,
+        "AxialTilt": 0.049903,
+        "Rings": [
+          {
+            "Name": "Swoilz AW-C d52 3 A Ring",
+            "RingClass": "eRingClass_MetalRich",
+            "MassMT": 6159000000,
+            "InnerRad": 38231000,
+            "OuterRad": 40720000
+          },
+          {
+            "Name": "Swoilz AW-C d52 3 B Ring",
+            "RingClass": "eRingClass_Rocky",
+            "MassMT": 51695000000,
+            "InnerRad": 40820000,
+            "OuterRad": 57509000
+          }
+        ],
+        "ReserveLevel": "PristineResources",
+        "WasDiscovered": true,
+        "WasMapped": true
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Government",
+            "demolishable": false,
+            "customName": "Chapman Depot"
+          },
+          null
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 10",
+      "bodyId": 45,
+      "kind": "planet",
+      "planetClass": "Gas giant with water based life",
+      "landable": false,
+      "surfaceGravity": 49.039835,
+      "surfaceTemperature": 227.769989,
+      "radius": 74676464,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:36:38Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 10",
+        "BodyID": 45,
+        "Parents": [
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 3526.888984,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Gas giant with water based life",
+        "Atmosphere": "",
+        "AtmosphereComposition": [
+          {
+            "Name": "Hydrogen",
+            "Percent": 73.364998
+          },
+          {
+            "Name": "Helium",
+            "Percent": 26.600611
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 686.130981,
+        "Radius": 74676464,
+        "SurfaceGravity": 49.039835,
+        "SurfaceTemperature": 227.769989,
+        "SurfacePressure": 0,
+        "Landable": false,
+        "SemiMajorAxis": 1057248592376.709,
+        "Eccentricity": 0.002243,
+        "OrbitalInclination": -0.124395,
+        "Periapsis": 188.792552,
+        "OrbitalPeriod": 515075117.349625,
+        "AscendingNode": 67.316466,
+        "MeanAnomaly": 91.952903,
+        "RotationPeriod": 115149.908767,
+        "AxialTilt": -0.091497,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 10 b",
+      "bodyId": 47,
+      "kind": "planet",
+      "planetClass": "Rocky ice body",
+      "landable": true,
+      "surfaceGravity": 0.626865,
+      "surfaceTemperature": 118.298668,
+      "radius": 820288.625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:36:42Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 10 b",
+        "BodyID": 47,
+        "Parents": [
+          {
+            "Planet": 45
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 3542.504557,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky ice body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "",
+        "MassEM": 0.001058,
+        "Radius": 820288.625,
+        "SurfaceGravity": 0.626865,
+        "SurfaceTemperature": 118.298668,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "sulphur",
+            "Percent": 23.091974
+          },
+          {
+            "Name": "carbon",
+            "Percent": 19.417957
+          },
+          {
+            "Name": "iron",
+            "Percent": 15.425038
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 12.43171
+          },
+          {
+            "Name": "nickel",
+            "Percent": 11.666853
+          },
+          {
+            "Name": "chromium",
+            "Percent": 6.937152
+          },
+          {
+            "Name": "germanium",
+            "Percent": 4.395725
+          },
+          {
+            "Name": "zinc",
+            "Percent": 4.191948
+          },
+          {
+            "Name": "cadmium",
+            "Percent": 1.197824
+          },
+          {
+            "Name": "tungsten",
+            "Percent": 0.84699
+          },
+          {
+            "Name": "polonium",
+            "Percent": 0.396834
+          }
+        ],
+        "Composition": {
+          "Ice": 0.461596,
+          "Rock": 0.489317,
+          "Metal": 0.049088
+        },
+        "SemiMajorAxis": 4711754679.679871,
+        "Eccentricity": 0.000113,
+        "OrbitalInclination": 0.00194,
+        "Periapsis": 225.148891,
+        "OrbitalPeriod": 3885780.692101,
+        "AscendingNode": -143.765271,
+        "MeanAnomaly": 177.579166,
+        "RotationPeriod": 3885895.029824,
+        "AxialTilt": 0.055989,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 0,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 10 c",
+      "bodyId": 48,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.869712,
+      "surfaceTemperature": 117.162994,
+      "radius": 1380482.875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:36:46Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 10 c",
+        "BodyID": 48,
+        "Parents": [
+          {
+            "Planet": 45
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 3548.687601,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Icy body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "",
+        "MassEM": 0.004158,
+        "Radius": 1380482.875,
+        "SurfaceGravity": 0.869712,
+        "SurfaceTemperature": 117.162994,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "sulphur",
+            "Percent": 26.023808
+          },
+          {
+            "Name": "carbon",
+            "Percent": 21.883327
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 14.010082
+          },
+          {
+            "Name": "iron",
+            "Percent": 13.507736
+          },
+          {
+            "Name": "nickel",
+            "Percent": 10.216684
+          },
+          {
+            "Name": "selenium",
+            "Percent": 4.072946
+          },
+          {
+            "Name": "germanium",
+            "Percent": 3.849345
+          },
+          {
+            "Name": "zinc",
+            "Percent": 3.670897
+          },
+          {
+            "Name": "cadmium",
+            "Percent": 1.048937
+          },
+          {
+            "Name": "molybdenum",
+            "Percent": 0.882047
+          },
+          {
+            "Name": "ruthenium",
+            "Percent": 0.834189
+          }
+        ],
+        "Composition": {
+          "Ice": 0.727404,
+          "Rock": 0.247743,
+          "Metal": 0.024853
+        },
+        "SemiMajorAxis": 6562420606.613159,
+        "Eccentricity": 0.000219,
+        "OrbitalInclination": 0.007213,
+        "Periapsis": 161.959778,
+        "OrbitalPeriod": 6387051.224709,
+        "AscendingNode": 17.818143,
+        "MeanAnomaly": 271.633453,
+        "RotationPeriod": 6387239.202042,
+        "AxialTilt": 0.428873,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 10 a",
+      "bodyId": 46,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 1.077301,
+      "surfaceTemperature": 166.202225,
+      "radius": 934246.125,
+      "atmosphere": "thin carbon dioxide atmosphere",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": true,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "timestamp": "2025-03-27T10:36:50Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 10 a",
+        "BodyID": 46,
+        "Parents": [
+          {
+            "Planet": 45
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 3526.245882,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "thin carbon dioxide atmosphere",
+        "AtmosphereType": "CarbonDioxide",
+        "AtmosphereComposition": [
+          {
+            "Name": "CarbonDioxide",
+            "Percent": 99.009911
+          },
+          {
+            "Name": "SulphurDioxide",
+            "Percent": 0.990099
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 0.002359,
+        "Radius": 934246.125,
+        "SurfaceGravity": 1.077301,
+        "SurfaceTemperature": 166.202225,
+        "SurfacePressure": 2274.159424,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 18.617241
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 18.024492
+          },
+          {
+            "Name": "carbon",
+            "Percent": 15.15673
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.081303
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 9.703599
+          },
+          {
+            "Name": "chromium",
+            "Percent": 8.372792
+          },
+          {
+            "Name": "manganese",
+            "Percent": 7.688731
+          },
+          {
+            "Name": "vanadium",
+            "Percent": 4.571747
+          },
+          {
+            "Name": "cadmium",
+            "Percent": 1.445713
+          },
+          {
+            "Name": "molybdenum",
+            "Percent": 1.215695
+          },
+          {
+            "Name": "antimony",
+            "Percent": 1.121959
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908828,
+          "Metal": 0.091172
+        },
+        "SemiMajorAxis": 1701447963.7146,
+        "Eccentricity": 0.000816,
+        "OrbitalInclination": -0.039672,
+        "Periapsis": 107.564599,
+        "OrbitalPeriod": 843203.336,
+        "AscendingNode": 12.504659,
+        "MeanAnomaly": 308.945547,
+        "RotationPeriod": 843228.172676,
+        "AxialTilt": -0.0554,
+        "WasDiscovered": true,
+        "WasMapped": true
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 10 d",
+      "bodyId": 49,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.899237,
+      "surfaceTemperature": 116.346748,
+      "radius": 1491824.375,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:36:54Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 10 d",
+        "BodyID": 49,
+        "Parents": [
+          {
+            "Planet": 45
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 3509.607704,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Icy body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "",
+        "MassEM": 0.005021,
+        "Radius": 1491824.375,
+        "SurfaceGravity": 0.899237,
+        "SurfaceTemperature": 116.346748,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "sulphur",
+            "Percent": 25.851191
+          },
+          {
+            "Name": "carbon",
+            "Percent": 21.738173
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 13.917152
+          },
+          {
+            "Name": "iron",
+            "Percent": 12.357466
+          },
+          {
+            "Name": "nickel",
+            "Percent": 9.34667
+          },
+          {
+            "Name": "chromium",
+            "Percent": 5.557563
+          },
+          {
+            "Name": "manganese",
+            "Percent": 5.103507
+          },
+          {
+            "Name": "germanium",
+            "Percent": 3.521549
+          },
+          {
+            "Name": "cadmium",
+            "Percent": 0.959613
+          },
+          {
+            "Name": "tellurium",
+            "Percent": 0.912088
+          },
+          {
+            "Name": "tin",
+            "Percent": 0.735013
+          }
+        ],
+        "Composition": {
+          "Ice": 0.79081,
+          "Rock": 0.190118,
+          "Metal": 0.019072
+        },
+        "SemiMajorAxis": 8659901082.515717,
+        "Eccentricity": 0.010037,
+        "OrbitalInclination": -0.018777,
+        "Periapsis": 185.498348,
+        "OrbitalPeriod": 9682192.444801,
+        "AscendingNode": -134.683114,
+        "MeanAnomaly": 271.301512,
+        "RotationPeriod": 9682477.916264,
+        "AxialTilt": -0.151551,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 10 e",
+      "bodyId": 50,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 1.143892,
+      "surfaceTemperature": 115.599045,
+      "radius": 1866549.25,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:36:58Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 10 e",
+        "BodyID": 50,
+        "Parents": [
+          {
+            "Planet": 45
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 3549.622122,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Icy body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "",
+        "MassEM": 0.009999,
+        "Radius": 1866549.25,
+        "SurfaceGravity": 1.143892,
+        "SurfaceTemperature": 115.599045,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "sulphur",
+            "Percent": 25.772146
+          },
+          {
+            "Name": "carbon",
+            "Percent": 21.671703
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 13.874597
+          },
+          {
+            "Name": "iron",
+            "Percent": 12.524007
+          },
+          {
+            "Name": "nickel",
+            "Percent": 9.472634
+          },
+          {
+            "Name": "chromium",
+            "Percent": 5.632462
+          },
+          {
+            "Name": "manganese",
+            "Percent": 5.172287
+          },
+          {
+            "Name": "germanium",
+            "Percent": 3.556243
+          },
+          {
+            "Name": "tellurium",
+            "Percent": 0.921074
+          },
+          {
+            "Name": "niobium",
+            "Percent": 0.855949
+          },
+          {
+            "Name": "mercury",
+            "Percent": 0.546903
+          }
+        ],
+        "Composition": {
+          "Ice": 0.781393,
+          "Rock": 0.198279,
+          "Metal": 0.020329
+        },
+        "SemiMajorAxis": 11607619524.002075,
+        "Eccentricity": 0.009617,
+        "OrbitalInclination": -0.007808,
+        "Periapsis": 11.770065,
+        "OrbitalPeriod": 15025157.928467,
+        "AscendingNode": 88.519433,
+        "MeanAnomaly": 137.343952,
+        "RotationPeriod": 257334.215278,
+        "AxialTilt": 2.007171,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 10 e a",
+      "bodyId": 51,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.44912,
+      "surfaceTemperature": 115.599045,
+      "radius": 827640.875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 50
+        },
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:37:00Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 10 e a",
+        "BodyID": 51,
+        "Parents": [
+          {
+            "Planet": 50
+          },
+          {
+            "Planet": 45
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 3549.641461,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Icy body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "",
+        "MassEM": 0.000772,
+        "Radius": 827640.875,
+        "SurfaceGravity": 0.44912,
+        "SurfaceTemperature": 115.599045,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "sulphur",
+            "Percent": 30.241697
+          },
+          {
+            "Name": "carbon",
+            "Percent": 25.430138
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 16.280811
+          },
+          {
+            "Name": "iron",
+            "Percent": 9.922033
+          },
+          {
+            "Name": "nickel",
+            "Percent": 7.50461
+          },
+          {
+            "Name": "selenium",
+            "Percent": 4.733081
+          },
+          {
+            "Name": "zinc",
+            "Percent": 2.696437
+          },
+          {
+            "Name": "zirconium",
+            "Percent": 1.152153
+          },
+          {
+            "Name": "tellurium",
+            "Percent": 0.846308
+          },
+          {
+            "Name": "molybdenum",
+            "Percent": 0.647903
+          },
+          {
+            "Name": "tungsten",
+            "Percent": 0.544819
+          }
+        ],
+        "Composition": {
+          "Ice": 0.912802,
+          "Rock": 0.084402,
+          "Metal": 0.002796
+        },
+        "SemiMajorAxis": 52093706.130981,
+        "Eccentricity": 0,
+        "OrbitalInclination": -49.379857,
+        "Periapsis": 125.602435,
+        "OrbitalPeriod": 1140182.137489,
+        "AscendingNode": -122.287833,
+        "MeanAnomaly": 235.887386,
+        "RotationPeriod": 1183371.64791,
+        "AxialTilt": -0.329889,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 5",
+      "bodyId": 22,
+      "kind": "planet",
+      "planetClass": "Sudarsky class III gas giant",
+      "landable": false,
+      "surfaceGravity": 53.096319,
+      "surfaceTemperature": 320.064148,
+      "radius": 76883800,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 18
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d52 5 A Ring",
+          "ringClass": "eRingClass_Metalic",
+          "massMT": 97884000000
+        },
+        {
+          "name": "Swoilz AW-C d52 5 B Ring",
+          "ringClass": "eRingClass_Rocky",
+          "massMT": 2467900000000
+        }
+      ],
+      "reserveLevel": "PristineResources",
+      "raw": {
+        "timestamp": "2025-03-27T10:37:06Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 5",
+        "BodyID": 22,
+        "Parents": [
+          {
+            "Null": 18
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 1630.009326,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Sudarsky class III gas giant",
+        "Atmosphere": "",
+        "AtmosphereComposition": [
+          {
+            "Name": "Hydrogen",
+            "Percent": 73.390236
+          },
+          {
+            "Name": "Helium",
+            "Percent": 26.60976
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 787.453125,
+        "Radius": 76883800,
+        "SurfaceGravity": 53.096319,
+        "SurfaceTemperature": 320.064148,
+        "SurfacePressure": 0,
+        "Landable": false,
+        "SemiMajorAxis": 2030135333.538055,
+        "Eccentricity": 0.045963,
+        "OrbitalInclination": -4.343294,
+        "Periapsis": 224.889559,
+        "OrbitalPeriod": 1689710.855484,
+        "AscendingNode": 98.315888,
+        "MeanAnomaly": 216.414878,
+        "RotationPeriod": 2279220.570061,
+        "AxialTilt": -0.141563,
+        "Rings": [
+          {
+            "Name": "Swoilz AW-C d52 5 A Ring",
+            "RingClass": "eRingClass_Metalic",
+            "MassMT": 97884000000,
+            "InnerRad": 147210000,
+            "OuterRad": 157430000
+          },
+          {
+            "Name": "Swoilz AW-C d52 5 B Ring",
+            "RingClass": "eRingClass_Rocky",
+            "MassMT": 2467900000000,
+            "InnerRad": 157530000,
+            "OuterRad": 321480000
+          }
+        ],
+        "ReserveLevel": "PristineResources",
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 7",
+      "bodyId": 32,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 11.041939,
+      "surfaceTemperature": 477.946564,
+      "radius": 6172321,
+      "atmosphere": "thick ammonia atmosphere",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 26
+        },
+        {
+          "type": "Null",
+          "bodyId": 25
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d52 7 A Ring",
+          "ringClass": "eRingClass_Rocky",
+          "massMT": 11907
+        }
+      ],
+      "reserveLevel": "PristineResources",
+      "raw": {
+        "timestamp": "2025-03-27T10:37:11Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 7",
+        "BodyID": 32,
+        "Parents": [
+          {
+            "Null": 26
+          },
+          {
+            "Null": 25
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2080.145761,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "High metal content body",
+        "Atmosphere": "thick ammonia atmosphere",
+        "AtmosphereType": "Ammonia",
+        "AtmosphereComposition": [
+          {
+            "Name": "Ammonia",
+            "Percent": 30.810442
+          },
+          {
+            "Name": "Nitrogen",
+            "Percent": 30.810442
+          },
+          {
+            "Name": "Methane",
+            "Percent": 30.054123
+          }
+        ],
+        "Volcanism": "major rocky magma volcanism",
+        "MassEM": 1.055439,
+        "Radius": 6172321,
+        "SurfaceGravity": 11.041939,
+        "SurfaceTemperature": 477.946564,
+        "SurfacePressure": 1874120.875,
+        "Landable": false,
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.665959,
+          "Metal": 0.334041
+        },
+        "SemiMajorAxis": 12777890563.01117,
+        "Eccentricity": 0.185281,
+        "OrbitalInclination": 2.336295,
+        "Periapsis": 165.995389,
+        "OrbitalPeriod": 13684317.469597,
+        "AscendingNode": -24.012234,
+        "MeanAnomaly": 65.3187,
+        "RotationPeriod": 172841.493221,
+        "AxialTilt": 0.200725,
+        "Rings": [
+          {
+            "Name": "Swoilz AW-C d52 7 A Ring",
+            "RingClass": "eRingClass_Rocky",
+            "MassMT": 11907,
+            "InnerRad": 11985000,
+            "OuterRad": 35445000
+          }
+        ],
+        "ReserveLevel": "PristineResources",
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 4",
+      "bodyId": 19,
+      "kind": "planet",
+      "planetClass": "Sudarsky class III gas giant",
+      "landable": false,
+      "surfaceGravity": 64.789179,
+      "surfaceTemperature": 352.334961,
+      "radius": 76885800,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 18
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d52 4 A Ring",
+          "ringClass": "eRingClass_Metalic",
+          "massMT": 350180000000
+        },
+        {
+          "name": "Swoilz AW-C d52 4 B Ring",
+          "ringClass": "eRingClass_Rocky",
+          "massMT": 2615300000000
+        }
+      ],
+      "reserveLevel": "PristineResources",
+      "raw": {
+        "timestamp": "2025-03-27T10:37:14Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 4",
+        "BodyID": 19,
+        "Parents": [
+          {
+            "Null": 18
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 1623.422784,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Sudarsky class III gas giant",
+        "Atmosphere": "",
+        "AtmosphereComposition": [
+          {
+            "Name": "Hydrogen",
+            "Percent": 73.390236
+          },
+          {
+            "Name": "Helium",
+            "Percent": 26.609764
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 960.915771,
+        "Radius": 76885800,
+        "SurfaceGravity": 64.789179,
+        "SurfaceTemperature": 352.334961,
+        "SurfacePressure": 0,
+        "Landable": false,
+        "SemiMajorAxis": 1663660645.484924,
+        "Eccentricity": 0.045963,
+        "OrbitalInclination": -4.343294,
+        "Periapsis": 44.889581,
+        "OrbitalPeriod": 1689710.855484,
+        "AscendingNode": 98.315888,
+        "MeanAnomaly": 216.416555,
+        "RotationPeriod": 2517772.890044,
+        "AxialTilt": -0.364974,
+        "Rings": [
+          {
+            "Name": "Swoilz AW-C d52 4 A Ring",
+            "RingClass": "eRingClass_Metalic",
+            "MassMT": 350180000000,
+            "InnerRad": 153350000,
+            "OuterRad": 186210000
+          },
+          {
+            "Name": "Swoilz AW-C d52 4 B Ring",
+            "RingClass": "eRingClass_Rocky",
+            "MassMT": 2615300000000,
+            "InnerRad": 186310000,
+            "OuterRad": 343540000
+          }
+        ],
+        "ReserveLevel": "PristineResources",
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Government",
+            "demolishable": false,
+            "customName": "Green Terminal"
+          },
+          null
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 8",
+      "bodyId": 34,
+      "kind": "planet",
+      "planetClass": "Gas giant with water based life",
+      "landable": false,
+      "surfaceGravity": 9.899973,
+      "surfaceTemperature": 172.221924,
+      "radius": 54770032,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 25
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:37:20Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 8",
+        "BodyID": 34,
+        "Parents": [
+          {
+            "Null": 25
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2181.705067,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Gas giant with water based life",
+        "Atmosphere": "",
+        "AtmosphereComposition": [
+          {
+            "Name": "Hydrogen",
+            "Percent": 73.349663
+          },
+          {
+            "Name": "Helium",
+            "Percent": 26.595051
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 74.509323,
+        "Radius": 54770032,
+        "SurfaceGravity": 9.899973,
+        "SurfaceTemperature": 172.221924,
+        "SurfacePressure": 0,
+        "Landable": false,
+        "SemiMajorAxis": 31392095088.95874,
+        "Eccentricity": 0.118865,
+        "OrbitalInclination": -5.6596,
+        "Periapsis": 282.436129,
+        "OrbitalPeriod": 56161895.990372,
+        "AscendingNode": -106.389509,
+        "MeanAnomaly": 199.603839,
+        "RotationPeriod": 51438.110335,
+        "AxialTilt": -0.276074,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 1",
+      "bodyId": 1,
+      "kind": "planet",
+      "planetClass": "Sudarsky class III gas giant",
+      "landable": false,
+      "surfaceGravity": 111.946365,
+      "surfaceTemperature": 548.901245,
+      "radius": 75257672,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d52 1 A Ring",
+          "ringClass": "eRingClass_Rocky",
+          "massMT": 306710000000
+        },
+        {
+          "name": "Swoilz AW-C d52 1 B Ring",
+          "ringClass": "eRingClass_Rocky",
+          "massMT": 3931800000000
+        }
+      ],
+      "reserveLevel": "PristineResources",
+      "raw": {
+        "timestamp": "2025-03-27T10:37:26Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 1",
+        "BodyID": 1,
+        "Parents": [
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 870.027354,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Sudarsky class III gas giant",
+        "Atmosphere": "",
+        "AtmosphereComposition": [
+          {
+            "Name": "Hydrogen",
+            "Percent": 73.390236
+          },
+          {
+            "Name": "Helium",
+            "Percent": 26.609766
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 1590.750977,
+        "Radius": 75257672,
+        "SurfaceGravity": 111.946365,
+        "SurfaceTemperature": 548.901245,
+        "SurfacePressure": 0,
+        "Landable": false,
+        "SemiMajorAxis": 260826909542.08374,
+        "Eccentricity": 0.000006,
+        "OrbitalInclination": -0.307345,
+        "Periapsis": 41.781138,
+        "OrbitalPeriod": 63115128.278732,
+        "AscendingNode": 38.990183,
+        "MeanAnomaly": 243.803249,
+        "RotationPeriod": 60720.376836,
+        "AxialTilt": -0.386871,
+        "Rings": [
+          {
+            "Name": "Swoilz AW-C d52 1 A Ring",
+            "RingClass": "eRingClass_Rocky",
+            "MassMT": 306710000000,
+            "InnerRad": 132140000,
+            "OuterRad": 167780000
+          },
+          {
+            "Name": "Swoilz AW-C d52 1 B Ring",
+            "RingClass": "eRingClass_Rocky",
+            "MassMT": 3931800000000,
+            "InnerRad": 167880000,
+            "OuterRad": 406390000
+          }
+        ],
+        "ReserveLevel": "PristineResources",
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 0,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 1 a",
+      "bodyId": 4,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 0.643367,
+      "surfaceTemperature": 324.04187,
+      "radius": 563927.6875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 1
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "timestamp": "2025-03-27T10:37:29Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 1 a",
+        "BodyID": 4,
+        "Parents": [
+          {
+            "Planet": 1
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 871.23444,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "minor metallic magma volcanism",
+        "MassEM": 0.000513,
+        "Radius": 563927.6875,
+        "SurfaceGravity": 0.643367,
+        "SurfaceTemperature": 324.04187,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 18.889616
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 18.288189
+          },
+          {
+            "Name": "carbon",
+            "Percent": 15.378473
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.287313
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 9.845562
+          },
+          {
+            "Name": "chromium",
+            "Percent": 8.495287
+          },
+          {
+            "Name": "manganese",
+            "Percent": 7.801219
+          },
+          {
+            "Name": "selenium",
+            "Percent": 2.862257
+          },
+          {
+            "Name": "cadmium",
+            "Percent": 1.466864
+          },
+          {
+            "Name": "tellurium",
+            "Percent": 1.394217
+          },
+          {
+            "Name": "niobium",
+            "Percent": 1.291004
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 532721829.414368,
+        "Eccentricity": 0.000795,
+        "OrbitalInclination": 0.018669,
+        "Periapsis": 254.61432,
+        "OrbitalPeriod": 97021.727562,
+        "AscendingNode": -177.706042,
+        "MeanAnomaly": 275.19142,
+        "RotationPeriod": 97022.002372,
+        "AxialTilt": -0.280189,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Military_Outpost",
+            "demolishable": false,
+            "customName": "Gens Landing"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Egerton Horizons"
+          },
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Werckmeister's Progress"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 1 b a",
+      "bodyId": 6,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 0.463554,
+      "surfaceTemperature": 308.678955,
+      "radius": 426040.71875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 5
+        },
+        {
+          "type": "Planet",
+          "bodyId": 1
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "timestamp": "2025-03-27T10:37:32Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 1 b a",
+        "BodyID": 6,
+        "Parents": [
+          {
+            "Planet": 5
+          },
+          {
+            "Planet": 1
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 870.620303,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "major silicate vapour geysers volcanism",
+        "MassEM": 0.000211,
+        "Radius": 426040.71875,
+        "SurfaceGravity": 0.463554,
+        "SurfaceTemperature": 308.678955,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "sulphur",
+            "Percent": 20.430956
+          },
+          {
+            "Name": "iron",
+            "Percent": 18.260839
+          },
+          {
+            "Name": "carbon",
+            "Percent": 17.180317
+          },
+          {
+            "Name": "nickel",
+            "Percent": 13.811733
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 10.999134
+          },
+          {
+            "Name": "manganese",
+            "Percent": 7.54154
+          },
+          {
+            "Name": "germanium",
+            "Percent": 6.013749
+          },
+          {
+            "Name": "zirconium",
+            "Percent": 2.12046
+          },
+          {
+            "Name": "cadmium",
+            "Percent": 1.418037
+          },
+          {
+            "Name": "antimony",
+            "Percent": 1.271753
+          },
+          {
+            "Name": "tin",
+            "Percent": 0.951483
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.967937,
+          "Metal": 0.032063
+        },
+        "SemiMajorAxis": 2211694.777012,
+        "Eccentricity": 0,
+        "OrbitalInclination": 50.801284,
+        "Periapsis": 70.500847,
+        "OrbitalPeriod": 20553.821325,
+        "AscendingNode": -144.685902,
+        "MeanAnomaly": 258.273682,
+        "RotationPeriod": 21466.518455,
+        "AxialTilt": -0.389409,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Military_Outpost",
+            "demolishable": false,
+            "customName": "Whitney Sanctuary"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Fairbairn's Folly"
+          },
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Kidinnu Town"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 1 b",
+      "bodyId": 5,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 1.074918,
+      "surfaceTemperature": 308.678955,
+      "radius": 928568.125,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 1
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:37:34Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 1 b",
+        "BodyID": 5,
+        "Parents": [
+          {
+            "Planet": 1
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 870.626745,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "",
+        "MassEM": 0.002325,
+        "Radius": 928568.125,
+        "SurfaceGravity": 1.074918,
+        "SurfaceTemperature": 308.678955,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 19.089586
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 18.28948
+          },
+          {
+            "Name": "carbon",
+            "Percent": 15.37956
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.438563
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 9.846258
+          },
+          {
+            "Name": "chromium",
+            "Percent": 8.58522
+          },
+          {
+            "Name": "manganese",
+            "Percent": 7.883805
+          },
+          {
+            "Name": "selenium",
+            "Percent": 2.862458
+          },
+          {
+            "Name": "niobium",
+            "Percent": 1.304671
+          },
+          {
+            "Name": "ruthenium",
+            "Percent": 1.178904
+          },
+          {
+            "Name": "tin",
+            "Percent": 1.141489
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.903461,
+          "Metal": 0.096539
+        },
+        "SemiMajorAxis": 860640084.7435,
+        "Eccentricity": 0.001282,
+        "OrbitalInclination": 0.08232,
+        "Periapsis": 52.571911,
+        "OrbitalPeriod": 199228.107929,
+        "AscendingNode": -65.143459,
+        "MeanAnomaly": 306.863289,
+        "RotationPeriod": -199228.638604,
+        "AxialTilt": -2.498731,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 2,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Pistis",
+            "customName": "Libeskind Landing"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Pistis",
+            "customName": "Yuasa Gateway"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Hughes-Fulford Terminal"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 1 c",
+      "bodyId": 7,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 1.098578,
+      "surfaceTemperature": 288.961243,
+      "radius": 948542.0625,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 1
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:37:37Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 1 c",
+        "BodyID": 7,
+        "Parents": [
+          {
+            "Planet": 1
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 865.579489,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "",
+        "MassEM": 0.00248,
+        "Radius": 948542.0625,
+        "SurfaceGravity": 1.098578,
+        "SurfaceTemperature": 288.961243,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 19.737995
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 18.916248
+          },
+          {
+            "Name": "carbon",
+            "Percent": 15.906605
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.92899
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 10.183682
+          },
+          {
+            "Name": "manganese",
+            "Percent": 8.15159
+          },
+          {
+            "Name": "germanium",
+            "Percent": 5.567903
+          },
+          {
+            "Name": "selenium",
+            "Percent": 2.960553
+          },
+          {
+            "Name": "molybdenum",
+            "Percent": 1.28888
+          },
+          {
+            "Name": "tin",
+            "Percent": 1.18009
+          },
+          {
+            "Name": "antimony",
+            "Percent": 1.177468
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.903614,
+          "Metal": 0.096386
+        },
+        "SemiMajorAxis": 2023758471.012115,
+        "Eccentricity": 0.00099,
+        "OrbitalInclination": -0.776971,
+        "Periapsis": 101.992001,
+        "OrbitalPeriod": 718383.437395,
+        "AscendingNode": -89.051549,
+        "MeanAnomaly": 29.21577,
+        "RotationPeriod": -718385.492897,
+        "AxialTilt": 2.077119,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 2,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Coriolis",
+            "demolishable": false,
+            "variant": "Quad Truss",
+            "customName": "Gurwin Beacon"
+          },
+          {
+            "building": "Orbis_or_Ocellus",
+            "demolishable": false,
+            "variant": "Orbis (Apollo)",
+            "customName": "Galen Vision"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Civilian_Planetary_Outpost",
+            "demolishable": false,
+            "variant": "Clotho",
+            "customName": "Bianchi Enterprise"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 1 c a",
+      "bodyId": 8,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 0.469115,
+      "surfaceTemperature": 288.961243,
+      "radius": 431096.96875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 7
+        },
+        {
+          "type": "Planet",
+          "bodyId": 1
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "timestamp": "2025-03-27T10:37:39Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 1 c a",
+        "BodyID": 8,
+        "Parents": [
+          {
+            "Planet": 7
+          },
+          {
+            "Planet": 1
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 865.58606,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "major silicate vapour geysers volcanism",
+        "MassEM": 0.000219,
+        "Radius": 431096.96875,
+        "SurfaceGravity": 0.469115,
+        "SurfaceTemperature": 288.961243,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "sulphur",
+            "Percent": 19.80143
+          },
+          {
+            "Name": "iron",
+            "Percent": 17.698179
+          },
+          {
+            "Name": "carbon",
+            "Percent": 16.650951
+          },
+          {
+            "Name": "nickel",
+            "Percent": 13.38616
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 10.660224
+          },
+          {
+            "Name": "manganese",
+            "Percent": 7.309167
+          },
+          {
+            "Name": "germanium",
+            "Percent": 5.828451
+          },
+          {
+            "Name": "zinc",
+            "Percent": 4.809702
+          },
+          {
+            "Name": "tellurium",
+            "Percent": 1.509581
+          },
+          {
+            "Name": "cadmium",
+            "Percent": 1.374344
+          },
+          {
+            "Name": "tungsten",
+            "Percent": 0.971808
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.967937,
+          "Metal": 0.032063
+        },
+        "SemiMajorAxis": 4138352.394104,
+        "Eccentricity": 0,
+        "OrbitalInclination": -64.699199,
+        "Periapsis": 46.281826,
+        "OrbitalPeriod": 51002.260447,
+        "AscendingNode": -139.411244,
+        "MeanAnomaly": 277.279086,
+        "RotationPeriod": 53204.018944,
+        "AxialTilt": -0.01418,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Pistis",
+            "customName": "Stiegler Prospect"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Kamen Point"
+          },
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Key's Pride"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 1 d",
+      "bodyId": 9,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 0.825532,
+      "surfaceTemperature": 284.213745,
+      "radius": 720434.625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 1
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:37:42Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 1 d",
+        "BodyID": 9,
+        "Parents": [
+          {
+            "Planet": 1
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 862.977112,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "",
+        "MassEM": 0.001075,
+        "Radius": 720434.625,
+        "SurfaceGravity": 0.825532,
+        "SurfaceTemperature": 284.213745,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 19.567827
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 18.944805
+          },
+          {
+            "Name": "carbon",
+            "Percent": 15.930621
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.800283
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 10.199057
+          },
+          {
+            "Name": "chromium",
+            "Percent": 8.800301
+          },
+          {
+            "Name": "zinc",
+            "Percent": 5.317803
+          },
+          {
+            "Name": "arsenic",
+            "Percent": 2.493801
+          },
+          {
+            "Name": "tellurium",
+            "Percent": 1.444275
+          },
+          {
+            "Name": "niobium",
+            "Percent": 1.337356
+          },
+          {
+            "Name": "tin",
+            "Percent": 1.16388
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 2664178848.266602,
+        "Eccentricity": 0.000204,
+        "OrbitalInclination": -0.457594,
+        "Periapsis": 202.107149,
+        "OrbitalPeriod": 1085083.961487,
+        "AscendingNode": 43.394231,
+        "MeanAnomaly": 275.532556,
+        "RotationPeriod": 1085087.041224,
+        "AxialTilt": 0.308433,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 2,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Pistis",
+            "customName": "Castellari Depot"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Pistis",
+            "customName": "Stephan's Folly"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Fiennes's Pride"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 6",
+      "bodyId": 27,
+      "kind": "planet",
+      "planetClass": "Sudarsky class III gas giant",
+      "landable": false,
+      "surfaceGravity": 75.966726,
+      "surfaceTemperature": 351.44931,
+      "radius": 76160024,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 26
+        },
+        {
+          "type": "Null",
+          "bodyId": 25
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d52 6 A Ring",
+          "ringClass": "eRingClass_MetalRich",
+          "massMT": 283080000000
+        },
+        {
+          "name": "Swoilz AW-C d52 6 B Ring",
+          "ringClass": "eRingClass_Rocky",
+          "massMT": 3383900000000
+        }
+      ],
+      "reserveLevel": "PristineResources",
+      "raw": {
+        "timestamp": "2025-03-27T10:37:47Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 6",
+        "BodyID": 27,
+        "Parents": [
+          {
+            "Null": 26
+          },
+          {
+            "Null": 25
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2059.860929,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Sudarsky class III gas giant",
+        "Atmosphere": "",
+        "AtmosphereComposition": [
+          {
+            "Name": "Hydrogen",
+            "Percent": 73.390236
+          },
+          {
+            "Name": "Helium",
+            "Percent": 26.609764
+          }
+        ],
+        "Volcanism": "",
+        "MassEM": 1105.524048,
+        "Radius": 76160024,
+        "SurfaceGravity": 75.966726,
+        "SurfaceTemperature": 351.44931,
+        "SurfacePressure": 0,
+        "Landable": false,
+        "SemiMajorAxis": 12198066.711426,
+        "Eccentricity": 0.185281,
+        "OrbitalInclination": 2.336295,
+        "Periapsis": 345.995383,
+        "OrbitalPeriod": 13684317.469597,
+        "AscendingNode": -24.012234,
+        "MeanAnomaly": 65.319644,
+        "RotationPeriod": 53957.647003,
+        "AxialTilt": 2.170363,
+        "Rings": [
+          {
+            "Name": "Swoilz AW-C d52 6 A Ring",
+            "RingClass": "eRingClass_MetalRich",
+            "MassMT": 283080000000,
+            "InnerRad": 125660000,
+            "OuterRad": 160160000
+          },
+          {
+            "Name": "Swoilz AW-C d52 6 B Ring",
+            "RingClass": "eRingClass_Rocky",
+            "MassMT": 3383900000000,
+            "InnerRad": 160260000,
+            "OuterRad": 372110000
+          }
+        ],
+        "ReserveLevel": "PristineResources",
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 6 b",
+      "bodyId": 31,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 2.814059,
+      "surfaceTemperature": 199.255783,
+      "radius": 2327745.75,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 27
+        },
+        {
+          "type": "Null",
+          "bodyId": 26
+        },
+        {
+          "type": "Null",
+          "bodyId": 25
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "timestamp": "2025-03-27T10:37:50Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 6 b",
+        "BodyID": 31,
+        "Parents": [
+          {
+            "Planet": 27
+          },
+          {
+            "Null": 26
+          },
+          {
+            "Null": 25
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2061.349401,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "",
+        "MassEM": 0.038256,
+        "Radius": 2327745.75,
+        "SurfaceGravity": 2.814059,
+        "SurfaceTemperature": 199.255783,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 19.18985
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 18.578863
+          },
+          {
+            "Name": "carbon",
+            "Percent": 15.6229
+          },
+          {
+            "Name": "nickel",
+            "Percent": 14.514399
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 10.002049
+          },
+          {
+            "Name": "chromium",
+            "Percent": 8.630313
+          },
+          {
+            "Name": "manganese",
+            "Percent": 7.925212
+          },
+          {
+            "Name": "zirconium",
+            "Percent": 2.228337
+          },
+          {
+            "Name": "tellurium",
+            "Percent": 1.416377
+          },
+          {
+            "Name": "tungsten",
+            "Percent": 1.053716
+          },
+          {
+            "Name": "mercury",
+            "Percent": 0.837989
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 888184249.401093,
+        "Eccentricity": 0.002417,
+        "OrbitalInclination": 0.956212,
+        "Periapsis": 337.630027,
+        "OrbitalPeriod": 250538.563728,
+        "AscendingNode": -138.087246,
+        "MeanAnomaly": 160.828313,
+        "RotationPeriod": 245687.735164,
+        "AxialTilt": -0.482097,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 6 a",
+      "bodyId": 30,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 2.680967,
+      "surfaceTemperature": 217.045563,
+      "radius": 2225985.25,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 27
+        },
+        {
+          "type": "Null",
+          "bodyId": 26
+        },
+        {
+          "type": "Null",
+          "bodyId": 25
+        },
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "timestamp": "2025-03-27T10:37:51Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 6 a",
+        "BodyID": 30,
+        "Parents": [
+          {
+            "Planet": 27
+          },
+          {
+            "Null": 26
+          },
+          {
+            "Null": 25
+          },
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 2059.314636,
+        "TidalLock": true,
+        "TerraformState": "",
+        "PlanetClass": "Rocky body",
+        "Atmosphere": "",
+        "AtmosphereType": "None",
+        "Volcanism": "major silicate vapour geysers volcanism",
+        "MassEM": 0.033329,
+        "Radius": 2225985.25,
+        "SurfaceGravity": 2.680967,
+        "SurfaceTemperature": 217.045563,
+        "SurfacePressure": 0,
+        "Landable": true,
+        "Materials": [
+          {
+            "Name": "iron",
+            "Percent": 20.52161
+          },
+          {
+            "Name": "sulphur",
+            "Percent": 19.868223
+          },
+          {
+            "Name": "carbon",
+            "Percent": 16.707119
+          },
+          {
+            "Name": "nickel",
+            "Percent": 15.521688
+          },
+          {
+            "Name": "phosphorus",
+            "Percent": 10.696183
+          },
+          {
+            "Name": "germanium",
+            "Percent": 5.848111
+          },
+          {
+            "Name": "zinc",
+            "Percent": 5.577006
+          },
+          {
+            "Name": "arsenic",
+            "Percent": 2.615355
+          },
+          {
+            "Name": "tin",
+            "Percent": 1.22061
+          },
+          {
+            "Name": "mercury",
+            "Percent": 0.896145
+          },
+          {
+            "Name": "polonium",
+            "Percent": 0.527952
+          }
+        ],
+        "Composition": {
+          "Ice": 0,
+          "Rock": 0.908827,
+          "Metal": 0.091173
+        },
+        "SemiMajorAxis": 403235554.695129,
+        "Eccentricity": 0.001955,
+        "OrbitalInclination": 0.053419,
+        "Periapsis": 178.847786,
+        "OrbitalPeriod": 76640.49387,
+        "AscendingNode": 47.450321,
+        "MeanAnomaly": 124.206098,
+        "RotationPeriod": 73213.251062,
+        "AxialTilt": -0.098233,
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 2,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d52 11",
+      "bodyId": 55,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 44.710271,
+      "surfaceTemperature": 102.954033,
+      "radius": 21100464,
+      "atmosphere": "thick helium atmosphere",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d52 11 A Ring",
+          "ringClass": "eRingClass_Icy",
+          "massMT": 2173200000
+        }
+      ],
+      "reserveLevel": "PristineResources",
+      "raw": {
+        "timestamp": "2025-03-27T10:38:08Z",
+        "event": "Scan",
+        "ScanType": "Detailed",
+        "BodyName": "Swoilz AW-C d52 11",
+        "BodyID": 55,
+        "Parents": [
+          {
+            "Star": 0
+          }
+        ],
+        "StarSystem": "Swoilz AW-C d52",
+        "SystemAddress": 1797250861443,
+        "DistanceFromArrivalLS": 5175.459216,
+        "TidalLock": false,
+        "TerraformState": "",
+        "PlanetClass": "Icy body",
+        "Atmosphere": "thick helium atmosphere",
+        "AtmosphereType": "Helium",
+        "AtmosphereComposition": [
+          {
+            "Name": "Helium",
+            "Percent": 73.866028
+          },
+          {
+            "Name": "Nitrogen",
+            "Percent": 13.803585
+          },
+          {
+            "Name": "Hydrogen",
+            "Percent": 6.968493
+          }
+        ],
+        "Volcanism": "water geysers volcanism",
+        "MassEM": 49.943832,
+        "Radius": 21100464,
+        "SurfaceGravity": 44.710271,
+        "SurfaceTemperature": 102.954033,
+        "SurfacePressure": 1315739.875,
+        "Landable": false,
+        "Composition": {
+          "Ice": 0.683664,
+          "Rock": 0.21064,
+          "Metal": 0.105656
+        },
+        "SemiMajorAxis": 1551648020744.3237,
+        "Eccentricity": 0.000055,
+        "OrbitalInclination": -0.018061,
+        "Periapsis": 34.109159,
+        "OrbitalPeriod": 915787512.06398,
+        "AscendingNode": -24.461421,
+        "MeanAnomaly": 8.032099,
+        "RotationPeriod": 120531.696801,
+        "AxialTilt": 0.094788,
+        "Rings": [
+          {
+            "Name": "Swoilz AW-C d52 11 A Ring",
+            "RingClass": "eRingClass_Icy",
+            "MassMT": 2173200000,
+            "InnerRad": 34816000,
+            "OuterRad": 133480000
+          }
+        ],
+        "ReserveLevel": "PristineResources",
+        "WasDiscovered": true,
+        "WasMapped": false
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    }
+  ],
+  "firstStationBuilding": "Coriolis",
+  "firstStationBodyId": 22,
+  "firstStationVariant": "Quad Truss",
+  "firstStationCustomName": "Froude City"
+}
