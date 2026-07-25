@@ -515,6 +515,9 @@ tbody tr:hover {
 }
 
 .facility-tree-root {
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -532,6 +535,9 @@ tbody tr:hover {
 
 .facility-tree-body-name {
   position: relative;
+  display: flex;
+  align-items: center;
+  gap: 6px;
   font-family: var(--font-display);
   letter-spacing: 0.06em;
   font-size: 12px;
@@ -573,6 +579,85 @@ tbody tr:hover {
   font-size: 12px;
   color: var(--text-dim);
   min-width: 84px;
+}
+
+.facility-info-icon {
+  color: var(--accent-text);
+  cursor: pointer;
+  font-size: 13px;
+  line-height: 1;
+}
+
+.facility-info-icon-empty {
+  color: var(--text-faint);
+  cursor: default;
+}
+
+/* Section labels inside the facility-info hover box (Tooltip content) — same uppercase/accent
+ * treatment as `.facility-tree-root`, so the hover box reads as a mini version of the tree's own
+ * header style. The first one sits flush against the tooltip's own padding; later ones get a
+ * divider above them to visually separate blocks (Basic data / System effects and haul / …). */
+.facility-info-section-header {
+  font-family: var(--font-display);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-size: 10px;
+  color: var(--accent-text);
+  margin-bottom: 2px;
+}
+
+.facility-info-section-header:not(:first-child) {
+  margin-top: 8px;
+  padding-top: 6px;
+  border-top: 1px solid var(--border);
+}
+
+/* Body-info hover's "Ports with a 'Colony' economy will start with the following:" disclaimer and
+ * the Economy/Value/Effects breakdown table beneath it (see SystemConfigPanel.tsx's
+ * `computeColonyEconomyBreakdown` usage). The bubble itself has no fixed width (see Tooltip.css),
+ * so the table just sizes to its own content — `white-space: nowrap` on the bubble only affects
+ * inline text nodes, not table layout. */
+.facility-body-info-disclaimer {
+  font-size: 11px;
+  font-style: italic;
+  color: var(--text-dim);
+  margin-bottom: 4px;
+}
+
+/* The body-info hover's "Tidally locked" feature tag, crossed out when true locally but the chain
+ * up to the star isn't fully tidally locked (see SystemConfigPanel.tsx's `bodyInfoContent` — the
+ * Agriculture strong-link decrease doesn't apply in that case). Dimmed on top of the strikethrough
+ * so it reads as "true, but inert" rather than just visually noisy. */
+.tooltip-bubble s {
+  color: var(--text-faint);
+  text-decoration-color: var(--text-faint);
+}
+
+.facility-body-info-table {
+  border-collapse: collapse;
+  font-size: 12px;
+}
+
+.facility-body-info-table th {
+  font-family: var(--font-display);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-size: 10px;
+  color: var(--text-dim);
+  text-align: left;
+  padding: 0 10px 4px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.facility-body-info-table td {
+  padding: 2px 10px 2px 0;
+  vertical-align: top;
+  white-space: nowrap;
+}
+
+.facility-body-info-value {
+  font-family: var(--font-mono);
+  color: var(--text-dim);
 }
 
 /* A fixed width (rather than each select's own content-driven default) so the primary station's

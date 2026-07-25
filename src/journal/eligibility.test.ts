@@ -48,13 +48,25 @@ describe("estimateBodySlots", () => {
   it("caps ground slots at 7 even when every bonus applies", () => {
     const [system] = parseJournalScans(FIXTURE);
     const hmc = system.bodies.find((b) => b.bodyName === "Test System A 3")!;
-    // Top radius tier (4) + atmosphere (+2) + terraformable (+1) + HMC (+1) = 8, capped to 7.
+    // Top radius tier (4) + atmosphere (+2) + terraformable (+1) + HMC (+1) + geological signals
+    // (+1) = 9, capped to 7.
     const maxedOut = {
       ...hmc,
       radius: 7_000_000,
       atmosphere: "thin nitrogen atmosphere",
       terraformState: "Terraformable",
+      hasGeologicalSignals: true,
     };
     expect(estimateBodySlots(maxedOut).slots.ground).toBe(7);
+  });
+
+  it("adds 1 ground slot for a body with FSSBodySignals-reported geological signals", () => {
+    const [system] = parseJournalScans(FIXTURE);
+    const rocky = system.bodies.find((b) => b.bodyName === "Test System A 2")!;
+    // Baseline (tier 1 + atmosphere) is 3, per the first test above.
+    expect(estimateBodySlots(rocky).slots.ground).toBe(3);
+    expect(estimateBodySlots({ ...rocky, hasGeologicalSignals: true }).slots.ground).toBe(4);
+    // Explicitly-false (FSS-signal-scanned, confirmed absent) or unset both contribute nothing.
+    expect(estimateBodySlots({ ...rocky, hasGeologicalSignals: false }).slots.ground).toBe(3);
   });
 });

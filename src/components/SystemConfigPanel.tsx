@@ -1,10 +1,39 @@
-import type { Dispatch } from "react";
-import { ALL_CATEGORIES, isPort, ALL_BUILDINGS, toPrintable, getBuildingVariants } from "../data/buildings";
+import { useMemo, type Dispatch, type ReactNode } from "react";
+import {
+  ALL_CATEGORIES,
+  BASE_SCORES,
+  FACILITY_ECONOMY_GUESS,
+  isPort,
+  isPortRole,
+  ALL_BUILDINGS,
+  toPrintable,
+  getBuildingVariants,
+  type EconomyType,
+} from "../data/buildings";
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
+import {
+  computeBodyEconomyOverrides,
+  computeColonyEconomyBreakdown,
+  computeEconomyRatios,
+  computeStrongLinkBreakdown,
+  hasGeologicals,
+  hasOrganics,
+  hasRings,
+  hasVolcanism,
+  isTerraformable,
+  isTidalLockChainToStar,
+  TERRAFORMABLE_AGRICULTURE_BUG_LINK,
+  TERRAFORMABLE_AGRICULTURE_BUG_NOTE,
+  type EconomyBreakdown,
+  type EconomyRatio,
+} from "../domain/economyOverrides";
+import type { SystemLinksResult } from "../domain/links";
 import { deriveSlotUsage, normalizeFacilitySlots, toSlotUsageBodies, type PresentFacilitySlot } from "../domain/presentFacilities";
+import { computePresentSystemLinks, strongLinkedInstances, type StrongLinkedInstance } from "../domain/presentLinks";
 import { compareBodyNames, type JournalBody } from "../journal/parser";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
 import { SlotBar } from "./SlotBar";
+import { Tooltip } from "./Tooltip";
 
 interface SystemConfigPanelProps {
   formState: PlannerFormState;
@@ -15,6 +44,296 @@ const SLOT_KINDS: { kind: "space" | "ground"; label: string; category: string }[
   { kind: "space", label: "Orbital", category: "Space" },
   { kind: "ground", label: "Ground", category: "Ground" },
 ];
+
+/** A facility/port's own base economy type(s), before any body-feature boost/decrease is applied —
+ * a port's `computeBodyEconomyOverrides(body).economies` (defaulting to `["Colony"]` when empty,
+ * same convention `LinksPanel.tsx` already uses for display), or a supporting facility's single
+ * `FACILITY_ECONOMY_GUESS` entry (empty for a deliberately-unmapped building — see that constant's
+ * header comment — which correctly omits the Economy Ratios section entirely for those). */
+function facilityBaseEconomies(building: string, body: JournalBody): EconomyType[] {
+  if (isPortRole(building)) {
+    const economies = computeBodyEconomyOverrides(body).economies;
+    return economies.length > 0 ? economies : ["Colony"];
+  }
+  return FACILITY_ECONOMY_GUESS[building] ?? [];
+}
+
+interface FacilityInfoProps {
+  building: string;
+  bodyName: string;
+  slotLabel: string;
+  nickname: string | undefined;
+  variant: string | undefined;
+  economyRatios: EconomyRatio[];
+  strongLinks: StrongLinkedInstance[];
+}
+
+/** Hover-box body for `FacilityInfoIcon` below: a "Basic data" block (nickname/build type/body/
+ * slot/status — status is always "Built", since this panel only ever shows already-built
+ * facilities), an "Economy ratios" block (body-driven only — see `facilityBaseEconomies`/
+ * `computeEconomyRatios`; no strong/weak link contribution folded in yet, a deliberately deferred
+ * follow-up), a "Strong market link(s)" block (only for ports — see `strongLinkedInstances`; the
+ * header itself is singular/plural/absent depending on the count), and a "System effects and haul"
+ * block (this building's non-zero score contributions, T2/T3 point cost, and construction cost
+ * standing in for "haul" — no real commodity/tonnage model exists, see CLAUDE.md's scope
+ * boundaries). */
+function facilityInfoContent({
+  building: name,
+  bodyName,
+  slotLabel,
+  nickname,
+  variant,
+  economyRatios,
+  strongLinks,
+}: FacilityInfoProps) {
+  const building = ALL_BUILDINGS[name];
+  const statLines = BASE_SCORES.filter((score) => score !== "construction_cost" && building[score] !== 0).map(
+    (score) => (
+      <div key={score}>
+        {toPrintable(score)}: {building[score] >= 0 ? "+" : ""}
+        {building[score]}
+      </div>
+    ),
+  );
+  return (
+    <>
+      <div className="facility-info-section-header">Basic data</div>
+      <div>
+        <strong>{nickname ?? "— no nickname —"}</strong>
+      </div>
+      <div>
+        Build type: {toPrintable(name)}
+        {variant ? ` (${variant})` : ""}
+      </div>
+      <div>Body: {bodyName}</div>
+      <div>Slot: {slotLabel}</div>
+      <div>Status: Built</div>
+      {economyRatios.length > 0 && (
+        <>
+          <div className="facility-info-section-header">Economy ratios</div>
+          {economyRatios.map((r) => (
+            <div key={r.economy}>
+              {r.economy}: {r.percent}%
+            </div>
+          ))}
+        </>
+      )}
+      {strongLinks.length > 0 && (
+        <>
+          <div className="facility-info-section-header">
+            {strongLinks.length === 1 ? "Strong market link" : "Strong market links"}
+          </div>
+          {strongLinks.map((link, i) => (
+            <div key={i}>{link.nickname ? `${link.nickname} — ${toPrintable(link.building)}` : toPrintable(link.building)}</div>
+          ))}
+        </>
+      )}
+      <div className="facility-info-section-header">System effects and haul</div>
+      {statLines}
+      <div>
+        T2: {building.T2points === "port" ? "escalating (port)" : building.T2points}
+        {" · "}
+        T3: {building.T3points === "port" ? "escalating (port)" : building.T3points}
+      </div>
+      <div>Haul (cost): {building.construction_cost.toLocaleString()} Cm</div>
+    </>
+  );
+}
+
+/** The "i" icon shown before every slot's label (see `facility-tree-slot-label` usages below) —
+ * hoverable with a `Tooltip` summarizing the building actually built there when the slot isn't
+ * empty, greyed out and inert for an empty slot (nothing to show). */
+function FacilityInfoIcon({
+  building,
+  bodyName,
+  slotLabel,
+  nickname,
+  variant,
+  economyRatios,
+  strongLinks,
+}: {
+  building: string | undefined;
+  bodyName: string;
+  slotLabel: string;
+  nickname: string | undefined;
+  variant: string | undefined;
+  economyRatios: EconomyRatio[];
+  strongLinks: StrongLinkedInstance[];
+}) {
+  if (!building) {
+    return (
+      <span className="facility-info-icon facility-info-icon-empty" aria-hidden="true">
+        ⓘ
+      </span>
+    );
+  }
+  return (
+    <Tooltip
+      content={facilityInfoContent({ building, bodyName, slotLabel, nickname, variant, economyRatios, strongLinks })}
+      pinnable
+    >
+      <span className="facility-info-icon" aria-label={`${toPrintable(building)} info`}>
+        ⓘ
+      </span>
+    </Tooltip>
+  );
+}
+
+/** "Rocky body" / "Water world" / etc. for a planet (its `planetClass` verbatim); a star has no
+ * `planetClass` at all, so falls back to its `starType` (e.g. "F-type star"), or a bare "Star" if
+ * even that's missing. `undefined` only for a planet whose class was never recorded. */
+function bodyTypeLabel(body: JournalBody): string | undefined {
+  if (body.kind === "star") return body.starType ? `${body.starType}-type star` : "Star";
+  return body.planetClass;
+}
+
+const METERS_PER_SECOND_SQUARED_PER_G = 9.80665;
+
+/** Shared Economy/Value/Effects table markup for both the "Default economies" and "Strong links"
+ * hover-box blocks below — same per-economy row-grouping (one `rowSpan`'d Economy cell per block,
+ * one row per contributing line) and running-total display, just fed a different `EconomyBreakdown[]`. */
+function economyBreakdownTable(breakdown: EconomyBreakdown[]) {
+  return (
+    <table className="facility-body-info-table">
+      <thead>
+        <tr>
+          <th>Economy</th>
+          <th>Value</th>
+          <th>Effects</th>
+        </tr>
+      </thead>
+      <tbody>
+        {breakdown.flatMap((block) => {
+          let runningTotal = 0;
+          return block.lines.map((line, i) => {
+            runningTotal += line.amount;
+            const isLast = i === block.lines.length - 1;
+            return (
+              <tr key={`${block.economy}-${i}`}>
+                {i === 0 && <td rowSpan={block.lines.length}>{block.economy}</td>}
+                <td className="facility-body-info-value">
+                  {line.amount >= 0 ? "+" : ""}
+                  {line.amount.toFixed(2)}
+                  {isLast && <> = {runningTotal.toFixed(2)}</>}
+                </td>
+                <td>{line.label}</td>
+              </tr>
+            );
+          });
+        })}
+      </tbody>
+    </table>
+  );
+}
+
+/** Hover-box body for `BodyInfoIcon` below — a body's own physical stats and, separately, the
+ * economy breakdown a hypothetical Colony-type port there would start with (independent of
+ * whatever's actually built at this body, if anything — see `computeColonyEconomyBreakdown`), and
+ * the strong-link boost/decrease modifiers ANY strong link at this body would receive (see
+ * `computeStrongLinkBreakdown`) — the latter is body-driven only, same as the former, and doesn't
+ * require a port/facility to actually be built here yet. A Terraformable body additionally gets a
+ * one-line disclaimer + link to `public/known-issues.html` (see `TERRAFORMABLE_AGRICULTURE_BUG_NOTE`/
+ * `TERRAFORMABLE_AGRICULTURE_BUG_LINK`) explaining why neither table below includes the +0.40
+ * Agriculture boost the source tables document for it — kept short since the hover bubble doesn't
+ * wrap text (`Tooltip.css`), full explanation lives on that separate page instead. */
+function bodyInfoContent(body: JournalBody, allBodies: JournalBody[]) {
+  const basicInfoParts: string[] = [];
+  const typeLabel = bodyTypeLabel(body);
+  if (typeLabel) basicInfoParts.push(typeLabel);
+  const distance = body.raw.DistanceFromArrivalLS;
+  if (typeof distance === "number") basicInfoParts.push(`Arrival: ~${distance.toFixed(1)} ls`);
+  if (body.surfaceTemperature !== undefined) basicInfoParts.push(`Surface temp: ${body.surfaceTemperature.toFixed(1)} K`);
+  if (body.surfaceGravity !== undefined) {
+    basicInfoParts.push(`Gravity: ${(body.surfaceGravity / METERS_PER_SECOND_SQUARED_PER_G).toFixed(2)} g`);
+  }
+
+  const features: ReactNode[] = [];
+  if (body.landable) features.push("Landable");
+  if (body.atmosphere) features.push(`Atmosphere: ${body.atmosphere}`);
+  if (hasRings(body)) features.push("Rings");
+  if (isTerraformable(body)) features.push("Terraformable");
+  if (body.tidalLocked === true) {
+    // Tidally locked is a real, standalone fact about this body — but the Agriculture strong-link
+    // decrease only fires when the WHOLE chain up to the star is tidally locked (see
+    // isTidalLockChainToStar's own doc comment), so a body that's locked but sits under an unlocked
+    // ancestor gets the label crossed out: true, but functionally inert for that game mechanic.
+    const allBodiesById = new Map(allBodies.map((b) => [b.bodyId, b]));
+    const decreaseApplies = isTidalLockChainToStar(body, allBodiesById);
+    features.push(
+      decreaseApplies ? (
+        "Tidally locked"
+      ) : (
+        <s title="Tidally locked, but a body further up the chain to the star isn't — the Agriculture strong-link decrease doesn't apply">
+          Tidally locked
+        </s>
+      ),
+    );
+  }
+  if (hasOrganics(body) === true) features.push("Bio Signals");
+  if (hasGeologicals(body) === true) features.push("Geo Signals");
+  if (hasVolcanism(body) === true) features.push("Volcanism");
+
+  const breakdown = computeColonyEconomyBreakdown(body, allBodies);
+  const strongLinkBreakdown = computeStrongLinkBreakdown(body, allBodies);
+
+  return (
+    <>
+      <div>
+        <strong>{body.bodyName}</strong>
+      </div>
+      {basicInfoParts.length > 0 && <div>{basicInfoParts.join(" — ")}</div>}
+      <div>
+        Orbital: {body.slots?.space ?? 0} Ground: {body.slots?.ground ?? 0}
+      </div>
+      {features.length > 0 && (
+        <div>
+          {features.map((feature, i) => (
+            <span key={i}>
+              {i > 0 && "; "}
+              {feature}
+            </span>
+          ))}
+        </div>
+      )}
+      {isTerraformable(body) && (
+        <div className="facility-body-info-disclaimer">
+          ⚠ {TERRAFORMABLE_AGRICULTURE_BUG_NOTE}{" "}
+          <a href={TERRAFORMABLE_AGRICULTURE_BUG_LINK} target="_blank" rel="noreferrer">
+            Known issues
+          </a>
+        </div>
+      )}
+      {breakdown.length > 0 && (
+        <>
+          <div className="facility-info-section-header">Default economies</div>
+          <div className="facility-body-info-disclaimer">Ports with a "Colony" economy will start with the following:</div>
+          {economyBreakdownTable(breakdown)}
+        </>
+      )}
+      {strongLinkBreakdown.length > 0 && (
+        <>
+          <div className="facility-info-section-header">Strong links</div>
+          <div className="facility-body-info-disclaimer">Any strong link formed at this body will receive:</div>
+          {economyBreakdownTable(strongLinkBreakdown)}
+        </>
+      )}
+    </>
+  );
+}
+
+/** The "i" icon shown before every body's name in the tree (the star included) — hoverable with a
+ * `Tooltip` summarizing that body's own physical stats and its Colony-economy breakdown. Unlike
+ * `FacilityInfoIcon`, this is never greyed/inert — every scanned body has at least a name and
+ * (usually) some basic stats to show. */
+function BodyInfoIcon({ body, allBodies }: { body: JournalBody; allBodies: JournalBody[] }) {
+  return (
+    <Tooltip content={bodyInfoContent(body, allBodies)} pinnable>
+      <span className="facility-info-icon" aria-label={`${body.bodyName} info`}>
+        ⓘ
+      </span>
+    </Tooltip>
+  );
+}
 
 interface PrimaryStationFieldsProps {
   firstStationBuilding: string;
@@ -114,14 +433,33 @@ function PrimaryStationLeaf({
  * ordinary orbital slots on this body start numbering from 2. */
 function PrimaryStationSlotLeaf({
   label,
+  body,
+  allBodies,
+  linksResult,
   firstStationBuilding,
   firstStationVariant,
   firstStationCustomName,
   locked,
   dispatch,
-}: PrimaryStationFieldsProps & { label: string }) {
+}: PrimaryStationFieldsProps & {
+  label: string;
+  body: JournalBody;
+  allBodies: JournalBody[];
+  linksResult: SystemLinksResult;
+}) {
+  const strongLinks = isPortRole(firstStationBuilding) ? strongLinkedInstances(linksResult, body, firstStationBuilding) : [];
+  const economyRatios = computeEconomyRatios(facilityBaseEconomies(firstStationBuilding, body), body, allBodies);
   return (
     <div className="facility-tree-slot facility-tree-slot-primary">
+      <FacilityInfoIcon
+        building={firstStationBuilding}
+        bodyName={body.bodyName}
+        slotLabel={`${label} 1`}
+        nickname={firstStationCustomName}
+        variant={firstStationVariant}
+        economyRatios={economyRatios}
+        strongLinks={strongLinks}
+      />
       <span className="facility-tree-slot-label">
         {label} 1
       </span>
@@ -153,6 +491,8 @@ interface BodySlotLeavesProps {
   firstStationBuilding: string;
   firstStationVariant: string | undefined;
   firstStationCustomName: string | undefined;
+  linksResult: SystemLinksResult;
+  allBodies: JournalBody[];
 }
 
 /** A scanned body's own leaves: one per physical orbital/ground slot, each a dropdown for what's
@@ -168,6 +508,8 @@ function BodySlotLeaves({
   firstStationBuilding,
   firstStationVariant,
   firstStationCustomName,
+  linksResult,
+  allBodies,
 }: BodySlotLeavesProps) {
   function setSlot(kind: "space" | "ground", index: number, slot: PresentFacilitySlot | null): void {
     dispatch({ type: "setFacilitySlot", bodyId: body.bodyId, kind, index, slot });
@@ -190,8 +532,19 @@ function BodySlotLeaves({
           const building = slot ? ALL_BUILDINGS[slot.building] : undefined;
           const buildingIsPort = building ? isPort(building) : false;
           const variants = slot ? getBuildingVariants(slot.building) : undefined;
+          const strongLinks = slot && isPortRole(slot.building) ? strongLinkedInstances(linksResult, body, slot.building) : [];
+          const economyRatios = slot ? computeEconomyRatios(facilityBaseEconomies(slot.building, body), body, allBodies) : [];
           return (
             <div className="facility-tree-slot" key={`${kind}-${index}`}>
+              <FacilityInfoIcon
+                building={slot?.building}
+                bodyName={body.bodyName}
+                slotLabel={`${label} ${index + 1}`}
+                nickname={slot?.customName}
+                variant={slot?.variant}
+                economyRatios={economyRatios}
+                strongLinks={strongLinks}
+              />
               <span className="facility-tree-slot-label">
                 {label} {index + 1}
               </span>
@@ -277,6 +630,9 @@ function BodySlotLeaves({
             <PrimaryStationSlotLeaf
               key={`${kind}-primary`}
               label={label}
+              body={body}
+              allBodies={allBodies}
+              linksResult={linksResult}
               firstStationBuilding={firstStationBuilding}
               firstStationVariant={firstStationVariant}
               firstStationCustomName={firstStationCustomName}
@@ -300,6 +656,8 @@ interface HierarchyBranchProps {
   firstStationCustomName: string | undefined;
   locked: boolean;
   dispatch: Dispatch<PlannerAction>;
+  linksResult: SystemLinksResult;
+  allBodies: JournalBody[];
 }
 
 /** One level of the star/planet/moon/sub-moon hierarchy (see domain/bodyHierarchy.ts) — a branch
@@ -318,12 +676,17 @@ function HierarchyBranch({
   firstStationCustomName,
   locked,
   dispatch,
+  linksResult,
+  allBodies,
 }: HierarchyBranchProps) {
   const isFirstStationBody = node.body?.bodyId === firstStationBodyId;
   const fullName = node.body?.bodyName ?? `${starSystem} ${node.path}`;
   return (
     <div className="facility-tree-body">
-      <div className="facility-tree-body-name">{fullName}</div>
+      <div className="facility-tree-body-name">
+        {node.body && <BodyInfoIcon body={node.body} allBodies={allBodies} />}
+        {fullName}
+      </div>
       {node.body && (
         <BodySlotLeaves
           body={node.body}
@@ -333,6 +696,8 @@ function HierarchyBranch({
           firstStationBuilding={firstStationBuilding}
           firstStationVariant={firstStationVariant}
           firstStationCustomName={firstStationCustomName}
+          linksResult={linksResult}
+          allBodies={allBodies}
         />
       )}
       {node.children.map((child) => (
@@ -346,6 +711,8 @@ function HierarchyBranch({
           firstStationCustomName={firstStationCustomName}
           locked={locked}
           dispatch={dispatch}
+          linksResult={linksResult}
+          allBodies={allBodies}
         />
       ))}
     </div>
@@ -376,6 +743,20 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
   // `systemConfigured` lives in formState itself (not local component state) specifically so a
   // `reset` re-locks it automatically.
   const locked = !formState.systemConfigured;
+
+  // Link topology for what's actually built today (see domain/presentLinks.ts) — feeds the
+  // "Strong market link(s)" hover section below. Recomputed only when the underlying present-
+  // facility/primary-station state actually changes, not on every render.
+  const linksResult = useMemo(
+    () =>
+      computePresentSystemLinks(
+        formState.bodies,
+        formState.firstStationBuilding && formState.firstStationBodyId !== undefined
+          ? { building: formState.firstStationBuilding, bodyId: formState.firstStationBodyId }
+          : undefined,
+      ),
+    [formState.bodies, formState.firstStationBuilding, formState.firstStationBodyId],
+  );
 
   // The primary station shows up as a leaf under whichever body it's assigned to (see
   // HierarchyBranch/the root's own leaves below) — but if it's been picked without a body
@@ -489,7 +870,10 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
 
       {hierarchyRoot && (
         <div className="facility-tree">
-          <div className="facility-tree-root">{formState.starSystem || "System"}</div>
+          <div className="facility-tree-root">
+            {hierarchyRoot.body && <BodyInfoIcon body={hierarchyRoot.body} allBodies={formState.bodies} />}
+            {formState.starSystem || "System"}
+          </div>
           {primaryStationUnassigned && (
             <PrimaryStationLeaf
               firstStationBuilding={formState.firstStationBuilding}
@@ -509,6 +893,8 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
                 firstStationBuilding={formState.firstStationBuilding}
                 firstStationVariant={formState.firstStationVariant}
                 firstStationCustomName={formState.firstStationCustomName}
+                linksResult={linksResult}
+                allBodies={formState.bodies}
               />
             </div>
           )}
@@ -523,6 +909,8 @@ export function SystemConfigPanel({ formState, dispatch }: SystemConfigPanelProp
               firstStationCustomName={formState.firstStationCustomName}
               locked={locked}
               dispatch={dispatch}
+              linksResult={linksResult}
+              allBodies={formState.bodies}
             />
           ))}
         </div>

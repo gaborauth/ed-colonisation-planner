@@ -13,10 +13,11 @@
 //    slots only if its surface temperature is under 700K and its gravity is under 2.7g. The base
 //    count comes from radius (<1500km = 1, <3750km = 2, <6000km = 3, >=6000km = 4), then atmosphere
 //    adds 2, terraformability adds 1, and being a High Metal Content body adds 1, capped at 7
-//    overall. Geological signals (which also add 1, up to that same cap of 7) aren't modeled here:
-//    that data comes from the SAASignalsFound/FSSBodySignals events, which requires the body to
-//    have been DSS/FSS-scanned and which this parser doesn't currently ingest (only Scan events) —
-//    so a geo-active body's guess may undercount by 1 versus the in-game System Map.
+//    overall. Geological signals also add 1 (up to that same cap of 7), from the Journal's
+//    `FSSBodySignals` event (an ordinary FSS/"honk" scan, no DSS needed — see
+//    `journal/parser.ts`'s `hasGeologicalSignals`); still undercounts by 1 versus the in-game
+//    System Map if that body was never FSS-signal-scanned (the flag stays `undefined`, not `false`,
+//    in that case — see JournalImportPanel's "Geo signals" checkbox to correct it manually).
 //  - Asteroid eligibility: an Asteroid_Base is built on an ordinary orbital slot (see
 //    `buildings.ts`'s `Asteroid_Base` row — its `slot` is "space"), not a separate slot pool. The
 //    "asteroid" value here is a per-body yes/no: does this body have a ring (or, unconfirmed, does
@@ -62,6 +63,7 @@ function groundSlotsForBody(body: JournalBody): number {
   if (body.atmosphere) slots += 2;
   if (body.terraformState) slots += 1;
   if (isHighMetalContent(body)) slots += 1;
+  if (body.hasGeologicalSignals) slots += 1;
 
   return Math.min(slots, GROUND_SLOT_MAX);
 }

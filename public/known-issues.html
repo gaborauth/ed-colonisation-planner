@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Known issues — EDCP</title>
+    <style>
+      :root {
+        --bg: #0a0e14;
+        --bg-panel: #121824;
+        --bg-inset: #0d1219;
+        --border: #2a3444;
+        --border-bright: #3d4a60;
+        --accent: #ff9e1b;
+        --accent-text: #ffb64d;
+        --text: #e7e6e2;
+        --text-dim: #8b93a1;
+        --text-faint: #5b6577;
+        --font-body: system-ui, "Segoe UI", sans-serif;
+        --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 32px 20px 80px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-body);
+        line-height: 1.55;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 4px;
+      }
+      .subtitle {
+        color: var(--text-dim);
+        margin: 0 0 32px;
+        font-size: 0.95rem;
+      }
+      .subtitle a {
+        color: var(--accent-text);
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 0 0 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+        scroll-margin-top: 20px;
+      }
+      section {
+        margin-bottom: 28px;
+        background: var(--bg-panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 16px 20px;
+      }
+      section:target {
+        border-color: var(--accent);
+      }
+      p {
+        margin: 0 0 10px;
+      }
+      p:last-child {
+        margin-bottom: 0;
+      }
+      code {
+        font-family: var(--font-mono);
+        background: var(--bg-inset);
+        border: 1px solid var(--border-bright);
+        border-radius: 2px;
+        padding: 1px 5px;
+        font-size: 0.9em;
+      }
+      .status {
+        display: inline-block;
+        font-size: 0.75rem;
+        font-family: var(--font-mono);
+        text-transform: uppercase;
+        letter-spacing: 0.03em;
+        padding: 2px 7px;
+        border-radius: 2px;
+        margin-bottom: 10px;
+      }
+      .status-bug {
+        color: #ff5c5c;
+        background: rgba(255, 92, 92, 0.12);
+        border: 1px solid rgba(255, 92, 92, 0.4);
+      }
+      .status-guess {
+        color: var(--accent-text);
+        background: rgba(255, 158, 27, 0.14);
+        border: 1px solid rgba(255, 158, 27, 0.4);
+      }
+      footer {
+        margin-top: 40px;
+        color: var(--text-faint);
+        font-size: 0.85rem;
+      }
+      footer a {
+        color: var(--text-dim);
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Known issues</h1>
+      <p class="subtitle">
+        Things this planner deliberately gets "wrong," and why — linked from the in-app hover boxes that mention
+        them. See also the project's <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">README</a>
+        for the full feature list.
+      </p>
+
+      <section id="terraformable-agriculture-boost">
+        <span class="status status-bug">Suspected game bug</span>
+        <h2>Terraformable's Agriculture strong-link boost isn't applied</h2>
+        <p>
+          The official Update 3 patch notes (and the community-sourced <code>EconomicEffects.ods</code> research
+          sheet) both list a Terraformable body as an Agriculture strong-link boost condition, worth +0.40 — the
+          same magnitude as every other boost/decrease condition in that table.
+        </p>
+        <p>
+          Real-game testing found no observable effect from this condition on Agriculture's actual value,
+          however. This is suspected to be a bug in the current game build rather than a documentation error, so
+          this planner deliberately does <em>not</em> apply it — every computed Agriculture value (strong-link
+          modifiers, economy ratios, the body hover's "Default economies"/"Strong links" tables) matches what the
+          game actually does today, not what the patch notes say it should do.
+        </p>
+        <p>
+          If Frontier fixes this in a future update, the boost should be re-added at its three call sites in
+          <code>src/domain/economyOverrides.ts</code> (<code>computeBoostDecrease</code>,
+          <code>computeColonyEconomyBreakdown</code>, <code>computeStrongLinkBreakdown</code>) — search for
+          <code>TERRAFORMABLE_AGRICULTURE_BUG_NOTE</code>.
+        </p>
+      </section>
+
+      <section id="slot-estimate-heuristic">
+        <span class="status status-guess">Best-effort guess</span>
+        <h2>Journal → buildable slot count estimate</h2>
+        <p>
+          No official formula for how a scanned body's attributes map to its buildable orbital/ground slot count
+          has ever been published. The ground-slot half of the heuristic is sourced from community research (CMDR
+          Nyatto, Flynnvali, and others); the orbital-slot half still has no known per-body formula and is a rougher
+          guess. Always sanity-check the pre-filled estimate against your in-game System Map — the System
+          facilities panel's fields stay fully editable, with a "Reset slots to guess" button to reapply the
+          heuristic if you want to start over.
+        </p>
+      </section>
+
+      <section id="facility-economy-mapping">
+        <span class="status status-guess">Best-effort guess</span>
+        <h2>Facility → economy-type mapping</h2>
+        <p>
+          Update 3's body-attribute Colony-economy override table is sourced verbatim from official patch notes,
+          but no official mapping from every Hub/Settlement/Installation building to its own economy type was ever
+          published. That mapping is inferred from each building's name; a few buildings are deliberately left
+          unmapped rather than guessed.
+        </p>
+      </section>
+
+      <section id="strong-link-modifier-magnitude">
+        <span class="status status-guess">Best-effort guess</span>
+        <h2>Strong-link boost/decrease magnitude (±0.40) and the 10% floor</h2>
+        <p>
+          Official patch notes confirm strong-link boosts and decreases exist, but never state a magnitude. The
+          ±0.40-per-condition and 10%-floor numbers used throughout this planner are community-sourced (the
+          <code>EconomicEffects.ods</code> research sheet), cross-validated against several real reported in-game
+          values before landing — close, but not an official Frontier-published number.
+        </p>
+      </section>
+
+      <section id="population-growth-curve">
+        <span class="status status-guess">Illustrative only</span>
+        <h2>Population growth curve</h2>
+        <p>
+          No official population-growth formula has ever been published. The curve shown in the Population growth
+          panel is a shaped curve invented only to match the patch notes' qualitative "fast, then slowing"
+          description — never treat its numbers as real predictions. The panel itself carries a permanent
+          disclaimer for the same reason.
+        </p>
+      </section>
+
+      <footer>Last updated 2026-07-25. Found something else that looks off? Open an issue on the project's GitHub repo.</footer>
+    </main>
+  </body>
+</html>
