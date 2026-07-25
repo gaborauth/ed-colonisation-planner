@@ -4,12 +4,27 @@
   cursor: help;
 }
 
+/* Only a `pinnable` Tooltip (see Tooltip.tsx) renders `role="button"` — reuse that as the hook for
+   a "this is actually clickable" cursor, instead of a blanket change that would also apply to
+   plain hover-preview tooltips like BuildingsTable's per-score-cell one (nothing to click there). */
+.tooltip-anchor[role="button"] {
+  cursor: pointer;
+}
+
 /* Inside a table cell, the whole cell should be hoverable, not just the glyph the anchor wraps —
    otherwise the tooltip only fires when the pointer lands exactly on the digit. */
 td .tooltip-anchor {
   display: block;
   width: 100%;
   border-bottom: 1px dotted var(--text-faint);
+}
+
+/* Pinned-state cue on the icon itself (the anchor's first child — always the icon, the bubble is
+   appended after it and only rendered conditionally) — a halo ring so it stays recognizable as
+   "open and staying open" even once the bubble has been scrolled past or the pointer has moved on. */
+.tooltip-anchor-pinned > :first-child {
+  border-radius: 50%;
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
 .tooltip-bubble {
@@ -28,6 +43,41 @@ td .tooltip-anchor {
   border-radius: 2px;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   pointer-events: none;
+}
+
+/* The bubble itself ignores pointer events by default (so a plain hover-preview never blocks a
+   click on whatever it happens to overlap) — but a link inside its content stays clickable even
+   during an unpinned hover-preview, opting back in individually. Still safe to hover onto: the
+   bubble is a DOM descendant of `.tooltip-anchor`, so moving onto it never fires that anchor's
+   `onMouseLeave` (mouseenter/mouseleave already ignore transitions between an element and its own
+   descendants) — it's only the GAP between icon and bubble that's the actual hazard (see
+   Tooltip.tsx), and pinning (below) is the robust fix for that; this is just a bonus shortcut for
+   whenever the pointer happens to cross the gap successfully anyway. */
+.tooltip-bubble a {
+  pointer-events: auto;
+  color: var(--accent-text);
+}
+
+/* Once pinned, the whole bubble (not just links) becomes interactive — clicking anywhere in it
+   (including on plain text) bubbles up to `.tooltip-anchor`'s shared `onClick` and closes it again,
+   same as clicking the icon; see Tooltip.tsx's doc comment. The added accent ring distinguishes a
+   "locked open" bubble from a transient hover-preview at a glance. */
+.tooltip-bubble-pinned {
+  pointer-events: auto;
+  box-shadow:
+    0 4px 12px rgba(0, 0, 0, 0.5),
+    0 0 0 2px var(--accent);
+}
+
+.tooltip-pinned-hint {
+  display: block;
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed var(--border-bright);
+  color: var(--text-faint);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .tooltip-bubble::after {

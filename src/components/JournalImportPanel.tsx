@@ -49,9 +49,22 @@ function mergeBySystemAddress(existing: JournalSystem[], incoming: JournalSystem
       // Preserve already-built facility tracking across re-uploads too, same as `slots` above —
       // the "Actual facilities in the system" panel is the only place this gets edited, so a fresh
       // journal parse (which knows nothing about it) must not silently wipe it out.
-      return priorBody?.presentFacilities
+      const withPresent = priorBody?.presentFacilities
         ? { ...withSlots, presentFacilities: priorBody.presentFacilities }
         : withSlots;
+      // Same idea as slots/presentFacilities above, but the OPPOSITE precedence: unlike a slot
+      // count (always a rough guess needing human judgment), a confident true/false here came from
+      // real `FSSBodySignals` event data in THIS upload's journal (see journal/parser.ts) — that's
+      // more authoritative than whatever's already stored, so it should win outright, including
+      // over a stale value persisted from before a parser fix (e.g. the "combines in rare cases"
+      // multi-event-merge correction). Only fall back to the prior stored value (a manual
+      // correction, or an earlier upload's finding) when THIS upload's journal doesn't cover that
+      // body's signals at all (`undefined` — genuinely no FSSBodySignals event for it here).
+      return {
+        ...withPresent,
+        hasBiologicalSignals: body.hasBiologicalSignals ?? priorBody?.hasBiologicalSignals,
+        hasGeologicalSignals: body.hasGeologicalSignals ?? priorBody?.hasGeologicalSignals,
+      };
     });
     // Same preservation for the saved primary station choice (and its cosmetic variant/nickname)
     // — a fresh journal parse never carries any of these, so without this a re-upload would
@@ -116,6 +129,22 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
                 b.bodyId !== bodyId ? b : { ...b, slots: { ...(b.slots ?? EMPTY_SLOTS), [kind]: value } },
               ),
             },
+      ),
+    );
+    setApplied(false);
+    setJustSaved(false);
+  }
+
+  // Pre-filled from the Journal's FSSBodySignals event when present (see journal/parser.ts), but
+  // freely correctable here — same reasoning as updateBodySlot above, just for real parsed data
+  // instead of a heuristic guess.
+  function updateBodySignal(bodyId: number, field: "hasBiologicalSignals" | "hasGeologicalSignals", value: boolean): void {
+    if (!selected) return;
+    setSystems((prev) =>
+      prev.map((s) =>
+        s.systemAddress !== selected.systemAddress
+          ? s
+          : { ...s, bodies: s.bodies.map((b) => (b.bodyId !== bodyId ? b : { ...b, [field]: value })) },
       ),
     );
     setApplied(false);
@@ -293,6 +322,12 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
                         {SLOT_KINDS.map((kind) => (
                           <th key={kind}>{ALL_SLOTS[kind]}</th>
                         ))}
+                        <th title="From the Journal's FSSBodySignals event (an ordinary FSS/'honk' scan) when present — correct freely if it's missing or wrong.">
+                          Bio signals
+                        </th>
+                        <th title="From the Journal's FSSBodySignals event (an ordinary FSS/'honk' scan) when present — correct freely if it's missing or wrong.">
+                          Geo signals
+                        </th>
                       </tr>
                     </thead>
                     <tbody>
@@ -320,6 +355,22 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
                               </td>
                             ),
                           )}
+                          <td>
+                            <input
+                              type="checkbox"
+                              aria-label={`${body.bodyName} biological signals`}
+                              checked={body.hasBiologicalSignals ?? false}
+                              onChange={(e) => updateBodySignal(body.bodyId, "hasBiologicalSignals", e.target.checked)}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="checkbox"
+                              aria-label={`${body.bodyName} geological signals`}
+                              checked={body.hasGeologicalSignals ?? false}
+                              onChange={(e) => updateBodySignal(body.bodyId, "hasGeologicalSignals", e.target.checked)}
+                            />
+                          </td>
                         </tr>
                       ))}
                     </tbody>

@@ -6,7 +6,9 @@ import {
   deriveCurrentPoints,
   deriveSlotUsage,
   normalizeFacilitySlots,
+  presentBuildOrderHint,
   splitPresentFacilities,
+  toBuildingPlacements,
   toSlotUsageBodies,
   type PresentFacilitiesBody,
   type SlotUsageBody,
@@ -261,6 +263,45 @@ describe("deriveCurrentPoints", () => {
     // Primary station is ALSO Coriolis, but tracked separately (bodyId 5's Coriolis above is a
     // second, non-primary instance) — matches the reported system's actual layout.
     expect(deriveCurrentPoints(bodies, "Coriolis")).toEqual({ t2: 5, t3: 6 });
+  });
+});
+
+describe("toBuildingPlacements", () => {
+  it("aggregates instances per (bodyId, building), across both space and ground", () => {
+    const bodies: PresentFacilitiesBody[] = [
+      {
+        bodyId: 1,
+        space: [{ building: "Military_Outpost", demolishable: false }],
+        ground: [
+          { building: "Refinery_Hub", demolishable: false },
+          { building: "Refinery_Hub", demolishable: false },
+        ],
+      },
+      { bodyId: 2, space: [{ building: "Refinery_Hub", demolishable: false }], ground: [null] },
+    ];
+    expect(toBuildingPlacements(bodies)).toEqual([
+      { building: "Military_Outpost", bodyId: 1, count: 1 },
+      { building: "Refinery_Hub", bodyId: 1, count: 2 },
+      { building: "Refinery_Hub", bodyId: 2, count: 1 },
+    ]);
+  });
+
+  it("returns an empty array for a system with nothing built yet", () => {
+    expect(toBuildingPlacements([{ bodyId: 1, space: [null], ground: [] }])).toEqual([]);
+  });
+});
+
+describe("presentBuildOrderHint", () => {
+  it("orders building names by the same (bodyId, space-before-ground, index) rule as the T2/T3 seed", () => {
+    const bodies: PresentFacilitiesBody[] = [
+      {
+        bodyId: 2,
+        space: [{ building: "Coriolis", demolishable: false }],
+        ground: [{ building: "Planetary_Port", demolishable: false }],
+      },
+      { bodyId: 1, space: [{ building: "Asteroid_Base", demolishable: false }], ground: [] },
+    ];
+    expect(presentBuildOrderHint(bodies)).toEqual(["Asteroid_Base", "Coriolis", "Planetary_Port"]);
   });
 });
 

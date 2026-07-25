@@ -87,6 +87,29 @@ also revisable:
   notes (2025-11-11) with official exact percentages. Left here as a historical note: this is
   exactly the kind of correction this section exists to enable — if you find a similarly-official
   source for one of the entries still above, replace the guess and move the entry here too.
+- `BOOST_DECREASE_DELTA`/`ECONOMY_RATIO_FLOOR_PERCENT` in `src/domain/economyOverrides.ts` (the
+  System facilities panel's per-facility "Economy ratios" hover) — the ±40-percentage-point-per-
+  condition and 10% floor magnitudes are community-sourced (`EconomicEffects.ods`'s "Lookups -
+  Innates and Modifiers" sheet), not an official Frontier-published number; the official patch notes
+  only say boosts/decreases exist, never by how much. Cross-validated against several real reported
+  in-game values (Agriculture 140%/100% with/without organics, Extraction/Industrial 140% from
+  system resources) before landing, but still the kind of number this section exists to flag.
+- `TERRAFORMABLE_AGRICULTURE_BUG_NOTE` in `src/domain/economyOverrides.ts` — the official patch
+  notes and `EconomicEffects.ods` both list a Terraformable body as an Agriculture strong-link boost
+  condition (+0.40, same table as the entry above), but real-game testing (user-confirmed) found it
+  has no observable effect on Agriculture's actual value, suspected to be a Frontier bug rather than
+  a documentation error. Deliberately excluded from every boost/decrease computation in that file
+  (`computeBoostDecrease`, `computeColonyEconomyBreakdown`, `computeStrongLinkBreakdown`) so displayed
+  values match observed game behavior, not the patch notes; surfaced instead as a short one-line
+  disclaimer next to the body-info hover's economy tables in `SystemConfigPanel.tsx`, linking to a
+  full explanation on the new `public/known-issues.html` page (`TERRAFORMABLE_AGRICULTURE_BUG_LINK`)
+  rather than spelling it out inline — the hover bubble is `white-space: nowrap` (`Tooltip.css`), so
+  a long inline sentence used to force it absurdly wide instead of wrapping; `Tooltip.css` now also
+  opts tooltip-content links back into `pointer-events` individually so that link is actually
+  clickable (the bubble itself stays click-through). `known-issues.html` is a static page (not part
+  of the React app/build), meant as a general "current known issues" page — add future entries there
+  too, not just more inline hover disclaimers. Revert by re-adding the `isTerraformable(body)` boost
+  call at each of the three sites (search the constant's usages) if Frontier ever fixes this in-game.
 
 ## Gotchas worth knowing before touching the solver
 

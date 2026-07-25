@@ -7,7 +7,6 @@ import type { SlotKind } from "../data/buildings";
 export interface JournalRing {
   name: string;
   ringClass: string;
-  reserveLevel?: string;
   massMT: number;
 }
 
@@ -53,6 +52,27 @@ export interface JournalBody {
   tidalLocked?: boolean;
   parents: JournalParent[];
   rings: JournalRing[];
+  /** The reserve level ("PristineResources"/"MajorResources"/etc.) of this body's own ring system
+   * as a whole — a real, top-level field on the body's own `Scan` event (sitting alongside `Rings`,
+   * confirmed against a real journal line), *not* nested per-ring as an earlier version of this
+   * parser incorrectly assumed (that field was never actually populated — every ring in every real
+   * export checked this session had it unset). Only ever present on a body that actually has rings.
+   * `domain/economyOverrides.ts`'s `systemResourceLevel` treats this as a system-wide fact despite
+   * living on one specific body — confirmed by the user: any ringed body's reserve level IS the
+   * system's, there's no separate system-level field for it. */
+  reserveLevel?: string;
+  /** Whether this body has Biological/Geological surface signals, per the Journal's
+   * `FSSBodySignals` event (fired for a body once its system has been FSS ("honk") scanned — no
+   * DSS/surface scan needed, unlike the SAASignalsFound-derived per-signal-TYPE breakdown some
+   * other tools use). Confidently `true`/`false` when that event was seen for this body (its
+   * `Signals` array lists every nonzero signal type present, so a type's absence from a present
+   * event means confidently zero) — `undefined` (genuinely unknown) if the body was never
+   * FSS-signal-scanned at all. Manually correctable in `JournalImportPanel`, same as `slots`,
+   * since a re-uploaded/incomplete journal may not have this for every body. Used by
+   * `domain/economyOverrides.ts` (organics/geologicals boost conditions) and, for geologicals,
+   * `eligibility.ts`'s ground-slot guess. */
+  hasBiologicalSignals?: boolean;
+  hasGeologicalSignals?: boolean;
   /** Manually entered slot counts. The Journal doesn't report real per-body slot counts (they
    * vary and aren't derivable from Scan data) — this stays undefined until the user fills it in
    * via JournalImportPanel, which pre-fills it with eligibility.ts's best-effort guess. */
@@ -132,7 +152,8 @@ interface RawScanEvent {
   TerraformState?: string;
   TidalLock?: boolean;
   Parents?: Record<string, number>[];
-  Rings?: { Name: string; RingClass: string; ReserveLevel?: string; MassMT: number }[];
+  Rings?: { Name: string; RingClass: string; MassMT: number }[];
+  ReserveLevel?: string;
 }
 
 function isRealBodyScan(value: unknown): value is RawScanEvent {
@@ -148,7 +169,63 @@ function isRealBodyScan(value: unknown): value is RawScanEvent {
   );
 }
 
-function toJournalBody(raw: RawScanEvent, rawJson: Record<string, unknown>): JournalBody {
+interface RawFSSBodySignalsEvent {
+  event: "FSSBodySignals";
+  SystemAddress: number;
+  BodyID: number;
+  Signals: { Type: string; Count: number }[];
+}
+
+function isFSSBodySignals(value: unknown): value is RawFSSBodySignalsEvent {
+  if (typeof value !== "object" || value === null) return false;
+  const record = value as Record<string, unknown>;
+  return (
+    record.event === "FSSBodySignals" &&
+    typeof record.SystemAddress === "number" &&
+    typeof record.BodyID === "number" &&
+    Array.isArray(record.Signals)
+  );
+}
+
+interface BodySignals {
+  biological: boolean;
+  geological: boolean;
+}
+
+/** First pass over the file: collects every `FSSBodySignals` event into a `(SystemAddress, BodyID)`
+ * lookup. Needed as a separate pass (rather than attaching inline while building bodies from `Scan`
+ * events) because a body's `FSSBodySignals` event isn't guaranteed to appear after its `Scan` line
+ * in the file — an FSS ("honk") scan and a body's own detailed scan happen independently.
+ *
+ * A single event's `Signals` array can list both Biological and Geological together (handled by
+ * checking the whole array, not just its first entry) — but a journal spanning multiple play
+ * sessions can also contain *two separate* `FSSBodySignals` events for the same body (e.g.
+ * re-honked later, revealing a signal type the first pass didn't). Merges (OR) rather than
+ * overwrites across repeated events for the same body, so a flag already confidently `true` never
+ * flips back to `false` just because a later event for that body didn't happen to repeat it. */
+function collectBodySignals(text: string): Map<string, BodySignals> {
+  const signalsByBody = new Map<string, BodySignals>();
+  for (const line of text.split("\n")) {
+    const trimmed = line.trim();
+    if (!trimmed) continue;
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(trimmed);
+    } catch {
+      continue;
+    }
+    if (!isFSSBodySignals(parsed)) continue;
+    const key = `${parsed.SystemAddress}:${parsed.BodyID}`;
+    const existing = signalsByBody.get(key);
+    signalsByBody.set(key, {
+      biological: (existing?.biological ?? false) || parsed.Signals.some((s) => s.Type === "$SAA_SignalType_Biological;"),
+      geological: (existing?.geological ?? false) || parsed.Signals.some((s) => s.Type === "$SAA_SignalType_Geological;"),
+    });
+  }
+  return signalsByBody;
+}
+
+function toJournalBody(raw: RawScanEvent, rawJson: Record<string, unknown>, signals: BodySignals | undefined): JournalBody {
   return {
     bodyName: raw.BodyName,
     bodyId: raw.BodyID,
@@ -169,9 +246,11 @@ function toJournalBody(raw: RawScanEvent, rawJson: Record<string, unknown>): Jou
     rings: (raw.Rings ?? []).map((r) => ({
       name: r.Name,
       ringClass: r.RingClass,
-      reserveLevel: r.ReserveLevel,
       massMT: r.MassMT,
     })),
+    reserveLevel: raw.ReserveLevel,
+    hasBiologicalSignals: signals?.biological,
+    hasGeologicalSignals: signals?.geological,
     raw: rawJson,
   };
 }
@@ -181,6 +260,7 @@ function toJournalBody(raw: RawScanEvent, rawJson: Record<string, unknown>): Jou
  * unrelated events, and status/telemetry noise isn't an error condition here. */
 export function parseJournalScans(text: string): JournalSystem[] {
   const systems = new Map<number, JournalSystem>();
+  const bodySignals = collectBodySignals(text);
 
   for (const line of text.split("\n")) {
     const trimmed = line.trim();
@@ -198,7 +278,8 @@ export function parseJournalScans(text: string): JournalSystem[] {
       system = { starSystem: parsed.StarSystem, systemAddress: parsed.SystemAddress, bodies: [] };
       systems.set(parsed.SystemAddress, system);
     }
-    const body = toJournalBody(parsed, parsed as unknown as Record<string, unknown>);
+    const signals = bodySignals.get(`${parsed.SystemAddress}:${parsed.BodyID}`);
+    const body = toJournalBody(parsed, parsed as unknown as Record<string, unknown>, signals);
     const existingIndex = system.bodies.findIndex((b) => b.bodyId === body.bodyId);
     if (existingIndex === -1) {
       system.bodies.push(body);

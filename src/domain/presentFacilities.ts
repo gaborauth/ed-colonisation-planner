@@ -16,6 +16,7 @@
 //    refunding its stat/T2/T3 contribution and freeing its slot, if replacing it scores better.
 
 import { ALL_BUILDINGS, getT2PortCost, getT3PortCost, isPort } from "../data/buildings";
+import type { BuildingPlacement } from "./links";
 import type { JournalBody, PresentFacilitySlot } from "../journal/parser";
 
 export type { PresentFacilitySlot } from "../journal/parser";
@@ -96,6 +97,28 @@ export function derivePresentCounts(bodies: PresentFacilitiesBody[]): Record<str
     counts[ref.building] = (counts[ref.building] ?? 0) + 1;
   }
   return counts;
+}
+
+/** Per-(body, building) instance counts, in `domain/links.ts`'s `BuildingPlacement` shape — feeds
+ * `computeSystemLinks` (via `domain/presentLinks.ts`) with what's actually built today, the same
+ * way `solve.ts` feeds it a solved plan's placements. Unlike `derivePresentCounts` above (a flat
+ * system-wide total), link topology is per-body, so this keeps bodies separate. */
+export function toBuildingPlacements(bodies: PresentFacilitiesBody[]): BuildingPlacement[] {
+  const counts = new Map<string, BuildingPlacement>();
+  for (const ref of flatten(bodies)) {
+    const key = `${ref.bodyId}:${ref.building}`;
+    const existing = counts.get(key);
+    if (existing) existing.count++;
+    else counts.set(key, { building: ref.building, bodyId: ref.bodyId, count: 1 });
+  }
+  return Array.from(counts.values());
+}
+
+/** Building names in the same deterministic stand-in order as `computePresentPortsSeed`'s cost
+ * curve — reused here as `computeSystemLinks`'s `buildOrderHint`, an approximate same-tier
+ * tie-break signal (see that function's own doc comment; not a real recorded build order). */
+export function presentBuildOrderHint(bodies: PresentFacilitiesBody[]): string[] {
+  return sortDeterministic(flatten(bodies)).map((ref) => ref.building);
 }
 
 export interface SlotUsage {
