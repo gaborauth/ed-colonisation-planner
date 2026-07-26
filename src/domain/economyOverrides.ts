@@ -260,7 +260,7 @@ export function computeBodyEconomyOverrides(body: JournalBody): OverrideResult {
  * non-"Colony" economy — its `PORT_FIXED_ECONOMY` entry (e.g. Military Outpost is always 100%
  * Military, regardless of the body — checked first since these buildings are also `isPortRole`); a
  * generic Colony-default port's `computeBodyEconomyOverrides(body).economies` (defaulting to
- * `["Colony"]` when empty, same convention `LinksPanel.tsx` already uses for display); or a
+ * `["Colony"]` when empty, same convention used for display elsewhere in this app); or a
  * supporting facility's single `FACILITY_ECONOMY_GUESS` entry (empty for a deliberately-unmapped
  * building, which correctly omits the Economy ratios section entirely for those). Shared by
  * `SystemConfigPanel.tsx` (a facility's own displayed ratio) and `links.ts` (what a port/facility
@@ -484,7 +484,7 @@ export interface EconomyRatio {
  * mentions finally applied there, per link, via `getLinkContributionTier`). `economies` is the
  * facility/port's own base set: a port's
  * `computeBodyEconomyOverrides(body).economies` (or `["Colony"]` if empty — ports without an
- * override default to Colony, same convention `LinksPanel.tsx` already uses for display), or a
+ * override default to Colony, same convention used for display elsewhere in this app), or a
  * supporting facility's single `FACILITY_ECONOMY_GUESS` entry. Sorted descending by percent, since
  * that's how every real reference (and this function's own tests) present it. */
 export function computeEconomyRatios(economies: EconomyType[], body: JournalBody, allBodies: JournalBody[]): EconomyRatio[] {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import {
   deletePlan,
   exportPlanToJSON,
@@ -32,6 +33,12 @@ export function SavedPlansPanel({
   const [plans, setPlans] = useState<SavedPlan[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
+  // Folded by default, same as ConstraintsPanel/BuildingsTable (2026-07-26 user request) — saving/
+  // loading/importing/exporting plans is a bookkeeping tool for later in a session, not needed for
+  // a first solve. Still genuinely click-to-expand (no chevron, `panel-toggle-flat` styling — see
+  // index.css's comment there): this panel is the only UI path to save/load/import/export a plan,
+  // so a fully non-interactive "permanently collapsed" version would have removed that entirely.
+  const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(true);
 
   useEffect(() => {
     setPlans(listPlans());
@@ -76,67 +83,79 @@ export function SavedPlansPanel({
 
   return (
     <section className="panel">
-      <h2>Saved plans</h2>
-      <div className="row-grid">
-        <div className="field">
-          <label htmlFor="system-name">System</label>
-          <input id="system-name" value={systemName} onChange={(e) => onSystemNameChange(e.target.value)} />
-        </div>
-        <div className="field">
-          <label htmlFor="plan-name">Plan</label>
-          <input id="plan-name" value={planName} onChange={(e) => onPlanNameChange(e.target.value)} />
-        </div>
-        <button type="button" onClick={handleSave} disabled={!systemName || !planName}>
-          Save
-        </button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}>
-          Import
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="application/json"
-          style={{ display: "none" }}
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (file) void handleImportFile(file);
-            e.target.value = "";
-          }}
-        />
-      </div>
-      {importError && <div className="status-banner">{importError}</div>}
+      <button
+        ref={buttonRef}
+        type="button"
+        className="panel-toggle panel-toggle-muted panel-toggle-flat"
+        aria-expanded={!collapsed}
+        onClick={() => setCollapsed((c) => !c)}
+      >
+        <span className="panel-toggle-title">Saved plans</span>
+      </button>
+      {!collapsed && (
+        <>
+          <div className="row-grid">
+            <div className="field">
+              <label htmlFor="system-name">System</label>
+              <input id="system-name" value={systemName} onChange={(e) => onSystemNameChange(e.target.value)} />
+            </div>
+            <div className="field">
+              <label htmlFor="plan-name">Plan</label>
+              <input id="plan-name" value={planName} onChange={(e) => onPlanNameChange(e.target.value)} />
+            </div>
+            <button type="button" onClick={handleSave} disabled={!systemName || !planName}>
+              Save
+            </button>
+            <button type="button" onClick={() => fileInputRef.current?.click()}>
+              Import
+            </button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="application/json"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) void handleImportFile(file);
+                e.target.value = "";
+              }}
+            />
+          </div>
+          {importError && <div className="status-banner">{importError}</div>}
 
-      {plans.length > 0 && (
-        <table style={{ marginTop: 10 }}>
-          <thead>
-            <tr>
-              <th>System</th>
-              <th>Plan</th>
-              <th>Saved</th>
-              <th />
-            </tr>
-          </thead>
-          <tbody>
-            {plans.map((plan) => (
-              <tr key={`${plan.systemName}/${plan.planName}`}>
-                <td>{plan.systemName}</td>
-                <td>{plan.planName}</td>
-                <td>{new Date(plan.savedAt).toLocaleString()}</td>
-                <td style={{ display: "flex", gap: 6 }}>
-                  <button type="button" onClick={() => onLoad(plan)}>
-                    Load
-                  </button>
-                  <button type="button" onClick={() => handleExport(plan)}>
-                    Export
-                  </button>
-                  <button type="button" onClick={() => handleDelete(plan)}>
-                    Delete
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+          {plans.length > 0 && (
+            <table style={{ marginTop: 10 }}>
+              <thead>
+                <tr>
+                  <th>System</th>
+                  <th>Plan</th>
+                  <th>Saved</th>
+                  <th />
+                </tr>
+              </thead>
+              <tbody>
+                {plans.map((plan) => (
+                  <tr key={`${plan.systemName}/${plan.planName}`}>
+                    <td>{plan.systemName}</td>
+                    <td>{plan.planName}</td>
+                    <td>{new Date(plan.savedAt).toLocaleString()}</td>
+                    <td style={{ display: "flex", gap: 6 }}>
+                      <button type="button" onClick={() => onLoad(plan)}>
+                        Load
+                      </button>
+                      <button type="button" onClick={() => handleExport(plan)}>
+                        Export
+                      </button>
+                      <button type="button" onClick={() => handleDelete(plan)}>
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </>
       )}
     </section>
   );

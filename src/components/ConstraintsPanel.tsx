@@ -10,7 +10,9 @@ interface ConstraintsPanelProps {
 }
 
 // Folded by default (per user request, see App.tsx) — this panel and BuildingsTable are
-// fine-tuning tools for later in a session, not needed for a first solve.
+// fine-tuning tools for later in a session, not needed for a first solve. Still genuinely
+// click-to-expand (no chevron, `panel-toggle-flat` styling — see index.css's comment there for
+// why a fully non-interactive "permanently collapsed" version was considered and rejected).
 export function ConstraintsPanel({ formState, dispatch }: ConstraintsPanelProps) {
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(true);
   return (
@@ -18,14 +20,11 @@ export function ConstraintsPanel({ formState, dispatch }: ConstraintsPanelProps)
       <button
         ref={buttonRef}
         type="button"
-        className="panel-toggle"
+        className="panel-toggle panel-toggle-muted panel-toggle-flat"
         aria-expanded={!collapsed}
         onClick={() => setCollapsed((c) => !c)}
       >
         <span className="panel-toggle-title">System score constraints</span>
-        <span className="chevron" aria-hidden="true">
-          ▾
-        </span>
       </button>
       {!collapsed && (
         <table>

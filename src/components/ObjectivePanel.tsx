@@ -1,5 +1,6 @@
-import type { Dispatch } from "react";
+import { useEffect, type Dispatch } from "react";
 import { ALL_SCORES, toPrintable, type Score } from "../data/buildings";
+import { setObjectivePreference } from "../persistence/objectivePreference";
 import { DEFAULT_OBJECTIVE_EXPRESSION, type PlannerAction, type PlannerFormState } from "../state/plannerState";
 
 interface ObjectivePanelProps {
@@ -89,6 +90,18 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
   // written while the now-hidden expression editor was in use) so the select always has a valid,
   // non-crashing value to show.
   const selectedPreset = PRESETS.find((p) => p.expression === formState.customExpression);
+
+  // Remembers the objective selection across sessions (2026-07-26 user request) — App.tsx's
+  // `useReducer` lazy initializer (`applyStoredObjectivePreference`) restores it on the NEXT load;
+  // this effect is the write side, firing whenever any of the four fields actually change.
+  useEffect(() => {
+    setObjectivePreference({
+      objectiveMode: formState.objectiveMode,
+      simpleScore: formState.simpleScore,
+      customExpression: formState.customExpression,
+      customDirection: formState.customDirection,
+    });
+  }, [formState.objectiveMode, formState.simpleScore, formState.customExpression, formState.customDirection]);
 
   return (
     <section className="panel">

@@ -150,6 +150,26 @@ h2 {
   transform: rotate(-90deg);
 }
 
+/* Visually secondary panels — fine-tuning/bookkeeping tools that aren't needed for a first solve
+ * (System score constraints, Buildings, Saved plans), per user request: dimmer than the already-
+ * muted default `.panel-toggle` color, so they recede further in the page's visual hierarchy. */
+.panel-toggle-muted {
+  color: var(--text-faint);
+}
+
+/* "Reads as unfoldable, still technically works" (2026-07-26, user request, after two rounds of
+ * clarification: NOT actually removing the click-to-expand — that would break real functionality,
+ * e.g. App.test.tsx's infeasibility test needs to open "System score constraints" to set a minimum
+ * security bound, and Saved plans' save/load/import/export has no other UI path — just discouraging
+ * a casual user from wanting to). The JSX for these three panels renders no `.chevron` at all
+ * (rather than hiding one via CSS) — a static header with no arrow reads far less like "click me"
+ * than a rotating one would, even though `aria-expanded` still communicates real state to
+ * screen readers/keyboard users. No hover color change either, unlike a normal `.panel-toggle`'s
+ * brightening — nothing here should feel rewarding to hover. */
+.panel-toggle-flat:hover {
+  color: var(--text-faint);
+}
+
 label {
   font-size: 12px;
   letter-spacing: 0.04em;
@@ -443,9 +463,37 @@ tbody tr:hover {
 }
 
 .status-banner.loading {
+  position: relative;
+  overflow: hidden;
   border-color: var(--cyan);
   background: var(--cyan-dim);
   color: var(--cyan);
+}
+
+/* Indeterminate progress sweep — the WASM solve is a single awaited call with no real progress
+ * signal to report (HiGHS gives no callback), so this is deliberately a repeating sweep rather
+ * than a real percentage: it communicates "still working," not "N% done." Negative z-index (this
+ * element establishes its own stacking context via `position: absolute` on a `position: relative`
+ * parent) keeps it painted behind the "Running the solver…" text, which stays in normal flow. */
+.status-banner.loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background-image: linear-gradient(90deg, transparent 0%, rgba(79, 209, 232, 0.3) 40%, rgba(79, 209, 232, 0.3) 60%, transparent 100%);
+  background-size: 60% 100%;
+  background-repeat: no-repeat;
+  background-position: -60% 0;
+  animation: solver-progress-sweep 1.5s ease-in-out infinite;
+}
+
+@keyframes solver-progress-sweep {
+  0% {
+    background-position: -60% 0;
+  }
+  100% {
+    background-position: 160% 0;
+  }
 }
 
 /* A non-blocking, informational notice (e.g. "this facility can't strong-link, no port on its
@@ -719,4 +767,54 @@ tbody tr:hover {
   font-size: 12px;
   color: var(--danger);
   text-decoration: line-through;
+}
+
+.cookie-consent-banner {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 100;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 20px;
+  background: var(--bg-panel);
+  border-top: 1px solid var(--border-bright);
+  box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.4);
+}
+
+.cookie-consent-banner p {
+  margin: 0;
+  flex: 1 1 320px;
+  font-size: 13px;
+  color: var(--text-dim);
+}
+
+.cookie-consent-banner a {
+  color: var(--accent-text);
+}
+
+.cookie-consent-actions {
+  display: flex;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.cookie-settings-link {
+  position: fixed;
+  left: 12px;
+  bottom: 12px;
+  z-index: 100;
+  padding: 4px 10px;
+  font-size: 11px;
+  background: var(--bg-inset);
+  color: var(--text-faint);
+  border: 1px solid var(--border);
+}
+
+.cookie-settings-link:hover {
+  color: var(--accent-text);
 }

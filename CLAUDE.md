@@ -25,8 +25,6 @@ src/
     ordering.ts            — computes a feasible build order (dependency/point-respecting sequence)
     economyOverrides.ts    — Update 3 body-attribute -> economy-type override/boost/decrease tables
     links.ts                — Update 3 Strong/Weak link topology, computed post-solve from placements
-    stationServices.ts      — Update 3 station-service (Shipyard/Outfitting/etc.) unlock rules
-    populationEstimate.ts   — illustrative-only population growth curve (no official formula exists)
     presentFacilities.ts    — already-built-facility hard/demolishable split + T2/T3 seed derivation
                               for the System facilities panel (see "Update 3 link/economy modeling")
     bodyHierarchy.ts        — reconstructs the star/planet/moon/sub-moon nesting from body-naming
@@ -102,10 +100,13 @@ also revisable:
   economy is "Contraband," not one of this app's 9 `EconomyType` values at all (not in any of the
   officially-sourced Update 3 tables either) — left out of this table for lack of anywhere to put
   it, falling through to the Colony-default approximation instead of a confirmed value.
-- `populationEstimate.ts`'s growth curve — genuinely invented, not derived from anything. No
-  official population-growth formula has ever been published; this is a shaped curve chosen only to
-  match the patch notes' qualitative "fast then slowing" description. Never treat its numbers as
-  real, and the UI carries a permanent disclaimer for the same reason.
+- ~~`populationEstimate.ts`'s growth curve~~ — **removed entirely** (2026-07-26, user request,
+  along with the "Population growth (illustrative)" panel that was its only consumer — judged no
+  longer useful). It was genuinely invented, not derived from anything (no official population-
+  growth formula has ever been published; it was a shaped curve chosen only to match the patch
+  notes' qualitative "fast then slowing" description) — kept here as a historical note per this
+  section's own convention, not because anything still references it. See git history
+  (`domain/populationEstimate.ts`) if reviving this.
 - ~~`SUBSEQUENT_FACILITY_WEIGHT`~~ — **no longer unverified.** Now `FIRST_STATION_BONUS`/
   `SUBSEQUENT_FACILITY_REDUCTION` in `src/solver/solve.ts`, sourced from the Dodec Update patch
   notes (2025-11-11) with official exact percentages. Left here as a historical note: this is
@@ -156,8 +157,9 @@ also revisable:
   actively steering the solver to dump facilities on port-less bodies purely to farm a boost that
   could never really apply there — visible as a spike in `domain/links.ts`'s "has N facility
   type(s) but no port" warnings once `economy_synergy` shipped (2026-07-25 user report). Still NOT
-  the same thing as `domain/links.ts`'s real post-solve `computeSystemLinks` (which the Links panel
-  uses unchanged, and which DOES know the true link graph once a layout is solved) — whether the
+  the same thing as `domain/links.ts`'s real post-solve `computeSystemLinks` (which the "i" info
+  icons throughout the app use unchanged, via `domain/solvedLinks.ts`, and which DOES know the true
+  link graph once a layout is solved) — whether the
   solver will ALSO build a brand-new port on a currently-port-less body is itself a decision
   variable, so "known port" here means "known before solving," a conservative approximation in
   both directions, not exact. If a future change makes exact link-graph-aware MILP scoring
@@ -306,7 +308,10 @@ rework (2025-04-27), a station-service activation-rules follow-up (2025-06-04), 
 (2025-09-29; reviewed, not incorporated — demolition mechanics, see above), and the Dodec Update
 (2025-11-11; sourced the `FIRST_STATION_BONUS`/`SUBSEQUENT_FACILITY_REDUCTION` numbers). This is
 the basis for `data/buildings.ts`'s `FACILITY_ECONOMY_GUESS`/`PORT_ROLE_BUILDINGS`/`getPortTier`
-and all of `domain/economyOverrides.ts`, `domain/links.ts`, `domain/stationServices.ts`.
+and all of `domain/economyOverrides.ts`, `domain/links.ts`. (A third module,
+`domain/stationServices.ts`, implemented the station-service-unlock rules below until it was
+removed 2026-07-26 along with its only consumer, the standalone "Links & economy" panel — see the
+"Station service activation rules" subsection below for what it used to cover.)
 
 ### Verbatim rules (implementation should match these exactly)
 
@@ -359,7 +364,11 @@ link on the same body is not.
 higher cap; overall capacity is still determined by which port/facility types are built; growth
 happens on weekly maintenance ticks along a curve that's fast for the first month, then slows.
 
-**Station service activation rules** (2025-06-04), condensed:
+**Station service activation rules** (2025-06-04), condensed. *Not currently implemented in
+code* — this was `domain/stationServices.ts`'s job until it was removed 2026-07-26 along with its
+only consumer, the standalone "Links & economy" panel (judged redundant with the "i" info icons
+shown throughout the rest of the app, which never surfaced station-service availability). Left here
+as reference in case that gap is worth closing a different way later:
 - **Commodities Market**: all T2/T3 ports; all Settlements; Commercial/Industrial/Civilian Outposts
   + (strong link to a Comms Installation or Relay Station, OR a Tourist/Bar Installation or Outpost
   Hub anywhere in the system); Criminal/Scientific/Military Outposts + a strong link to any of
@@ -372,11 +381,11 @@ happens on weekly maintenance ticks along a curve that's fast for the first mont
   Hub, OR a Military Installation/High Tech Hub in system).
 - **Universal Cartographics**: T3 port; Scientific Outpost; T1/T2 port + (strong link to a
   Satellite/Comms/Relay, OR a Scientific Installation/Exploration Hub in system); Research Bio
-  Settlements (not a port — out of this app's ports-only scope, see `stationServices.ts`).
+  Settlements (not a port — was out of this app's ports-only scope even when implemented).
 - **Vista Genomics**: T3 port; a Tier 1 Planetary Port or T2 port + (strong link to a
   Satellite/Comms/Relay, OR a Medical Installation/Scientific Hub in system).
-- **Black Market**: Pirate Outpost (no exact building-name match — mapped to `Criminal_Outpost`,
-  see `stationServices.ts`'s header caveat); any port + a strong link to a Pirate Installation.
+- **Black Market**: Pirate Outpost (no exact building-name match — was mapped to `Criminal_Outpost`
+  when implemented); any port + a strong link to a Pirate Installation.
 - **Crew Lounge**: T2/T3 port; Criminal or Civilian Outposts; Tier 1 Civilian Planetary Ports; any
   other T1 port + a Bar Installation built anywhere in the system.
 - **Pioneer Supplies**: every port, unconditionally (T1/T2/T3, all Outposts, T1 Planetary Port).
@@ -425,8 +434,8 @@ exposed as an ordinary `Score` (letter `y` in custom objective expressions) — 
 default expression, which now includes it. Body placement (`SolverInput.bodies`) still *also* enters
 the MILP purely as a *feasibility* constraint (real per-body slot capacity, replacing the old 3
 aggregate slot pools when present) and still separately feeds `domain/links.ts`'s post-solve
-computation for the Links panel's exact topology — `economy_synergy` is additive to both of those
-existing roles, not a replacement for either.
+computation for the "i" info icons' exact link topology — `economy_synergy` is additive to both of
+those existing roles, not a replacement for either.
 
 **Backward compatibility is load-bearing, not incidental.** `SolverInput.bodies` absent/empty (the
 default — anyone using only the System facilities panel's aggregate slot fields) reproduces today's exact
@@ -443,15 +452,16 @@ one.
 assignment through the `port_k` build-sequence index (which would require a `5 building types × 20
 slots × N bodies` variable blow-up with heavy MILP symmetry); `domain/links.ts`'s tie-break instead
 uses the solved `portOrder` as an approximate signal. This never affects what the solver
-recommends building — only a display-only tie-break in the Links panel.
+recommends building — only a display-only tie-break in the "i" info icons' link/economy display.
 
 **`getPortTier()` reuses existing `T2points`/`T3points === "port"` fields**, matching the official
 "Tier 1/2/3 Port" vocabulary from the June 2025 patch — but that source's tier language is actually
 about a specific port *instance's* own upgrade investment (has this specific port had T2/T3 points
-spent on it yet), which this app's solver doesn't track at all (only aggregate points system-wide).
-`stationServices.ts` documents this gap in its header: treating every instance of a tier-2/3-capable
-building type as already at its ceiling is an optimistic approximation that can overstate service
-availability for a freshly-built, not-yet-upgraded port.
+spent on it yet), which this app's solver doesn't track at all (only aggregate points system-wide):
+treating every instance of a tier-2/3-capable building type as already at its ceiling is an
+optimistic approximation. (This used to also overstate *station-service* availability for a
+freshly-built, not-yet-upgraded port — no longer a live concern now that station-service modeling
+itself has been removed, see the "Station service activation rules" subsection above.)
 
 **`SolverResult.placements` is new-builds-only — feeding it alone to `computeSystemLinks` silently
 drops every already-present facility's link contribution.** Real bug found 2026-07-26 (user report:

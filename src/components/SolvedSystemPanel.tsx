@@ -101,15 +101,24 @@ function SlotLeaves({
   linksResult: SystemLinksResult;
   firstStationBuilding: string;
 }) {
+  // Tracks, per this body, how many times each building name has already been seen while
+  // iterating its slots (space before ground, index ascending — SLOT_KINDS' own order) — only the
+  // FIRST physical slot of a given port building type is the one real dominant/receiving instance;
+  // see FacilityInfo.tsx's `isDominantInstance` doc comment for why every later occurrence of the
+  // same building name at this body must NOT show the same aggregate "receives links" content.
+  const seenCount = new Map<string, number>();
   return (
     <>
       {SLOT_KINDS.flatMap(({ kind, label }) =>
         slots[kind].map((slot, index) => {
           const { text, className } = describeSlot(slot, firstStationBuilding);
           const { building, status } = slotIconInfo(slot, firstStationBuilding);
-          const economyRatios = building ? facilityEconomyRatios(building, body, allBodies, linksResult) : [];
-          const marketLinks = building ? facilityMarketLinks(building, body, linksResult) : [];
-          const strongLinks = building && isPortRole(building) ? solvedStrongLinks(linksResult, body.bodyId, building) : [];
+          const isDominantInstance = building ? (seenCount.get(building) ?? 0) === 0 : true;
+          if (building) seenCount.set(building, (seenCount.get(building) ?? 0) + 1);
+          const economyRatios = building ? facilityEconomyRatios(building, body, allBodies, linksResult, isDominantInstance) : [];
+          const marketLinks = building ? facilityMarketLinks(building, body, linksResult, isDominantInstance) : [];
+          const strongLinks =
+            building && isPortRole(building) && isDominantInstance ? solvedStrongLinks(linksResult, body.bodyId, building) : [];
           return (
             <div className="facility-tree-slot" key={`${kind}-${index}`}>
               <FacilityInfoIcon
@@ -210,8 +219,8 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
       {hasBodies && !result && <p className="panel-hint">Solve the system to see the proposed layout.</p>}
       {orderError && <div className="status-banner">Could not compute a build order: {orderError}</div>}
       {solved && solved.warnings.length > 0 && (
-        // Informational, not a failure — see LinksPanel.tsx's matching note. The tree below still
-        // renders in full; this just flags a data-consistency mismatch it fell back gracefully on.
+        // Informational, not a failure. The tree below still renders in full; this just flags a
+        // data-consistency mismatch it fell back gracefully on.
         <div className="status-banner hint">{solved.warnings.join(" ")}</div>
       )}
       {result && (

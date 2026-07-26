@@ -2,15 +2,15 @@ import { useReducer, useState } from "react";
 import { BuildOrderPanel } from "./components/BuildOrderPanel";
 import { BuildingsTable } from "./components/BuildingsTable";
 import { ConstraintsPanel } from "./components/ConstraintsPanel";
+import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { JournalImportPanel } from "./components/JournalImportPanel";
-import { LinksPanel } from "./components/LinksPanel";
 import { ObjectivePanel } from "./components/ObjectivePanel";
-import { PopulationEstimatePanel } from "./components/PopulationEstimatePanel";
 import { SavedPlansPanel } from "./components/SavedPlansPanel";
 import { SolvedSystemPanel } from "./components/SolvedSystemPanel";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
 import { SystemPortabilityBar } from "./components/SystemPortabilityBar";
 import { normalizeFacilitySlots } from "./domain/presentFacilities";
+import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
 import type { SavedPlan } from "./persistence/plans";
 import { solve, type SolverBody, type SolverInput } from "./solver/solve";
 import {
@@ -65,7 +65,7 @@ export function buildSolverInput(formState: PlannerFormState): SolverInput {
 }
 
 function App() {
-  const [formState, dispatch] = useReducer(plannerReducer, INITIAL_FORM_STATE);
+  const [formState, dispatch] = useReducer(plannerReducer, INITIAL_FORM_STATE, applyStoredObjectivePreference);
   const [resultState, setResultState] = useState<PlannerResultState>(INITIAL_RESULT_STATE);
   const [systemName, setSystemName] = useState("");
   const [planName, setPlanName] = useState("");
@@ -96,49 +96,48 @@ function App() {
   }
 
   return (
-    <main>
-      <h1>Elite Dangerous Colonisation Planner</h1>
+    <>
+      <CookieConsentBanner />
+      <main>
+        <h1>Elite Dangerous Colonisation Planner</h1>
 
-      <SystemPortabilityBar
-        formState={formState}
-        dispatch={dispatch}
-        onImported={() => setJournalStoreVersion((v) => v + 1)}
-      />
+        <SystemPortabilityBar
+          formState={formState}
+          dispatch={dispatch}
+          onImported={() => setJournalStoreVersion((v) => v + 1)}
+        />
 
-      <JournalImportPanel dispatch={dispatch} refreshToken={journalStoreVersion} />
-      <SystemConfigPanel formState={formState} dispatch={dispatch} justSolved={resultState.result} />
-      <ObjectivePanel
-        formState={formState}
-        dispatch={dispatch}
-        onSolve={() => void handleSolve()}
-        solving={resultState.status === "solving"}
-      />
+        <JournalImportPanel dispatch={dispatch} refreshToken={journalStoreVersion} />
+        <SystemConfigPanel formState={formState} dispatch={dispatch} justSolved={resultState.result} />
+        <ObjectivePanel
+          formState={formState}
+          dispatch={dispatch}
+          onSolve={() => void handleSolve()}
+          solving={resultState.status === "solving"}
+        />
 
-      {resultState.status === "solving" && <div className="status-banner loading">Running the solver…</div>}
-      {resultState.status === "error" && <div className="status-banner">{resultState.message}</div>}
+        {resultState.status === "solving" && <div className="status-banner loading">Running the solver…</div>}
+        {resultState.status === "error" && <div className="status-banner">{resultState.message}</div>}
 
-      <SolvedSystemPanel formState={formState} result={resultState.result} />
-      <ConstraintsPanel formState={formState} dispatch={dispatch} />
-      <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
+        <SolvedSystemPanel formState={formState} result={resultState.result} />
+        <ConstraintsPanel formState={formState} dispatch={dispatch} />
+        <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
 
-      {resultState.status === "done" && resultState.result && (
-        <>
+        {resultState.status === "done" && resultState.result && (
           <BuildOrderPanel formState={formState} result={resultState.result} />
-          <LinksPanel formState={formState} result={resultState.result} />
-          <PopulationEstimatePanel result={resultState.result} />
-        </>
-      )}
+        )}
 
-      <SavedPlansPanel
-        systemName={systemName}
-        planName={planName}
-        onSystemNameChange={setSystemName}
-        onPlanNameChange={setPlanName}
-        formState={formState}
-        result={resultState.result}
-        onLoad={handleLoad}
-      />
-    </main>
+        <SavedPlansPanel
+          systemName={systemName}
+          planName={planName}
+          onSystemNameChange={setSystemName}
+          onPlanNameChange={setPlanName}
+          formState={formState}
+          result={resultState.result}
+          onLoad={handleLoad}
+        />
+      </main>
+    </>
   );
 }
 

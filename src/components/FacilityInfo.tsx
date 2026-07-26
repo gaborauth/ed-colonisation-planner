@@ -37,14 +37,30 @@ import { Tooltip } from "./Tooltip";
  * shape (`PortEconomyLine`) for both cases, so `facilityInfoContent` below doesn't need two
  * different rendering paths. The `linksResult.ports` lookup falling through to the same own-only
  * fallback (rather than an empty list) is a safety net for a body/building combination
- * `computeSystemLinks` hasn't recorded yet, not an expected steady-state path. */
+ * `computeSystemLinks` hasn't recorded yet, not an expected steady-state path.
+ *
+ * `isDominantInstance` (default `true`, so every existing single-instance call site is unaffected):
+ * a body can have MULTIPLE physical instances of the exact same port building type (real bug found
+ * 2026-07-26 via a user report — see `links.ts`'s `portCounts` doc comment), but `linksResult.ports`
+ * still only carries ONE aggregate `PortSummary` per (body, building name) — real-game-accurate for
+ * only ONE of those physical instances (the dominant one that actually receives local strong/weak
+ * links); every OTHER instance of the identical type must NOT show that same aggregate content as
+ * if it, too, were independently receiving everything (that's exactly the reported bug: two
+ * identical-type slots both showing "receives strong links," when only one physically can). Callers
+ * that render one info hover per physical slot (`SystemConfigPanel.tsx`/`SolvedSystemPanel.tsx`)
+ * are responsible for tracking, per body, which physical slot is the FIRST occurrence of a given
+ * building name — only that one passes `true`; every later occurrence of the same name at the same
+ * body passes `false` and falls through to the own-only fallback below, same as a non-port facility
+ * (a non-dominant instance's own base economy is still real and still shown — only the
+ * strong/weak-link RECEIVING side is suppressed for it). */
 export function facilityEconomyRatios(
   building: string,
   body: JournalBody,
   allBodies: JournalBody[],
   linksResult: SystemLinksResult,
+  isDominantInstance = true,
 ): PortEconomyLine[] {
-  if (isPortRole(building)) {
+  if (isPortRole(building) && isDominantInstance) {
     const port = linksResult.ports.find((p) => p.bodyId === body.bodyId && p.building === building);
     if (port) return port.economyRatios;
   }
@@ -59,9 +75,17 @@ export function facilityEconomyRatios(
 
 /** The "Market links" hover table's rows — a supporting facility never receives any link itself
  * (only ports do, per CLAUDE.md's link topology), so this is always empty for one; `links.ts`'s
- * `PortSummary.marketLinks` already has everything precomputed for a port. */
-export function facilityMarketLinks(building: string, body: JournalBody, linksResult: SystemLinksResult): MarketLinkLine[] {
-  if (!isPortRole(building)) return [];
+ * `PortSummary.marketLinks` already has everything precomputed for a port. `isDominantInstance` is
+ * the same per-physical-slot disambiguation `facilityEconomyRatios` above documents — a non-first
+ * instance of a duplicated port building type never receives anything, so this is always empty for
+ * one too, same as a non-port facility. */
+export function facilityMarketLinks(
+  building: string,
+  body: JournalBody,
+  linksResult: SystemLinksResult,
+  isDominantInstance = true,
+): MarketLinkLine[] {
+  if (!isPortRole(building) || !isDominantInstance) return [];
   return linksResult.ports.find((p) => p.bodyId === body.bodyId && p.building === building)?.marketLinks ?? [];
 }
 

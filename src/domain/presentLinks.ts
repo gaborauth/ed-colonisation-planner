@@ -1,9 +1,9 @@
 // Pre-solve counterpart to links.ts's post-solve computation: what strong/weak links already exist
 // *today*, among the facilities the user has actually marked as built in the System facilities
-// panel — as opposed to links.ts's usual caller (LinksPanel.tsx), which feeds it a *solved plan's*
-// placements instead. Reuses computeSystemLinks() unmodified; this module is just the present-
-// facilities adapter, mirroring how presentFacilities.ts's computePresentPortsSeed is the
-// present-facilities adapter for solve.ts's T2/T3 cost curve.
+// panel — as opposed to solvedLinks.ts's computeSolvedSystemLinks, which feeds computeSystemLinks a
+// *solved plan's* placements instead. Reuses computeSystemLinks() unmodified; this module is just
+// the present-facilities adapter, mirroring how presentFacilities.ts's computePresentPortsSeed is
+// the present-facilities adapter for solve.ts's T2/T3 cost curve.
 
 import { computeSystemLinks, type SystemLinksResult } from "./links";
 import { presentBuildOrderHint, toBuildingPlacements, type PresentFacilitiesBody } from "./presentFacilities";

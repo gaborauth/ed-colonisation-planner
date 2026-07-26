@@ -5,7 +5,9 @@
 // `placements` at all (see solve.ts's `placements` construction and its `SolverResult.placements`
 // doc comment). Feeding `computeSystemLinks` `result.placements` alone therefore silently drops
 // every already-present facility's contribution to the solved system's link topology/economy
-// display — a real bug both LinksPanel.tsx and SolvedSystemPanel.tsx had (2026-07-26 user report:
+// display — a real bug both the standalone Links panel (since removed, 2026-07-26 — its "Links &
+// economy" table was judged redundant with the "i" info icons already shown throughout the app) and
+// SolvedSystemPanel.tsx had (2026-07-26 user report:
 // "already built facilities are not provid[ing] strong nor weak links in the solved system"). This
 // module merges `result.placements` with the same present-facilities-to-placements conversion
 // `presentLinks.ts` already uses for the present-only case, excluding whatever the solver actually
@@ -39,8 +41,9 @@ export function toSolvedBuildingPlacements(bodies: JournalBody[], result: Solver
 }
 
 /** Link topology for a solved plan's FULL standing layout (already-present, minus demolished, plus
- * newly solved for) — the caller both LinksPanel.tsx and SolvedSystemPanel.tsx should use instead
- * of calling `computeSystemLinks` with `result.placements` directly. */
+ * newly solved for) — any caller of a solved plan's link topology (currently just
+ * SolvedSystemPanel.tsx) should use this instead of calling `computeSystemLinks` with
+ * `result.placements` directly. */
 export function computeSolvedSystemLinks(bodies: JournalBody[], result: SolverResult): SystemLinksResult {
   return computeSystemLinks(bodies, toSolvedBuildingPlacements(bodies, result), result.portOrder);
 }
