@@ -1,4 +1,5 @@
 import { useReducer, useState } from "react";
+import { AboutHelpPanel } from "./components/AboutHelpPanel";
 import { BuildOrderPanel } from "./components/BuildOrderPanel";
 import { BuildingsTable } from "./components/BuildingsTable";
 import { ConstraintsPanel } from "./components/ConstraintsPanel";
@@ -95,6 +96,19 @@ function App() {
     setResultState(plan.result ? { status: "done", result: plan.result, message: null } : INITIAL_RESULT_STATE);
   }
 
+  // A previously-solved result is keyed by the OLD system's bodies/bodyIds — applying a different
+  // system (JournalImportPanel's "Apply", or SystemPortabilityBar's "Import system"/"Live Demo")
+  // replaces `formState.bodies` wholesale, but a stale `resultState` doesn't clear itself, so the
+  // "Solved system"/"Build order" panels (and BuildingsTable's per-building result column) kept
+  // showing the PREVIOUS system's solved placements/scores overlaid on the newly-applied one — since
+  // body ids are small per-system sequential numbers, a coincidental id match could make the stale
+  // solve look like it belongs to the new system entirely (2026-07-26 user report: "the previous
+  // solved facilities are not cleared and interfere with the new system"). Passed to both
+  // components below so every system-loading path clears it, not just one.
+  function handleSystemChanged(): void {
+    setResultState(INITIAL_RESULT_STATE);
+  }
+
   return (
     <>
       <CookieConsentBanner />
@@ -105,9 +119,11 @@ function App() {
           formState={formState}
           dispatch={dispatch}
           onImported={() => setJournalStoreVersion((v) => v + 1)}
+          onSystemChanged={handleSystemChanged}
         />
 
-        <JournalImportPanel dispatch={dispatch} refreshToken={journalStoreVersion} />
+        <AboutHelpPanel />
+        <JournalImportPanel dispatch={dispatch} refreshToken={journalStoreVersion} onSystemChanged={handleSystemChanged} />
         <SystemConfigPanel formState={formState} dispatch={dispatch} justSolved={resultState.result} />
         <ObjectivePanel
           formState={formState}

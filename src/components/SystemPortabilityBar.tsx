@@ -13,6 +13,12 @@ interface SystemPortabilityBarProps {
    * bump JournalImportPanel's refresh token — that panel keeps its own local copy of the saved-
    * systems list (loaded once at mount) and otherwise never notices a sibling component's write. */
   onImported?: () => void;
+  /** Called whenever "Import system" or "Live Demo" actually applies a different system to
+   * `formState` — lets App.tsx clear its stale solved result, which is keyed to the PREVIOUS
+   * system's bodies and would otherwise keep showing through against the newly-loaded one (same
+   * fix as JournalImportPanel's own `onSystemChanged`). Not fired by Save/Export, which don't
+   * change `formState` at all. */
+  onSystemChanged?: () => void;
 }
 
 /** Minimal structural check, not a full schema validation — same risk tolerance as
@@ -61,7 +67,7 @@ function timestampForFilename(date: Date): string {
  * System facilities panel (`formState`), not JournalImportPanel's own dropdown selection — those
  * can differ once a system's been applied and the panel folded. Rendered pinned to the viewport
  * top via `.sticky-toolbar` (index.css) so it stays reachable as the page scrolls. */
-export function SystemPortabilityBar({ formState, dispatch, onImported }: SystemPortabilityBarProps) {
+export function SystemPortabilityBar({ formState, dispatch, onImported, onSystemChanged }: SystemPortabilityBarProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
@@ -122,6 +128,7 @@ export function SystemPortabilityBar({ formState, dispatch, onImported }: System
     });
     setError(null);
     onImported?.();
+    onSystemChanged?.();
   }
 
   async function handleImportFile(file: File): Promise<void> {

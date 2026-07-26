@@ -20,6 +20,10 @@ interface JournalImportPanelProps {
    * never notices a sibling component's write (e.g. importing a JSON file wouldn't update this
    * panel's slot-count table for that system without this). */
   refreshToken?: number;
+  /** Called whenever a system is actually applied to `formState` (button click OR the mount-time
+   * auto-apply) — lets App.tsx clear its stale solved result, which is keyed to the PREVIOUS
+   * system's bodies and would otherwise keep showing through against the newly-applied one. */
+  onSystemChanged?: () => void;
 }
 
 const SLOT_KINDS = Object.keys(ALL_SLOTS) as SlotKind[];
@@ -82,7 +86,7 @@ function mergeBySystemAddress(existing: JournalSystem[], incoming: JournalSystem
   return Array.from(byAddress.values()).sort((a, b) => a.starSystem.localeCompare(b.starSystem));
 }
 
-export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPanelProps) {
+export function JournalImportPanel({ dispatch, refreshToken, onSystemChanged }: JournalImportPanelProps) {
   const [systems, setSystems] = useState<JournalSystem[]>(() => listSavedSystems().map(normalizeSystem));
   const [savedAddresses, setSavedAddresses] = useState<Set<number>>(
     () => new Set(listSavedSystems().map((s) => s.systemAddress)),
@@ -195,6 +199,7 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
     setJustSaved(true);
     setLastUsedSystemAddress(system.systemAddress);
     setCollapsed(true);
+    onSystemChanged?.();
   }
 
   function apply(): void {
@@ -266,6 +271,17 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
       </button>
       {!collapsed && (
         <>
+          <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 0 }}>
+            In-game, the automatic Discovery Scan ("honk") alone isn't enough — open the Full
+            Spectrum Scanner (throttle down to 0% in supercruise) and individually FSS-scan every
+            body in the system first. The more bodies scanned this way, the better the slot-count
+            guess below will be. Then upload your Journal file, which lives in your Saved Games
+            folder, named by date/time, e.g.{" "}
+            <code style={{ overflowWrap: "anywhere" }}>
+              {"C:\\Users\\<you>\\Saved Games\\Frontier Developments\\Elite Dangerous\\Journal.2026-07-26T081047.01.log"}
+            </code>{" "}
+            — pick the most recent one from your current play session.
+          </p>
           <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 0 }}>
             The Journal doesn't report real slot counts — they vary per body and can't be derived from
             scan data. Fields below are pre-filled with a <strong>best-effort, unverified</strong> guess;
