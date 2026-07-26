@@ -6,6 +6,7 @@ beforeEach(() => {
   _resetForTests();
   document.head.querySelectorAll("script").forEach((s) => s.remove());
   delete window.dataLayer;
+  delete window.gtag;
 });
 
 describe("loadGoogleAnalytics", () => {
@@ -24,6 +25,13 @@ describe("loadGoogleAnalytics", () => {
     const calls = window.dataLayer!.map((args) => (args as unknown[])[0]);
     expect(calls).toContain("js");
     expect(calls).toContain("config");
+  });
+
+  it("exposes window.gtag and routes later calls into dataLayer", () => {
+    loadGoogleAnalytics();
+    window.gtag?.("event", "test_event");
+    const calls = window.dataLayer!.map((args) => args as unknown[]);
+    expect(calls.some((call) => call[0] === "event" && call[1] === "test_event")).toBe(true);
   });
 
   it("is idempotent — a second call doesn't inject a duplicate script tag", () => {

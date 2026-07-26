@@ -14,6 +14,7 @@ export const GA_MEASUREMENT_ID = "G-N91B7P607V";
 declare global {
   interface Window {
     dataLayer?: unknown[];
+    gtag?: (...args: unknown[]) => void;
   }
 }
 
@@ -23,19 +24,26 @@ let loaded = false;
  * double-invoke included), without risking a duplicate <script> tag or a second `config` call. */
 export function loadGoogleAnalytics(): void {
   if (loaded) return;
-  loaded = true;
 
   window.dataLayer = window.dataLayer || [];
-  function gtag(...args: unknown[]): void {
-    window.dataLayer!.push(args);
-  }
+  window.gtag =
+    window.gtag ||
+    ((...args: unknown[]): void => {
+      window.dataLayer!.push(args);
+    });
+  const gtag = window.gtag;
+
   gtag("js", new Date());
   gtag("config", GA_MEASUREMENT_ID);
 
   const script = document.createElement("script");
   script.async = true;
   script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
+  script.onerror = () => {
+    loaded = false;
+  };
   document.head.appendChild(script);
+  loaded = true;
 }
 
 /** Test-only escape hatch — `loaded` is deliberately module-scoped (not exported) so production
