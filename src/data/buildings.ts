@@ -23,8 +23,19 @@ export type BaseScore = (typeof BASE_SCORES)[number];
 export const COMPOUND_SCORES = ["system_score_beta"] as const;
 export type CompoundScore = (typeof COMPOUND_SCORES)[number];
 
-export type Score = BaseScore | CompoundScore;
-export const ALL_SCORES: Score[] = [...BASE_SCORES, ...COMPOUND_SCORES];
+/** Scores that exist outside both the per-building stat table (`BASE_SCORES`) and the
+ * base-score-derived compound formulas (`COMPOUND_SCORES`/`computeCompoundScore`) — computed
+ * instead from *where* a building lands (per-body placement), not just *how many* of it exist.
+ * `economy_synergy` is the only one: see `solve.ts`'s header comment and CLAUDE.md's "Update 3
+ * link/economy modeling" section for what it means and how it's computed. Always 0 in aggregate
+ * mode (no body layout applied) or in `domain/systemState.ts`'s already-present/build-order
+ * accounting (neither has per-body placement data) — only `solve.ts`'s per-body MILP path ever
+ * sets it to something else. */
+export const DERIVED_SCORES = ["economy_synergy"] as const;
+export type DerivedScore = (typeof DERIVED_SCORES)[number];
+
+export type Score = BaseScore | CompoundScore | DerivedScore;
+export const ALL_SCORES: Score[] = [...BASE_SCORES, ...COMPOUND_SCORES, ...DERIVED_SCORES];
 
 export const ALL_SLOTS = { space: "Orbital", ground: "Ground", asteroid: "Asteroid" } as const;
 export type SlotKind = keyof typeof ALL_SLOTS;
@@ -192,6 +203,34 @@ export function getT2PortCost(nbPreviousPorts: number): number {
 export function getT3PortCost(nbPreviousPorts: number): number {
   return 6 * (nbPreviousPorts + 1);
 }
+
+// SOURCED: Dodec Update patch notes (2025-11-11), "Balanced how building certain facilities
+// affects system development level, security, standard of living, tech level, and wealth." The
+// claim/first station's own contribution to these five scores is BOOSTED by FIRST_STATION_BONUS;
+// every other facility's contribution (already-present or newly built) is REDUCED by
+// SUBSEQUENT_FACILITY_REDUCTION. This replaced an earlier "unverified, best-known figures"
+// version of this constant that used a single full-weight-vs-fraction split with different
+// (guessed) magnitudes — the official numbers differ substantially for some scores (e.g.
+// development_level's subsequent-facility reduction is only -10%, not the previously-guessed -60%)
+// and add a first-station bonus the old version didn't model at all.
+// Population increase and construction cost are not listed as affected and stay full-weight.
+// Moved here from solve.ts (2026-07-26) once `domain/currentSystemScores.ts` needed the exact same
+// constants for a plain-number (non-MILP) reweighting of the CURRENT (not-yet-solved) system's
+// totals — this is a general game rule, not something specific to the solver's own LP formulation.
+export const FIRST_STATION_BONUS: Partial<Record<Score, number>> = {
+  development_level: 0.4, // +40%
+  security: 0.4, // +40%
+  standard_of_living: 0.4, // +40%
+  tech_level: 0.2, // +20%
+  wealth: 0.4, // +40%
+};
+export const SUBSEQUENT_FACILITY_REDUCTION: Partial<Record<Score, number>> = {
+  development_level: 0.1, // -10%
+  security: 0.1, // -10%
+  standard_of_living: 0.2, // -20%
+  tech_level: 0.25, // -25%
+  wealth: 0.25, // -25%
+};
 
 /** system_score_(beta), per the DaftMav "Colonization Construction" spreadsheet. */
 export function computeCompoundScore(

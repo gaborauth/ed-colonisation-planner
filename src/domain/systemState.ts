@@ -120,19 +120,32 @@ export class SystemState {
     return !this.dependenciesLocked.has(depKey(building.dependencies));
   }
 
+  /** Tier-2-cost ports (Coriolis, Asteroid_Base) and Tier-3-cost ports (Orbis_or_Ocellus,
+   * Dodecahedron, Planetary_Port) each escalate along their OWN sequence, exactly like
+   * `presentFacilities.ts`'s already-verified `computePresentPortsSeed` (t2Index/t3Index) — real-
+   * game-confirmed there: a T2-cost port built before a T3-cost port doesn't push the T3-cost
+   * port's price past its own first-of-type rate. An earlier version of this method used one
+   * shared `this.ports.length` counter for both, which over-escalates whichever tier's port is
+   * built after a port of the OTHER tier — real bug (not just an approximation mismatch), caught
+   * via a real system with both an already-present Coriolis and Orbis_or_Ocellus: the shared
+   * counter charged a subsequent new Dodecahedron as if it were the *4th* Tier-3-cost port
+   * (getT3PortCost(3), counting the unrelated Coriolis too) instead of the actual 3rd
+   * (getT3PortCost(2)), which was enough to make `computeFeasibleOrder` (ordering.ts) wrongly
+   * throw "Could not finish ordering" for a plan solve.ts had already confirmed was T2/T3-feasible. */
   private constructionPoints(building: Building, nb: number): [number, number] {
-    const nbPorts = this.ports.length;
     let T2: number;
     if (building.T2points === "port") {
+      const nbT2Ports = this.ports.filter((name) => ALL_BUILDINGS[name].T2points === "port").length;
       T2 = 0;
-      for (let i = 0; i < nb; i++) T2 -= getT2PortCost(nbPorts + i);
+      for (let i = 0; i < nb; i++) T2 -= getT2PortCost(nbT2Ports + i);
     } else {
       T2 = nb * building.T2points;
     }
     let T3: number;
     if (building.T3points === "port") {
+      const nbT3Ports = this.ports.filter((name) => ALL_BUILDINGS[name].T3points === "port").length;
       T3 = 0;
-      for (let i = 0; i < nb; i++) T3 -= getT3PortCost(nbPorts + i);
+      for (let i = 0; i < nb; i++) T3 -= getT3PortCost(nbT3Ports + i);
     } else {
       T3 = nb * building.T3points;
     }

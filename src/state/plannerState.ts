@@ -3,6 +3,13 @@ import { normalizeFacilitySlots, type PresentFacilitySlot } from "../domain/pres
 import type { JournalBody } from "../journal/parser";
 import type { Direction, SlotAvailability, SolverResult } from "../solver/solve";
 
+// Exported (not just inlined into INITIAL_FORM_STATE below) so ObjectivePanel.tsx's "Default
+// preset" entry can reference the exact same string — one source of truth, so the dropdown's
+// "is this preset currently active" check (`expression === formState.customExpression`) can never
+// silently drift out of sync with what a fresh session actually starts with.
+export const DEFAULT_OBJECTIVE_EXPRESSION =
+  "sqrt(i) + sqrt(m) + sqrt(e) + sqrt(t) + sqrt(w) + sqrt(n) + sqrt(d) + 2 * w + t - abs(w - 2 * t) + y";
+
 export interface PlannerFormState {
   slots: SlotAvailability;
   /** Per-body layout from JournalImportPanel's "Apply slots and body layout to System facilities"
@@ -60,11 +67,17 @@ export const INITIAL_FORM_STATE: PlannerFormState = {
   alreadyPresent: {},
   atLeast: {},
   atMost: {},
-  objectiveMode: "simple",
+  // Defaults to a custom expression combining ObjectivePanel's two presets ("Balance all stats" +
+  // "Maximize wealth and tech, close to 2:1"), plus `y` (economy_synergy — see solve.ts's header
+  // comment): a reasonable one-size-fits-most starting point for "propose the best layout," rather
+  // than a single arbitrary score. `scoreMin.security: 1` below keeps it a hard constraint, not
+  // just an objective term — user-reported reason: NPCs interdict during hauling once system
+  // security goes negative, so "positive security" is a real requirement, not just nice-to-have.
+  objectiveMode: "custom",
   simpleScore: "development_level",
-  customExpression: "",
+  customExpression: DEFAULT_OBJECTIVE_EXPRESSION,
   customDirection: "maximize",
-  scoreMin: {},
+  scoreMin: { security: 1 },
   scoreMax: {},
 };
 

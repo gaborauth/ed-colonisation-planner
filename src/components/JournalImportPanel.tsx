@@ -1,5 +1,6 @@
 import { type Dispatch, useEffect, useRef, useState } from "react";
 import { ALL_SLOTS, type SlotKind } from "../data/buildings";
+import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import { estimateBodySlots } from "../journal/eligibility";
 import {
   compareBodyNames,
@@ -95,7 +96,7 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
-  const [collapsed, setCollapsed] = useState(false);
+  const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(false);
 
   async function handleFile(file: File): Promise<void> {
     setApplied(false);
@@ -247,6 +248,7 @@ export function JournalImportPanel({ dispatch, refreshToken }: JournalImportPane
   return (
     <section className="panel">
       <button
+        ref={buttonRef}
         type="button"
         className="panel-toggle"
         aria-expanded={!collapsed}

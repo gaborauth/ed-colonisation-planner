@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import type { JournalBody } from "../journal/parser";
 import { solve, type SolverInput } from "./solve";
 
 function baseInput(overrides: Partial<SolverInput> = {}): SolverInput {
@@ -318,6 +319,55 @@ describe("solve with per-body placement (input.bodies)", () => {
     expect(result.status).toBe("optimal");
     expect(elapsedMs).toBeLessThan(20000);
   }, 30000);
+
+  // Real bug found 2026-07-26 (user report): `slotsRemaining` only ever counted NEWLY-built units,
+  // silently ignoring already-present facilities and the primary station's reserved slot — a fully-
+  // built system still reported it had free slots. The per-body CAPACITY CONSTRAINT was always
+  // correct (it separately accounted for present/primary occupancy); only the reported figure was
+  // wrong.
+  it("reports 0 slots remaining once every physical slot is occupied by present facilities", async () => {
+    const result = await solve(
+      baseInput({
+        firstStationBodyId: 2,
+        bodies: [
+          {
+            bodyId: 1,
+            slots: { space: 1, ground: 1, asteroid: 0 },
+            presentFacilities: {
+              space: [{ building: "Commercial_Outpost", demolishable: false }],
+              ground: [{ building: "Small_Agricultural_Settlement", demolishable: false }],
+            },
+          },
+          { bodyId: 2, slots: { space: 1, ground: 0, asteroid: 0 } }, // primary station's own slot
+        ],
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.slotsRemaining).toEqual({ space: 0, ground: 0, asteroid: 0 });
+  }, 20000);
+
+  // Asteroid-eligible slots are a SUBSET of orbital slots (any orbital slot on a ring-eligible
+  // body), not their own pool — occupying that slot with ANY building, not just an Asteroid_Base,
+  // must reduce the asteroid-eligible count too. An earlier version only subtracted new/present
+  // Asteroid_Base builds specifically, which could contradictorily report asteroid slots free while
+  // plain orbital slots (a superset) were already all used up.
+  it("counts a non-Asteroid_Base building occupying a ring-eligible body's only orbital slot against the asteroid-eligible pool", async () => {
+    const result = await solve(
+      baseInput({
+        firstStationBodyId: 2,
+        bodies: [
+          {
+            bodyId: 1,
+            slots: { space: 1, ground: 0, asteroid: 1 },
+            presentFacilities: { space: [{ building: "Commercial_Outpost", demolishable: false }], ground: [] },
+          },
+          { bodyId: 2, slots: { space: 1, ground: 0, asteroid: 0 } },
+        ],
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.slotsRemaining.asteroid).toBe(0);
+  }, 20000);
 });
 
 describe("solve with already-present facility demolition", () => {
@@ -372,5 +422,64 @@ describe("solve with already-present facility demolition", () => {
       }),
     );
     expect(result.status).toBe("infeasible");
+  }, 20000);
+});
+
+describe("solve with economy_synergy (input.bodies[].economy)", () => {
+  // High metal content + reported Volcanism -> a Colony-default port here picks up an Extraction
+  // override (computeBodyEconomyOverrides) AND that Extraction gets a +0.4 strong-link boost
+  // (computeBoostDecrease) — see domain/economyOverrides.test.ts for the same rules tested in
+  // isolation. Minimal JournalBody: only the fields those two functions actually read are set.
+  const volcanicBody: JournalBody = {
+    bodyName: "Test 1",
+    bodyId: 1,
+    kind: "planet",
+    planetClass: "High metal content world",
+    landable: false,
+    parents: [],
+    rings: [],
+    raw: { Volcanism: "major rocky magma volcanism" },
+  };
+
+  it("stays 0 when a body has no `economy` context, even in per-body mode", async () => {
+    const result = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 } }],
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.objectiveValue).toBe(0);
+  }, 20000);
+
+  it("rewards placing a building whose economy is boosted by its body's attributes", async () => {
+    const result = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    // objectiveValue is the exact (un-rounded) LP value the solver actually maximized — the
+    // displayed `scores.economy_synergy` is rounded and could read 0 for a single 0.4 delta.
+    expect(result.objectiveValue).toBeGreaterThan(0);
+  }, 20000);
+
+  it("only gives a small flat weak-link-style trickle — not the full strong-link boost — on a body with no known port", async () => {
+    // No `firstStationBodyId` and no present port here: a real strong link can never form on this
+    // body (nothing to link to), so the full +0.4-per-condition boost must NOT apply — only
+    // domain/links.ts's flat, body-attribute-independent WEAK_LINK_CONTRIBUTION (0.05) per economy
+    // the picked building carries (every building here carries exactly one economy type, so this
+    // pins the exact value rather than just checking a direction).
+    const result = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.objectiveValue).toBeCloseTo(0.05, 5);
   }, 20000);
 });

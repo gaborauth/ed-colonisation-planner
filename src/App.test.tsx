@@ -27,21 +27,21 @@ describe("App", () => {
 
     await user.click(screen.getByRole("button", { name: /solve for a system/i }));
 
-    const resultHeading = await screen.findByRole("heading", { name: "Result" }, { timeout: 20000 });
-    expect(resultHeading).toBeInTheDocument();
+    // Result content now lives inside "Solved system" (SystemScoresSummary) rather than a
+    // standalone Result panel — "First station" only renders there once a solve completes.
+    const firstStationLabel = await screen.findByText("First station", {}, { timeout: 20000 });
     expect(screen.getByText("Build order")).toBeInTheDocument();
-    // "First station: Coriolis" stat tile in the results panel — "Coriolis" appears many times
-    // elsewhere on the page, so scope the lookup to the results panel specifically.
-    const resultsPanel = resultHeading.closest(".hud-panel") as HTMLElement;
-    expect(within(resultsPanel).getByText("First station").closest(".stat-tile")).toHaveTextContent(
-      "Coriolis",
-    );
+    // "Coriolis" appears many times elsewhere on the page, so scope the lookup to the field itself.
+    const solvedPanel = firstStationLabel.closest(".panel") as HTMLElement;
+    expect(within(solvedPanel).getByText("First station").closest(".field")).toHaveTextContent("Coriolis");
   }, 25000);
 
   it("shows an error banner when the solver reports infeasibility", async () => {
     const user = userEvent.setup();
     render(<App />);
 
+    // System score constraints is folded by default — expand it to reach the field.
+    await user.click(screen.getByRole("button", { name: /system score constraints/i }));
     // An unreachable constraint -> infeasible, regardless of how many slots are available.
     await user.type(screen.getByLabelText(/minimum security/i), "1000");
     await importAndApplyJournal(user);

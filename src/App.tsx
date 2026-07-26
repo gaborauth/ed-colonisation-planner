@@ -6,8 +6,8 @@ import { JournalImportPanel } from "./components/JournalImportPanel";
 import { LinksPanel } from "./components/LinksPanel";
 import { ObjectivePanel } from "./components/ObjectivePanel";
 import { PopulationEstimatePanel } from "./components/PopulationEstimatePanel";
-import { ResultsPanel } from "./components/ResultsPanel";
 import { SavedPlansPanel } from "./components/SavedPlansPanel";
+import { SolvedSystemPanel } from "./components/SolvedSystemPanel";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
 import { SystemPortabilityBar } from "./components/SystemPortabilityBar";
 import { normalizeFacilitySlots } from "./domain/presentFacilities";
@@ -17,10 +17,15 @@ import {
   INITIAL_FORM_STATE,
   INITIAL_RESULT_STATE,
   plannerReducer,
+  type PlannerFormState,
   type PlannerResultState,
 } from "./state/plannerState";
 
-function buildSolverInput(formState: typeof INITIAL_FORM_STATE): SolverInput {
+// Exported (not just an internal App.tsx helper) so `src/realSystems.test.ts` can build the exact
+// same SolverInput a real "Solve for a system" click would, against real exported systems — see
+// CLAUDE.md's "Testing conventions" note on jsons/*.json for why that matters (fidelity to the
+// actual app pipeline, not a hand-rolled/potentially-drifted reconstruction of it).
+export function buildSolverInput(formState: PlannerFormState): SolverInput {
   // `formState.bodies` is only non-empty once the user has applied a journal-imported body
   // layout — omitting `bodies` entirely (not passing `[]`) keeps aggregate mode's exact behavior
   // for anyone who's only ever used the System facilities panel's plain slot-count fields.
@@ -35,6 +40,8 @@ function buildSolverInput(formState: typeof INITIAL_FORM_STATE): SolverInput {
             space: normalizeFacilitySlots(b.presentFacilities?.space, slots.space),
             ground: normalizeFacilitySlots(b.presentFacilities?.ground, slots.ground),
           },
+          // Feeds solve.ts's economy_synergy term — see SolverBody.economy's doc comment.
+          economy: b,
         };
       })
     : undefined;
@@ -99,28 +106,23 @@ function App() {
       />
 
       <JournalImportPanel dispatch={dispatch} refreshToken={journalStoreVersion} />
-      <SystemConfigPanel formState={formState} dispatch={dispatch} />
-      <ObjectivePanel formState={formState} dispatch={dispatch} />
-      <ConstraintsPanel formState={formState} dispatch={dispatch} />
-      <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
-
-      <div style={{ marginBottom: 16 }}>
-        <button
-          type="button"
-          className="primary"
-          onClick={() => void handleSolve()}
-          disabled={resultState.status === "solving" || !formState.firstStationBuilding}
-          title={!formState.firstStationBuilding ? "Pick a primary station in Actual facilities in the system first" : undefined}
-        >
-          {resultState.status === "solving" ? "Solving…" : "Solve for a system"}
-        </button>
-      </div>
+      <SystemConfigPanel formState={formState} dispatch={dispatch} justSolved={resultState.result} />
+      <ObjectivePanel
+        formState={formState}
+        dispatch={dispatch}
+        onSolve={() => void handleSolve()}
+        solving={resultState.status === "solving"}
+      />
 
       {resultState.status === "solving" && <div className="status-banner loading">Running the solver…</div>}
       {resultState.status === "error" && <div className="status-banner">{resultState.message}</div>}
+
+      <SolvedSystemPanel formState={formState} result={resultState.result} />
+      <ConstraintsPanel formState={formState} dispatch={dispatch} />
+      <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
+
       {resultState.status === "done" && resultState.result && (
         <>
-          <ResultsPanel result={resultState.result} />
           <BuildOrderPanel formState={formState} result={resultState.result} />
           <LinksPanel formState={formState} result={resultState.result} />
           <PopulationEstimatePanel result={resultState.result} />

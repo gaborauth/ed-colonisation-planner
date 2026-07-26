@@ -62,7 +62,7 @@ const LINK_CONTRIBUTION_FLOOR = 0.1;
  * regardless of the giving building's tier or any strong-link boost/decrease (weak links are
  * unaffected by that mechanic per CLAUDE.md's verbatim table — same reason there's no per-body
  * delta added here, unlike `LINK_TIER_CONTRIBUTION_RATE`). */
-const WEAK_LINK_CONTRIBUTION = 0.05;
+export const WEAK_LINK_CONTRIBUTION = 0.05;
 
 export interface BuildingPlacement {
   building: string;

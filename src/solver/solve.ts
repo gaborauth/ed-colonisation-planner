@@ -17,17 +17,60 @@
 //    station from a set of candidates. Removed: every colonised system requires one fixed, upfront
 //    choice of primary station type before anything else can be built — it's not a value worth
 //    optimizing over, it's a precondition. `firstStationBuilding` is now always required input.
+//
+// --- economy_synergy (Update 3 link/economy feeding the objective) -------------------------------
+// An earlier version of this project deliberately kept Update 3's link/economy modeling (see
+// CLAUDE.md) entirely post-solve/display-only, on the grounds that this tool doesn't model real
+// commodity supply/demand at all, so there was no existing score for link topology to feed into.
+// User feedback (2026-07-25) overrode that: with Update 3+'s rules in place, a solve that never
+// considers *which body* a building's economy type actually suits isn't a useful recommendation
+// engine anymore game-wise, even without a full commodity model. `economy_synergy` is the result —
+// see `economySynergyCoefficient` below for exactly what it computes. It is deliberately NOT an
+// attempt to model the full strong/weak-link graph inside the MILP (that would require knowing
+// which port is dominant on each body, which itself depends on the very placement decisions being
+// solved for — a circular, and likely intractable, thing to embed as linear objective
+// coefficients; see `domain/links.ts`'s post-solve `computeSystemLinks` for where that full
+// computation actually happens, unchanged by this feature). Instead, `economy_synergy` reuses the
+// exact same verbatim-sourced strong-link boost/decrease table
+// (`domain/economyOverrides.ts`'s `computeBoostDecrease`) a real strong link would receive, applied
+// to each *candidate* (building, body) pair — i.e. "would this building's own economy type(s) be
+// boosted or decreased by this specific body's attributes if it ended up strong-linked here," which
+// is exactly the deterministic, body-only (not placement-graph-dependent) half of the real
+// mechanic. This is a genuine new approximation, not a verbatim source number — flagged in
+// CLAUDE.md's "Explicitly unverified/best-effort constants" section alongside the other constants
+// it's built out of.
+//
+// One thing this term does NOT get to ignore: a strong link can only ever form on a body that
+// actually HAS a port (per CLAUDE.md's link topology — links only ever form port<->facility or
+// port<->port, never facility<->facility). An earlier version of this term applied the full
+// strong-link-style boost/decrease to every candidate body regardless, which made the solver
+// actively prefer dumping facilities onto port-less bodies purely to farm a boost that could never
+// really apply there — surfacing as `domain/links.ts`'s "has N facility type(s) but no port, they
+// can't form a strong link here" warning far more often post-solve than pre-economy_synergy
+// (2026-07-25 user report). `knownPortBodyIds` below is the fix: a body only gets the full
+// strong-link-style delta if it's known (before solving, not decision-dependent) to have a port —
+// already has one present, or is the primary station's assigned body. Every other body instead
+// gets a small flat, body-attribute-INdependent trickle (`WEAK_LINK_CONTRIBUTION` per economy
+// carried) — correctly modeling that such a placement can, at best, weak-link elsewhere (weak links
+// are unaffected by body boost/decrease, per the same verbatim rules), not a full strong link.
+// Whether the solver ALSO builds a brand-new port on a body it didn't have one on yet is itself a
+// decision variable — same circularity this file's header already calls out — so this stays a
+// conservative "assume no new port arrives here" approximation, not exact either way.
 
 import {
   ALL_BUILDINGS,
   ALL_SCORES,
   type Score,
   computeCompoundScore,
+  FIRST_STATION_BONUS,
   getT2PortCost,
   getT3PortCost,
   isPort,
+  isPortRole,
+  SUBSEQUENT_FACILITY_REDUCTION,
 } from "../data/buildings";
-import type { BuildingPlacement } from "../domain/links";
+import { computeBoostDecrease, facilityBaseEconomies } from "../domain/economyOverrides";
+import { WEAK_LINK_CONTRIBUTION, type BuildingPlacement } from "../domain/links";
 import {
   computeHardNonPortSeed,
   computePresentPortsSeed,
@@ -36,6 +79,7 @@ import {
   type PresentFacilityRef,
   type PresentFacilitySlot,
 } from "../domain/presentFacilities";
+import type { JournalBody } from "../journal/parser";
 import { addExpr, exprConst, exprVar, type LPExpr, scaleExpr, subExpr } from "./lpExpr";
 import { boundExpr, evalExprAt, INFINITY, LPModel } from "./lpModel";
 import { compileObjective, type Direction, type ScoreBounds } from "./objective";
@@ -49,31 +93,6 @@ export type { Direction } from "./objective";
 const DEPENDENCY_BIG_M = 1000;
 const DEFAULT_BUILDING_COUNT_CAP = 300;
 const DEFAULT_MAX_NEW_PORTS = 20;
-
-// SOURCED: Dodec Update patch notes (2025-11-11), "Balanced how building certain facilities
-// affects system development level, security, standard of living, tech level, and wealth." The
-// claim/first station's own contribution to these five scores is BOOSTED by FIRST_STATION_BONUS;
-// every other facility's contribution (already-present or newly built) is REDUCED by
-// SUBSEQUENT_FACILITY_REDUCTION. This replaced an earlier "unverified, best-known figures"
-// version of this constant that used a single full-weight-vs-fraction split with different
-// (guessed) magnitudes — the official numbers differ substantially for some scores (e.g.
-// development_level's subsequent-facility reduction is only -10%, not the previously-guessed -60%)
-// and add a first-station bonus the old version didn't model at all.
-// Population increase and construction cost are not listed as affected and stay full-weight.
-const FIRST_STATION_BONUS: Partial<Record<Score, number>> = {
-  development_level: 0.4, // +40%
-  security: 0.4, // +40%
-  standard_of_living: 0.4, // +40%
-  tech_level: 0.2, // +20%
-  wealth: 0.4, // +40%
-};
-const SUBSEQUENT_FACILITY_REDUCTION: Partial<Record<Score, number>> = {
-  development_level: 0.1, // -10%
-  security: 0.1, // -10%
-  standard_of_living: 0.2, // -20%
-  tech_level: 0.25, // -25%
-  wealth: 0.25, // -25%
-};
 
 export interface SlotAvailability {
   space: number;
@@ -103,6 +122,13 @@ export interface SolverBody {
     space: (PresentFacilitySlot | null)[];
     ground: (PresentFacilitySlot | null)[];
   };
+  /** This body's full journal attributes (star/planet type, rings, organics, etc.) — the ONLY
+   * reason `solve.ts` needs anything beyond bare slot capacity from a body. Feeds
+   * `economySynergyCoefficient` below (see this file's header comment for what that term means).
+   * Optional and additive: omitting it for a body (or every body) just makes that body contribute
+   * 0 to `economy_synergy`, same backward-compatible degrade-to-today's-behavior pattern `bodies`
+   * itself already follows when absent entirely. */
+  economy?: JournalBody;
 }
 
 export type ObjectiveInput =
@@ -181,6 +207,7 @@ const SCORE_LETTER_TO_SCORE: Record<ScoreLetter, Score> = {
   n: "standard_of_living",
   d: "development_level",
   c: "construction_cost",
+  y: "economy_synergy",
 };
 
 function errorResult(message: string): SolverResult {
@@ -503,6 +530,50 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     addExpr(systemScores.wealth, systemScores.standard_of_living),
   );
 
+  // --- economy_synergy: per-body economy-fit term (see this file's header comment) -------------
+  // Only meaningful in per-body mode, and only for bodies whose caller actually supplied
+  // `economy` — see `SolverBody.economy`'s doc comment for the backward-compatible degrade.
+  // `allEconomyBodies` is the whole-system `JournalBody[]` `computeBoostDecrease` needs for its
+  // system-wide checks (resource level, black hole/white dwarf/neutron star presence) — built once
+  // rather than per (building, body) pair. `knownPortBodyIds` gates the full strong-link-style
+  // delta to bodies that actually have (or will certainly have) a port — see the header comment's
+  // "One thing this term does NOT get to ignore" paragraph for why.
+  systemScores.economy_synergy = exprConst(0);
+  if (input.bodies && input.bodies.length > 0) {
+    const allEconomyBodies: JournalBody[] = input.bodies
+      .map((b) => b.economy)
+      .filter((b): b is JournalBody => b !== undefined);
+
+    const knownPortBodyIds = new Set<number>(
+      presentSplit.hard.filter((f) => isPortRole(f.building)).map((f) => f.bodyId),
+    );
+    if (input.firstStationBodyId !== undefined) knownPortBodyIds.add(input.firstStationBodyId);
+
+    function economySynergyCoefficient(buildingName: string, body: SolverBody): number {
+      if (!body.economy) return 0;
+      const economies = facilityBaseEconomies(buildingName, body.economy);
+      if (economies.length === 0) return 0;
+      if (!knownPortBodyIds.has(body.bodyId)) {
+        // No confirmed port here — at best a weak link forms elsewhere, unaffected by this body's
+        // own attributes (per CLAUDE.md's verbatim link rules), so no boost/decrease applies here.
+        return economies.length * WEAK_LINK_CONTRIBUTION;
+      }
+      const { deltas } = computeBoostDecrease(body.economy, allEconomyBodies, economies);
+      return economies.reduce((sum, economy) => sum + (deltas[economy] ?? 0), 0);
+    }
+
+    let synergy: LPExpr = exprConst(0);
+    for (const name of Object.keys(ALL_BUILDINGS)) {
+      for (const b of input.bodies) {
+        const coeff = economySynergyCoefficient(name, b);
+        if (coeff !== 0) {
+          synergy = addExpr(synergy, scaleExpr(exprVar(bodyVars[name][b.bodyId], 1), coeff));
+        }
+      }
+    }
+    systemScores.economy_synergy = synergy;
+  }
+
   // --- Objective -----------------------------------------------------------------------------
   const objectiveVar = model.addVar("objective", "continuous", -INFINITY, INFINITY);
   let direction: Direction;
@@ -710,6 +781,57 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     .filter((d) => Math.round(colValues[d.keepVar] ?? 1) === 0)
     .map((d) => ({ bodyId: d.bodyId, slotKind: d.kind, index: d.index, building: d.building }));
 
+  // `usedSlots`/`allVars.Asteroid_Base` only ever count NEWLY-built units (they're the raw
+  // decision-variable sums, not `allValues`) — fine on their own for the per-body CAPACITY
+  // CONSTRAINT above (which separately subtracts present/primary occupancy from each body's own
+  // bound), but wrong for this REPORTED remaining-capacity figure if used bare: in per-body mode it
+  // silently ignored every already-present facility and the primary station's reserved slot, so a
+  // fully-built system still reported dozens of "slots left" (real bug, 2026-07-26 user report).
+  // Aggregate mode's own formula is intentionally left untouched below (protected by
+  // solve.test.ts's `bodies: []` vs. omitted byte-identical regression test) — `presentSplit`/
+  // `presentKeepVars` are always empty there anyway, so the per-body-only terms below are all 0 and
+  // this reduces to exactly the old aggregate-mode formula.
+  const presentOccupiedSpace =
+    presentSplit.hard.filter((f) => f.kind === "space").length +
+    presentKeepVars.filter((d) => d.kind === "space" && Math.round(colValues[d.keepVar] ?? 1) === 1).length;
+  const presentOccupiedGround =
+    presentSplit.hard.filter((f) => f.kind === "ground").length +
+    presentKeepVars.filter((d) => d.kind === "ground" && Math.round(colValues[d.keepVar] ?? 1) === 1).length;
+  const primaryReservation = input.bodies && input.bodies.length > 0 && input.firstStationBodyId !== undefined ? 1 : 0;
+  const totalSpaceSlots =
+    input.bodies && input.bodies.length > 0 ? input.bodies.reduce((sum, b) => sum + b.slots.space, 0) : input.slots.space;
+  const totalGroundSlots =
+    input.bodies && input.bodies.length > 0 ? input.bodies.reduce((sum, b) => sum + b.slots.ground, 0) : input.slots.ground;
+
+  // Ring-eligible ("asteroid-eligible") orbital slots are a SUBSET of ordinary orbital slots (any
+  // orbital slot on a body with slots.asteroid > 0), not a separate pool — see
+  // JournalBody.slots.asteroid's doc comment / computeSystemSlotTotals. An earlier version of this
+  // figure counted only NEW Asteroid_Base builds against the pool size, which undercounted
+  // occupancy by every OTHER building (present or new) sitting on a ring-eligible body's orbital
+  // slots — contradictorily reporting asteroid slots free while plain orbital slots (a superset)
+  // were already all used up. `bodySpaceOccupied` mirrors the per-body capacity constraint above
+  // (new + present-hard + present-kept-demolishable + primary reservation) for one specific body.
+  function bodySpaceOccupied(b: SolverBody): number {
+    let used = primaryReservation && b.bodyId === input.firstStationBodyId ? 1 : 0;
+    for (const [name, building] of Object.entries(ALL_BUILDINGS)) {
+      if (building.slot !== "space") continue;
+      used += Math.round(colValues[bodyVars[name][b.bodyId]] ?? 0);
+    }
+    used += presentSplit.hard.filter((f) => f.bodyId === b.bodyId && f.kind === "space").length;
+    used += presentKeepVars.filter(
+      (d) => d.bodyId === b.bodyId && d.kind === "space" && Math.round(colValues[d.keepVar] ?? 1) === 1,
+    ).length;
+    return used;
+  }
+  const totalAsteroidEligibleSlots =
+    input.bodies && input.bodies.length > 0
+      ? input.bodies.filter((b) => b.slots.asteroid > 0).reduce((sum, b) => sum + b.slots.space, 0)
+      : input.slots.asteroid;
+  const occupiedAsteroidEligibleSlots =
+    input.bodies && input.bodies.length > 0
+      ? input.bodies.filter((b) => b.slots.asteroid > 0).reduce((sum, b) => sum + bodySpaceOccupied(b), 0)
+      : Math.round(evalExprAt(allVars.Asteroid_Base, colValues));
+
   void auxVarsFromObjective; // present in the model for completeness; not surfaced individually
 
   return {
@@ -721,9 +843,9 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     finalT2Points: Math.round(evalExprAt(finalT2Expr, colValues)),
     finalT3Points: Math.round(evalExprAt(finalT3Expr, colValues)),
     slotsRemaining: {
-      space: input.slots.space - Math.round(evalExprAt(usedSlots.space, colValues)),
-      ground: input.slots.ground - Math.round(evalExprAt(usedSlots.ground, colValues)),
-      asteroid: input.slots.asteroid - Math.round(evalExprAt(allVars.Asteroid_Base, colValues)),
+      space: totalSpaceSlots - presentOccupiedSpace - primaryReservation - Math.round(evalExprAt(usedSlots.space, colValues)),
+      ground: totalGroundSlots - presentOccupiedGround - Math.round(evalExprAt(usedSlots.ground, colValues)),
+      asteroid: totalAsteroidEligibleSlots - occupiedAsteroidEligibleSlots,
     },
     objectiveValue: evalExprAt(exprVar(objectiveVar, 1), colValues),
     placements,
