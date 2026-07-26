@@ -16,6 +16,7 @@ beforeEach(() => {
   localStorage.clear();
   _resetForTests();
   document.head.querySelectorAll("script").forEach((s) => s.remove());
+  delete window.gtag;
 });
 
 describe("CookieConsentBanner", () => {
