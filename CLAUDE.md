@@ -2,7 +2,9 @@
 
 A stateless, client-only React web app that solves "what should I build in this colonisation
 system?" via a MILP solver (HiGHS, compiled to WASM) running entirely in the browser. No backend, no
-account — everything (solving, persistence) happens client-side.
+account — everything (solving, persistence) happens client-side. **One deliberate exception** (added
+2026-07-26): the "Spansh" import tab depends on a small self-hosted CORS proxy (see `src/spansh/`
+below) — Journal-file import remains fully backend-free either way.
 
 ## Origin story (read this before assuming anything about "the original")
 
@@ -53,14 +55,142 @@ src/
   state/plannerState.ts    — the app's one useReducer (form state) living in App.tsx
   persistence/             — localStorage-backed: saved plans, saved journal systems
   journal/                 — parses uploaded Elite Dangerous Journal files, estimates buildable slots
+  spansh/                  — alternative system-import source (see "Spansh import" below):
+                              api.ts (fetch wrappers against a self-hosted CORS proxy),
+                              adapter.ts (Spansh `/dump/{id64}` JSON -> this app's own
+                              JournalSystem/JournalBody shape, so the rest of the app never knows
+                              the difference), types.ts
   components/               — one component per UI panel, no component library; FacilityInfo.tsx
                               (the "i" info icons) and SystemScoresSummary.tsx (score/points/slots
                               readout) are shared between "Actual facilities" and "Solved system"
 ```
 
 State management is a single `useReducer` in `App.tsx` — no Redux/Zustand/Context. There's no backend
-and no server-side state; "stateless" refers to that, not to an absence of persistence (localStorage
-is used deliberately for saved plans and saved journal systems).
+and no server-side state (with the one exception noted above for Spansh import); "stateless" refers
+to that, not to an absence of persistence (localStorage is used deliberately for saved plans and
+saved journal systems).
+
+## Spansh import
+
+`JournalImportPanel.tsx`'s "Import system" panel (renamed from "Import from journal") now has two
+tabs: "Journal file" (unchanged — upload a real Journal log) and "Spansh" (search Spansh's public
+system database by name and load a starting point directly, no journal file needed — useful for a
+system not yet personally scanned). Both tabs feed the exact same shared `systems` list, body/slot
+table, and `dispatch`/`applySystem` flow — the only thing that differs is how a `JournalSystem`
+enters that list in the first place (`parseJournalScans` for the Journal tab,
+`spansh/adapter.ts`'s `spanshDumpToJournalSystem` for the Spansh tab).
+
+**Why a proxy at all**: neither of Spansh's endpoints used here sends CORS headers (confirmed via
+curl during investigation — no `Access-Control-Allow-Origin` on `/systems/field_values/name` or
+`/dump/{id64}`, including the OPTIONS preflight), so a direct browser `fetch()` from this app's
+origin is blocked. The user runs a small self-hosted nginx CORS proxy on their own K8s cluster
+(`https://spansh-proxy.iotguru.dev`, not part of this repo) that forwards to `spansh.co.uk/api/...`
+and allowlists this app's two real origins (`https://gaborauth.github.io`,
+`http://172.18.24.144:5173` for local dev) via CORS. `src/spansh/api.ts` hardcodes that proxy's
+public URL as `SPANSH_PROXY_BASE` — if the proxy ever moves, that's the one place to update.
+
+**Two Spansh endpoints, two different jobs** — don't confuse them:
+- `GET /systems/field_values/name?q=...` — the real typeahead/autocomplete endpoint used for the
+  Spansh tab's search-as-you-type combobox. (`/search` is a *different* endpoint — full-text search
+  returning complete system records, not name suggestions — not used anywhere in this app.)
+- `GET /dump/{id64}` — full per-body data for the "Load" button, once a candidate is picked. This
+  supersedes an earlier, much sparser `/system/{id64}` endpoint this feature briefly targeted before
+  `/dump/{id64}` was found (see git history if curious) — dropped entirely, not used anywhere
+  (its old sample fixture was never committed and no longer exists on disk — nothing to clean up).
+
+**Field mapping** (`spansh/adapter.ts`'s `spanshDumpToJournalSystem`): `/dump/{id64}` turns out to be
+a near-1:1 equivalent of real Journal Scan-event data per body — confirmed field-by-field: real small
+Frontier `bodyId`s (not synthesized — the main star is `bodyId: 0`, matching what a real Journal
+upload of the same system would report, so the two sources merge correctly via
+`JournalImportPanel.tsx`'s existing `mergeBySystemAddress` if the user later uploads a real Journal
+for a Spansh-seeded system), real `parents` chains (byte-identical shape to Journal's raw `Parents` —
+`parseParents`, now exported from `journal/parser.ts`, is reused as-is), rings, reserve level,
+landable, gravity (same "g" units), surface temperature (same Kelvin units), atmosphere, tidal-lock,
+terraforming state, and bio/geo signals using the *exact same* `$SAA_SignalType_Biological;`/
+`$SAA_SignalType_Geological;` key strings Journal's `FSSBodySignals` event uses (`SIGNAL_TYPE_*`
+constants, also now exported from `journal/parser.ts` for this reuse). Two adjustments needed:
+`radius` is in km in Spansh's data vs. meters in Journal's (`× 1000`), and a body can lack the
+`signals` key entirely (genuinely never scanned by anyone in Spansh's database — confirmed against
+the real fixture: 18 of 31 planets in `spansh-jsons/swoilz-aw-c-d52-dump.json` have no `signals` key
+at all), which must map to `undefined` ("unknown", matching Journal's own convention for an
+un-FSS'd body) rather than `false` ("confirmed absent") — the adapter is careful about this
+distinction (see its own comment).
+
+**One caveat that's semantic, not a code gap**: Spansh's signal/genus data is crowdsourced (whoever
+last scanned that body in Spansh's own database), not necessarily *this player's own* scan — usually
+accurate, but "known" here means "known to Spansh," not "known to you in-game." Surfaced as a short
+disclaimer in the Spansh tab's own help text, not hidden.
+
+**Switching between saved systems from the sticky toolbar**: `JournalImportPanel.tsx`'s own
+"System" dropdown only ever lives in its "Journal file" tab, so once the Spansh tab loads a system
+there was no way to switch back to a different already-saved one without folding back to that
+specific tab. Fixed in `SystemPortabilityBar.tsx`: the plain `formState.starSystem` text next to
+"Live Demo" becomes a real `<select>` (`.toolbar-summary-system`, styled to look the same as the
+plain text it replaces) once more than one system is saved (`persistence/journalSystems.ts`'s
+`listSavedSystems()`, read fresh every render rather than cached — cheap, synchronous, and avoids
+needing a refresh-token scheme like `JournalImportPanel`'s own). Switching there re-dispatches the
+picked system's already-saved data directly (no separate "Apply" step, unlike a freshly-parsed-but-
+not-yet-reviewed Journal/Spansh load) — same `{type:"patch", patch:{...}}` shape as
+`loadParsedSystem`, minus re-saving (already in the store) and `onImported` (nothing new imported).
+
+**Real bug found by the user right after this shipped, in two parts**: reloading the page made the
+whole toolbar summary — switcher included — disappear, only coming back after loading and re-saving
+a system. Root cause: the summary (and the switcher inside it) was gated entirely on
+`canSaveOrExport` (`formState.systemAddress !== null`), which resets to `null` on every fresh page
+load — `JournalImportPanel.tsx`'s own mount-effect only auto-restored the last-used system when that
+system already had a primary station saved, so a system applied but not yet given a saved primary
+station left `formState` blank after reload, hiding the switcher that was supposed to be the way
+BACK into that state.
+
+- **First fix**: decoupled the switcher's visibility from `canSaveOrExport` entirely — it now
+  renders (with a disabled placeholder option, nothing "selected") whenever
+  `listSavedSystems().length > 0`, regardless of whether a system is currently active in
+  `formState`; picking one dispatches the full saved system. The slot-bar/T2/T3-points half of the
+  summary stays gated on `canSaveOrExport` (meaningless with no active system). Deliberately did NOT
+  relax `JournalImportPanel`'s mount-effect condition at this point — treated as a separate,
+  pre-existing design choice outside the scope of "the dropdown is gone."
+- **Second fix, once the user noticed the deeper inconsistency this first fix left behind**: after
+  reload, the toolbar switcher now correctly showed "Pick a saved system…" — but
+  `JournalImportPanel`'s own panel simultaneously showed that same last-used system fully filled in
+  (its own `systems`/`selectedAddress` state already defaults to the last-used system regardless of
+  primary-station status, independent of `formState`) — two parts of the UI visibly disagreeing
+  about whether a system was active. The real fix was to stop treating "no saved primary station
+  yet" as a reason to skip auto-restoring at all: `JournalImportPanel`'s mount-effect now auto-
+  applies the last-used system whenever it merely has bodies, dropping the primary-station
+  requirement entirely (see that effect's own comment for why this is safe — not having a primary
+  station yet is a normal, valid intermediate state elsewhere in the app too, e.g. right after a
+  brand-new system's first-ever Apply; only actually solving requires one). This makes every part of
+  the UI agree again after a reload, and the first fix above is kept anyway as a safety net for
+  whenever `getLastUsedSystemAddress()` itself is unset despite systems being saved.
+
+**Real bug found by the existing test suite while building this**: `App.test.tsx` (run in isolation,
+not as part of the full `npm test`) started failing with `getByLabelText("Journal file")` throwing
+"found multiple elements" — not a flake, a real ARIA-labeling collision introduced by the tab panels.
+Each tab content `<div role="tabpanel">` was given `aria-labelledby` pointing at its own tab
+button — the standard ARIA APG tabs pattern — but the "Journal file" tab button's text is the exact
+same string as the Journal tab's file `<input aria-label="Journal file">` inside it.
+`getByLabelText` isn't restricted to form controls: it also matches any element whose accessible
+name (via `aria-label`/`aria-labelledby`) equals the target text, so it matched both the real input
+AND the tabpanel div wrapping it. Fixed by giving each tabpanel its own distinct `aria-label`
+("Journal file import"/"Spansh import") instead of borrowing the visible tab label text via
+`aria-labelledby` — worth remembering if this app's ARIA wiring is extended further: don't reuse a
+visible control's exact label text as another element's accessible name in the same subtree, this
+test suite's query style isn't scoped strictly to form controls.
+
+**Deliberately deferred, not attempted**: auto-detecting already-built facilities from Spansh's
+per-body `stations[]` list (the dump has real per-body station placement, not just a flat
+system-wide list). This would solve the "which body" half of present-facility auto-detection, but
+Spansh's station `type` string still can't disambiguate which of this app's ~6-18 sub-variants of
+Outpost/Settlement/Hub a given station actually is — left as a possible follow-up, not guessed at.
+
+**Deliberately minimal `raw`**: unlike the Journal parser (which keeps the whole raw `Scan` event
+in `JournalBody.raw`, a few hundred bytes each), `spanshDumpToJournalSystem` does NOT persist the
+whole Spansh dump body object — a Spansh dump body carries a lot more incidental data (commodity/
+market info, faction influence, composition percentages) that would needlessly bloat every saved/
+exported system (user's explicit instruction). `raw` here only ever carries the one field anything
+in the codebase actually reads out of it (`economyOverrides.ts`'s `hasVolcanism` reads
+`raw.Volcanism`) — everything else Spansh provides but isn't mapped into `JournalBody`'s own typed
+fields is simply not carried into the planner's data model at all, not just hidden in an unused bag.
 
 ## Commands
 
@@ -83,6 +213,15 @@ genuinely unverified (no official source found); the rest are official-source-*d
 an inference this project made itself, not something the source stated verbatim — also flagged,
 also revisable:
 
+- `SPANSH_PLANET_CLASS_MAP` and the star-type classifier in `src/spansh/adapter.ts` — translates
+  Spansh's `subType` wording to Journal's exact `PlanetClass`/`StarType` strings so
+  `economyOverrides.ts`'s exact-match predicates (`isRockyIce`, `isWaterWorld`, `isAmmoniaWorld`,
+  etc.) still fire correctly. Built from general Elite Dangerous domain knowledge covering every
+  known planet class, but only actually verified against the classes present in the one committed
+  real fixture (`spansh-jsons/swoilz-aw-c-d52-dump.json`) — e.g. the real, confirmed mismatch
+  driving this table's existence: Spansh's `"Rocky Ice world"` must become `"Rocky ice body"` or
+  `isRockyIce` silently never fires. Revise/extend this table if a differently-worded `subType`
+  shows up in a future real system.
 - `GROUND_SLOT_RADIUS_THRESHOLDS` (and the rest of the heuristic) in `src/journal/eligibility.ts` —
   how scanned body data maps to buildable slot counts. The ground-slot half is now sourced from
   community research (CMDR Nyatto, Flynnvali, and others — see also the Raven Colonial tool for the
@@ -362,6 +501,15 @@ also revisable:
   DOM (pure solver/domain pipeline) so it can run fast and `describe.each` cheaply over many systems.
   `tsconfig.app.json` needed `"node"` added to its `types` array for this file's `node:fs`/`node:path`
   usage — ambient types only, doesn't change what runs in the browser.
+- **`spansh-jsons/swoilz-aw-c-d52-dump.json`** (added 2026-07-26) is a real Spansh `/dump/{id64}`
+  response for the same real system as `jsons/swoilz-aw-c-d52.json` above, committed for the same
+  reason — free to use directly in tests or an ad-hoc reproduction script. `src/spansh/adapter.test.ts`
+  and `src/spansh/realSpanshSystem.test.ts` (the Spansh-path sibling of `realSystems.test.ts` above,
+  not folded into its `describe.each` since the input shape differs) both use it.
+  `spansh-jsons/swoilz-aw-c-d52-query.json` (a `/systems/field_values/name` typeahead response) is
+  also committed and used by the same tests. (An earlier `/system/{id64}` endpoint's sample response
+  briefly existed alongside these during investigation — see "Spansh import" above for why that
+  endpoint was dropped — but was never committed and no longer exists on disk.)
 
 ## Data source
 
