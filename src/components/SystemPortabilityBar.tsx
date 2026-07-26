@@ -96,33 +96,51 @@ export function SystemPortabilityBar({ formState, dispatch, onImported }: System
     URL.revokeObjectURL(url);
   }
 
+  // Shared by file-based Import and the Live Demo button below — an imported/demo system should
+  // behave exactly like applying a saved/uploaded one, not a separate code path (same wiring as
+  // JournalImportPanel.applySystem).
+  function loadParsedSystem(parsed: unknown): void {
+    if (!looksLikeJournalSystem(parsed)) {
+      setError("That file doesn't look like an exported system (missing starSystem/systemAddress/bodies).");
+      return;
+    }
+    saveSystem(parsed);
+    setLastUsedSystemAddress(parsed.systemAddress);
+    dispatch({
+      type: "patch",
+      patch: {
+        slots: computeSystemSlotTotals(parsed),
+        bodies: parsed.bodies,
+        systemConfigured: true,
+        systemAddress: parsed.systemAddress,
+        starSystem: parsed.starSystem,
+        firstStationBuilding: parsed.firstStationBuilding ?? "",
+        firstStationBodyId: parsed.firstStationBodyId,
+        firstStationVariant: parsed.firstStationVariant,
+        firstStationCustomName: parsed.firstStationCustomName,
+      },
+    });
+    setError(null);
+    onImported?.();
+  }
+
   async function handleImportFile(file: File): Promise<void> {
     try {
       const parsed: unknown = JSON.parse(await file.text());
-      if (!looksLikeJournalSystem(parsed)) {
-        setError("That file doesn't look like an exported system (missing starSystem/systemAddress/bodies).");
-        return;
-      }
-      // Same store + form-state wiring as JournalImportPanel.applySystem — an imported system
-      // should behave exactly like applying a saved/uploaded one, not a separate code path.
-      saveSystem(parsed);
-      setLastUsedSystemAddress(parsed.systemAddress);
-      dispatch({
-        type: "patch",
-        patch: {
-          slots: computeSystemSlotTotals(parsed),
-          bodies: parsed.bodies,
-          systemConfigured: true,
-          systemAddress: parsed.systemAddress,
-          starSystem: parsed.starSystem,
-          firstStationBuilding: parsed.firstStationBuilding ?? "",
-          firstStationBodyId: parsed.firstStationBodyId,
-          firstStationVariant: parsed.firstStationVariant,
-          firstStationCustomName: parsed.firstStationCustomName,
-        },
-      });
-      setError(null);
-      onImported?.();
+      loadParsedSystem(parsed);
+    } catch (e) {
+      setError((e as Error).message);
+    }
+  }
+
+  // Loads the same real exported system committed at jsons/swoilz-aw-c-d52.json that the test
+  // suite uses (see CLAUDE.md's "Testing conventions") — dynamically imported so it's only fetched
+  // when this button is actually clicked, not bundled into the main chunk.
+  async function handleLiveDemo(): Promise<void> {
+    try {
+      const module = await import("../../jsons/swoilz-aw-c-d52.json");
+      const parsed: unknown = module.default;
+      loadParsedSystem(parsed);
     } catch (e) {
       setError((e as Error).message);
     }
@@ -149,6 +167,13 @@ export function SystemPortabilityBar({ formState, dispatch, onImported }: System
         </button>
         <button type="button" onClick={() => fileInputRef.current?.click()}>
           Import system
+        </button>
+        <button
+          type="button"
+          onClick={() => void handleLiveDemo()}
+          title="Load a real exported system to try the planner without your own journal data"
+        >
+          Live Demo
         </button>
         <input
           ref={fileInputRef}

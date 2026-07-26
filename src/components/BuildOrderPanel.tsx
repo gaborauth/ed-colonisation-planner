@@ -1,46 +1,141 @@
 import { useMemo } from "react";
-import { toPrintable } from "../data/buildings";
-import { getMixedOrderingFromResult } from "../domain/ordering";
+import { ALL_SCORES, toPrintable } from "../data/buildings";
+import { computeBuildOrderTable, type BuildOrderRow, type BuildOrderRowState } from "../domain/buildOrderTable";
 import type { SolverResult } from "../solver/solve";
 import type { PlannerFormState } from "../state/plannerState";
-import { toPlanResult } from "../state/toPlanResult";
 
 interface BuildOrderPanelProps {
   formState: PlannerFormState;
   result: SolverResult;
 }
 
+const STATE_LABELS: Record<BuildOrderRowState, string> = { built: "Built", demolish: "Demolish", planned: "Planned" };
+const STATE_CLASSES: Record<BuildOrderRowState, string> = {
+  built: "build-order-state-built",
+  demolish: "build-order-state-demolish",
+  planned: "build-order-state-planned",
+};
+const ROW_CLASSES: Record<BuildOrderRowState, string> = {
+  built: "build-order-row-built",
+  demolish: "build-order-row-demolish",
+  planned: "build-order-row-planned",
+};
+
+function signed(n: number): string {
+  return n > 0 ? `+${n}` : `${n}`;
+}
+
+function PointDeltas({ row }: { row: BuildOrderRow }) {
+  if (row.pointDeltas.length === 0) return <span className="build-order-points-empty">—</span>;
+  return (
+    <>
+      {row.pointDeltas.map((d) => (
+        <div key={d.score}>
+          {toPrintable(d.score)}: {signed(d.delta)}
+        </div>
+      ))}
+    </>
+  );
+}
+
+function FacilityCell({ row }: { row: BuildOrderRow }) {
+  const meta = [row.variant, row.nickname].filter((v): v is string => Boolean(v)).join(" — ");
+  return (
+    <>
+      <div className="build-order-facility-name">{toPrintable(row.building)}</div>
+      {meta && <div className="build-order-facility-meta">{meta}</div>}
+    </>
+  );
+}
+
+/** Full per-row build-order ledger — see `domain/buildOrderTable.ts`'s header comment for how the
+ * Built/Demolish/Planned rows and their T2/T3 running totals are computed (deliberately via
+ * `ordering.ts`'s per-tier-correct, never-negative-guaranteeing math, not `solve.ts`'s own more
+ * conservative new-port formula — so the last row's T2/T3 Σ can legitimately be higher than the
+ * Total row's numbers below it). Every physical facility instance (already built, marked for
+ * demolition, or newly planned) gets one numbered row, colored by state; the Total row at the
+ * bottom shows the solver's own authoritative final numbers (`result.scores`/`finalT2Points`/
+ * `finalT3Points`), not a naive sum of the rows above it — see the caption below the table for why
+ * those can legitimately differ. */
 export function BuildOrderPanel({ formState, result }: BuildOrderPanelProps) {
-  const { order, error } = useMemo(() => {
-    try {
-      return { order: getMixedOrderingFromResult(toPlanResult(formState, result)), error: null };
-    } catch (e) {
-      return { order: null, error: (e as Error).message };
-    }
-  }, [formState, result]);
+  const { rows, error } = useMemo(() => computeBuildOrderTable(formState, result), [formState, result]);
 
   return (
     <section className="panel">
       <h2>Build order</h2>
       {error && <div className="status-banner">Could not compute a build order: {error}</div>}
-      {order && order.length === 0 && <p>Nothing new to build.</p>}
-      {order && order.length > 0 && (
-        <ol>
-          {order.map((name, i) => (
-            <li key={`${name}-${i}`}>{toPrintable(name)}</li>
-          ))}
-        </ol>
-      )}
-      {result.demolished.length > 0 && (
+      {!error && rows.length === 0 && <p>Nothing to build.</p>}
+      {!error && rows.length > 0 && (
         <>
-          <h3>Facilities to demolish</h3>
-          <ul>
-            {result.demolished.map((d, i) => (
-              <li key={i}>
-                {toPrintable(d.building)} ({d.slotKind} slot {d.index + 1} on body {d.bodyId})
-              </li>
-            ))}
-          </ul>
+          <div className="build-order-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th rowSpan={2}>Nr.</th>
+                  <th rowSpan={2}>State</th>
+                  <th rowSpan={2}>Body</th>
+                  <th rowSpan={2}>Slot</th>
+                  <th rowSpan={2}>Facility</th>
+                  <th rowSpan={2}>Generated points</th>
+                  <th className="build-order-group-header" colSpan={2}>
+                    Δ
+                  </th>
+                  <th className="build-order-group-header" colSpan={2}>
+                    Σ
+                  </th>
+                </tr>
+                <tr>
+                  <th>T2</th>
+                  <th>T3</th>
+                  <th>T2</th>
+                  <th>T3</th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={row.nr} className={ROW_CLASSES[row.state]}>
+                    <td>{row.nr}</td>
+                    <td className={STATE_CLASSES[row.state]}>{STATE_LABELS[row.state]}</td>
+                    <td>{row.bodyName ?? "—"}</td>
+                    <td>{row.slotLabel ?? "—"}</td>
+                    <td>
+                      <FacilityCell row={row} />
+                    </td>
+                    <td className="build-order-points">
+                      <PointDeltas row={row} />
+                    </td>
+                    <td>{signed(row.t2Delta)}</td>
+                    <td>{signed(row.t3Delta)}</td>
+                    <td>{row.t2Total}</td>
+                    <td>{row.t3Total}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="build-order-total-row">
+                  <td colSpan={5}>Total</td>
+                  <td className="build-order-points">
+                    {ALL_SCORES.filter((score) => score !== "construction_cost" && result.scores[score] !== 0).map((score) => (
+                      <div key={score}>
+                        {toPrintable(score)}: {result.scores[score]}
+                      </div>
+                    ))}
+                  </td>
+                  <td />
+                  <td />
+                  <td>{result.finalT2Points}</td>
+                  <td>{result.finalT3Points}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+          <p className="panel-hint">
+            The Total row shows the solver's own final numbers (including the first-station bonus, subsequent-facility
+            reduction, and economy synergy) — it isn't a plain sum of the "Generated points" column above, which shows
+            each row's raw, unweighted contribution. The T2/T3 Σ columns above use a different (deliberately more
+            accurate, always-executable) cost model than the solver's own new-port estimate, so they can end up
+            slightly higher than the Total row's T2/T3 figures — never lower.
+          </p>
         </>
       )}
     </section>
