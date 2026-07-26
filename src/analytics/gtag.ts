@@ -31,15 +31,12 @@ export function loadGoogleAnalytics() {
         window.dataLayer!.push(arguments);
     };
 
+    window.gtag("js", new Date());
+    window.gtag("config", GA_MEASUREMENT_ID);
+
     const script = document.createElement("script");
     script.async = true;
     script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-
-    script.onload = () => {
-        window.gtag!("js", new Date());
-        window.gtag!("config", GA_MEASUREMENT_ID);
-    };
-
     document.head.appendChild(script);
 }
 
