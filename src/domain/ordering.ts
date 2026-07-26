@@ -92,13 +92,18 @@ export function computeFeasibleOrder(
 
     let targetTier: 1 | 2;
     if (remainingPorts.length > 0) {
-      const nextPort = remainingPorts[0];
-      if (state.canBuild(nextPort)) {
-        insertBuilding(nextPort);
-        remainingPorts.shift();
-        continue;
-      }
-      targetTier = (getTier(nextPort) - 1) as 1 | 2;
+      // Search the WHOLE remaining-ports queue for anything currently buildable, not just the
+      // head — the two escalating port-cost curves (Tier-2-cost: Coriolis/Asteroid_Base; Tier-3-
+      // cost: Orbis_or_Ocellus/Dodecahedron/Planetary_Port) are tracked independently PER CLASS in
+      // SystemState.constructionPoints, so building a different-class port earlier never perturbs
+      // the other class's cost sequence, and same-class ports are cost-interchangeable regardless
+      // of order. A real (but pre-existing, deferred) bug this fixes: with extreme demolition, the
+      // old head-only check could throw "Could not finish ordering" even when the solver had
+      // already confirmed a feasible solution exists, because a LATER port in the queue (e.g. a
+      // Coriolis, which also grants a flat T3 point) was affordable and would have funded the
+      // stuck head port, but was never even considered. See ordering.test.ts's dedicated repro.
+      if (buildFirstFromList(remainingPorts)) continue;
+      targetTier = (getTier(remainingPorts[0]) - 1) as 1 | 2;
     } else {
       targetTier = 2;
     }

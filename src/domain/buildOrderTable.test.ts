@@ -171,4 +171,77 @@ describe("computeBuildOrderTable", () => {
     expect(lastRow.t2Total).toBeGreaterThanOrEqual(result.finalT2Points);
     expect(lastRow.t3Total).toBeGreaterThanOrEqual(result.finalT3Points);
   }, 30000);
+
+  it("survives extreme demolition (most present facilities removed) without throwing or going negative", async () => {
+    // Regression test for the "Could not finish ordering" bug tracked as a backlog follow-up (see
+    // CLAUDE.md's Gotchas + TASKS.md), reproduced here for real: mark EVERY present facility across
+    // EVERY body demolishable, and cap `atMost` at 0 for every present non-port building type so the
+    // solver removes essentially all of them (only the two escalating-cost ports — Coriolis and
+    // Orbis_or_Ocellus — survive, since ports are never demolishable). Two distinct bugs both had to
+    // be fixed for this to pass:
+    // (1) `ordering.ts`'s `computeFeasibleOrder` only ever tried the head of its ports queue —
+    //     fixed by searching the whole queue (see ordering.test.ts's dedicated unit test).
+    // (2) Demolishing enough point-generating facilities while the two already-present ports keep
+    //     their full historical escalating cost charged can force a real T2/T3 deficit if Demolish
+    //     rows are all forced before any Planned (rebuild) row — fixed by `scheduleDemolishAndPlanned`
+    //     interleaving them (deferring an unsafe demolish until a Planned row restores the balance),
+    //     NOT by clamping the number (an earlier version of this fix did that, and got called out
+    //     during user review for making the Delta/Total columns visibly disagree with each other).
+    const system: JournalSystem = JSON.parse(readFileSync(SYSTEM_PATH, "utf-8"));
+    for (const body of system.bodies) {
+      if (!body.presentFacilities) continue;
+      for (const kind of ["space", "ground"] as const) {
+        body.presentFacilities[kind] = body.presentFacilities[kind].map((slot) =>
+          slot ? { ...slot, demolishable: true } : slot,
+        );
+      }
+    }
+
+    const formState: PlannerFormState = {
+      ...INITIAL_FORM_STATE,
+      bodies: system.bodies,
+      starSystem: system.starSystem,
+      systemAddress: system.systemAddress,
+      systemConfigured: true,
+      firstStationBuilding: system.firstStationBuilding ?? "",
+      firstStationBodyId: system.firstStationBodyId,
+      firstStationVariant: system.firstStationVariant,
+      firstStationCustomName: system.firstStationCustomName,
+      atMost: {
+        Communication_Station: 0,
+        Government: 0,
+        Medium_Agricultural_Settlement: 0,
+        Military_Outpost: 0,
+        Refinery_Hub: 0,
+        Civilian_Planetary_Outpost: 0,
+      },
+    };
+
+    const result = await solve(buildSolverInput(formState));
+    expect(result.status).toBe("optimal");
+    // Sanity check this actually IS the extreme-demolition scenario, not a milder one.
+    expect(result.demolished.length).toBeGreaterThan(20);
+
+    const { rows, error } = computeBuildOrderTable(formState, result);
+    expect(error).toBeNull();
+    expect(rows.length).toBeGreaterThan(0);
+    expect(rows.map((r) => r.nr)).toEqual(rows.map((_, i) => i + 1));
+
+    for (const row of rows) {
+      expect(row.t2Total).toBeGreaterThanOrEqual(0);
+      expect(row.t3Total).toBeGreaterThanOrEqual(0);
+    }
+    const lastRow = rows[rows.length - 1];
+    expect(lastRow.t2Total).toBeGreaterThanOrEqual(result.finalT2Points);
+    expect(lastRow.t3Total).toBeGreaterThanOrEqual(result.finalT3Points);
+
+    // Prove the scheduler actually reordered rows rather than coincidentally staying safe with the
+    // naive "all demolishes, then all planned builds" order: at least one Planned row must land
+    // BEFORE the last Demolish row.
+    const states = rows.map((r) => r.state);
+    const lastDemolishIndex = states.lastIndexOf("demolish");
+    const firstPlannedIndex = states.indexOf("planned");
+    expect(firstPlannedIndex).toBeGreaterThan(-1);
+    expect(firstPlannedIndex).toBeLessThan(lastDemolishIndex);
+  }, 30000);
 });
