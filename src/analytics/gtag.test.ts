@@ -21,6 +21,10 @@ describe("loadGoogleAnalytics", () => {
 
   it("pushes the js/config calls onto window.dataLayer", () => {
     loadGoogleAnalytics();
+    const script = document.head.querySelector<HTMLScriptElement>(
+      `script[src="https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}"]`,
+    );
+    script?.onload?.(new Event("load"));
     expect(window.dataLayer).toBeDefined();
     const calls = window.dataLayer!.map((args) => (args as unknown[])[0]);
     expect(calls).toContain("js");
