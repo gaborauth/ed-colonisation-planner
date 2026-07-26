@@ -33,6 +33,10 @@ src/
     solvedPlacement.ts       — turns a solved SolverResult back into a per-body/per-slot picture
                               (present/primary/new/demolished, each tagged with its build-order
                               number) for SolvedSystemPanel's read-only tree
+    buildOrderTable.ts       — BuildOrderPanel's full per-row Built/Demolish/Planned ledger
+                              (numbered, running T2/T3 total) — see the Gotchas section for why it
+                              costs every row via ordering.ts/systemState.ts, never solve.ts's own
+                              new-port MILP formula
     solvedLinks.ts           — merges a solved plan's already-present facilities (minus anything
                               demolished) with its newly-built ones before computing link topology
                               — SolverResult.placements alone is new-builds-only (see solve.ts)
@@ -211,6 +215,39 @@ also revisable:
   their own separate sequential slot-index sequences instead of one shared `port_k`-style index
   across all 5 types — a bigger MILP restructuring than the `systemState.ts` fix, deliberately not
   attempted in the same pass.
+- **`domain/buildOrderTable.ts` (BuildOrderPanel's full per-row Built/Demolish/Planned ledger, added
+  2026-07-27) deliberately costs every row via `ordering.ts`/`systemState.ts`'s per-tier math, never
+  `solve.ts`'s own new-port MILP formula from the entry above** — that formula is a real, in-model
+  number, but its per-k feasibility check tests an AGGREGATE condition ("if every non-port
+  contribution were available up front, does paying for k+1 ports in some order stay non-negative"),
+  not a genuine step-by-step sequence; replaying it in build order can (and did, in real user
+  testing) dip the running T2/T3 total negative even when a valid, always-executable order exists.
+  `computeFeasibleOrder`'s per-tier, canBuild-gated math is what actually GUARANTEES an executable
+  sequence — matching this app's existing precedent (`BuildOrderPanel`/`SolvedSystemPanel` already
+  treat `ordering.ts`'s own computed order as authoritative for display, never `solve.ts`'s raw
+  internal port assignment; see "Port placement fidelity is deliberately approximate" below).
+  Consequence: this table's own final running T2/T3 total can legitimately end up higher than
+  `result.finalT2Points`/`finalT3Points`, never lower — surfaced via the panel's own caption, not
+  silently. Two real bugs found via user testing here, both fixed and regression-tested
+  (`domain/buildOrderTable.test.ts`): (1) a present facility the solver actually demolishes must
+  still show up as a real Built row first (it's real, standing, already-generating infrastructure
+  today, regardless of what this specific solve later does to it) before its Demolish row subtracts
+  it back out — the first version skipped it entirely (sourcing Built rows from
+  `computeSolvedPlacements`'s "present" status, which deliberately excludes anything
+  `result.demolished` removes), undercounting the Built total and (compounding with the formula bug)
+  driving the running total negative; (2) the formula bug described above.
+  **Known, deliberately-deferred follow-up (user decision, 2026-07-27):** with EXTREME demolition
+  (marking most/all present facilities demolishable), `computeFeasibleOrder` can still throw "Could
+  not finish ordering" even though `solve.ts` confirms a fully feasible optimal solution exists
+  (`result.status === "optimal"`, final T2/T3 non-negative) — confirmed this is a PRE-EXISTING
+  limitation of `computeFeasibleOrder`'s own greedy search itself (reproduced by calling the
+  unchanged `getOrderingFromResult` directly), not something `buildOrderTable.ts` introduced — it
+  would equally break `SolvedSystemPanel.tsx`'s "Solved system" tree for the same extreme scenario,
+  since both call that exact function. Root cause is a genuine search-algorithm limitation (it can
+  get stuck needing to build the next port in `result.portOrder`'s fixed sequence while nothing else
+  is affordable yet either, even though a different interleaving would work) — fixing it means
+  reworking `computeFeasibleOrder`'s core search, out of scope for the demolish-accounting fix above;
+  tracked in `TASKS.md` as a follow-up rather than expanding that fix's scope.
 - **`SolverResult.slotsRemaining` must subtract present/primary occupancy too, not just new
   builds.** Real bug fixed 2026-07-26 (user report: a fully-built system still showed 15/16/10
   slots "left"). `usedSlots.space`/`.ground`/`allVars.Asteroid_Base` are the raw NEW-BUILD decision-

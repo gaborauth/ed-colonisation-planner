@@ -10,7 +10,12 @@ Runs entirely client-side: no backend, no account, nothing leaves your browser. 
 
 ## Using it
 
-Open the app (see the GitHub Pages link at the top of this repo, or run it locally — see below) and:
+Open the app (see the GitHub Pages link at the top of this repo, or run it locally — see below).
+
+**No journal file handy?** Click **Live Demo** (next to **Import system** in the top toolbar) to
+load a real, already-played example system and try the planner immediately — no upload needed.
+
+Otherwise:
 
 1. **Import from journal** — upload an Elite Dangerous Journal `.log` file to get a starting
    estimate of each body's buildable slots from your scanned system data. That estimate is a
@@ -31,12 +36,12 @@ Open the app (see the GitHub Pages link at the top of this repo, or run it local
 5. **Buildings** — pin per-building minimums/maximums, and hover a building's total (after solving)
    to see its contribution to each score. The "Already present" column is only editable without a
    journal-imported body layout — with one, it's a read-only mirror of the System facilities tree.
-6. Hit **Solve for a system**. Results show the resulting scores, remaining slots/points, a
-   feasible build order respecting dependencies and construction-point requirements, and (if any
-   already-built facility was demolishable) which ones the solver chose to actually tear down. In
-   per-body mode, a **Links & economy** panel shows each body's ports, their Update 3 Strong/Weak
-   links, resulting economy types, and unlocked station services (Shipyard, Black Market, etc.) —
-   and a **Population growth** panel shows an illustrative (not verified) growth curve.
+6. Hit **Solve for a system**. The **Solved system** panel shows the resulting scores, remaining
+   slots/points, and the per-body proposed layout with its Update 3 Strong/Weak links and economy
+   types (hover any facility's "i" icon). The **Build order** panel below it lays out the whole plan
+   as one numbered, color-coded table — every facility instance, already built, marked for
+   demolition, or newly planned, in build order — with a running T2/T3 point total per row and a
+   Total row for the solver's own final numbers.
 7. **Saved plans** — save/load plans locally (browser storage), or export/import a plan as a file to
    move it between browsers.
 

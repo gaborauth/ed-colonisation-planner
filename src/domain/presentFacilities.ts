@@ -78,8 +78,10 @@ function flatten(bodies: PresentFacilitiesBody[]): FlatPresentFacility[] {
 /** Deterministic ordering for facilities with no real recorded build order: by body, space before
  * ground, then slot index. Only affects `computePresentPortsSeed` below (non-port facilities have
  * fixed per-unit T2/T3 costs, order-independent) — flagged as an approximation, same spirit as
- * `links.ts`'s "ties broken by build order" tie-break. */
-function sortDeterministic<T extends { bodyId: number; kind: "space" | "ground"; index: number }>(refs: T[]): T[] {
+ * `links.ts`'s "ties broken by build order" tie-break. Exported so `domain/buildOrderTable.ts` can
+ * reuse the exact same tie-break for its "Built"/"Demolish" row ordering instead of re-implementing
+ * it — those rows' T2/T3 port-escalation math must match this canonical order precisely. */
+export function sortDeterministic<T extends { bodyId: number; kind: "space" | "ground"; index: number }>(refs: T[]): T[] {
   return [...refs].sort((a, b) => {
     if (a.bodyId !== b.bodyId) return a.bodyId - b.bodyId;
     if (a.kind !== b.kind) return a.kind === "space" ? -1 : 1;

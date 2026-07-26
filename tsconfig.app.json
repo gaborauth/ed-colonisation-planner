@@ -11,6 +11,7 @@
     // (`globalThis.process.versions.node`, see CLAUDE.md's gotchas) is unaffected either way.
     "types": ["vite/client", "node"],
     "allowArbitraryExtensions": true,
+    "resolveJsonModule": true,
     "skipLibCheck": true,
 
     /* Bundler mode */
