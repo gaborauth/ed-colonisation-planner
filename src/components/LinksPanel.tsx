@@ -1,6 +1,7 @@
 import { useMemo } from "react";
 import { toPrintable } from "../data/buildings";
-import { computeSystemLinks, type PortSummary } from "../domain/links";
+import type { PortSummary } from "../domain/links";
+import { computeSolvedSystemLinks } from "../domain/solvedLinks";
 import { computePortServices } from "../domain/stationServices";
 import type { SolverResult } from "../solver/solve";
 import type { PlannerFormState } from "../state/plannerState";
@@ -17,8 +18,8 @@ function bodyName(formState: PlannerFormState, bodyId: number): string {
 export function LinksPanel({ formState, result }: LinksPanelProps) {
   const linksResult = useMemo(() => {
     if (formState.bodies.length === 0) return null;
-    return computeSystemLinks(formState.bodies, result.placements, result.portOrder);
-  }, [formState.bodies, result.placements, result.portOrder]);
+    return computeSolvedSystemLinks(formState.bodies, result);
+  }, [formState.bodies, result]);
 
   const systemBuildingNames = useMemo(() => new Set(result.placements.map((p) => p.building)), [result.placements]);
 
@@ -35,7 +36,10 @@ export function LinksPanel({ formState, result }: LinksPanelProps) {
       {linksResult && (
         <>
           {linksResult.warnings.length > 0 && (
-            <div className="status-banner">
+            // Informational, not a failure — the solve itself succeeded; these just call out
+            // facilities that can't strong-link locally (no port on their body). Deliberately not
+            // styled like the red infeasible/error banners elsewhere on the page.
+            <div className="status-banner hint">
               {linksResult.warnings.map((w, i) => (
                 <div key={i}>{w}</div>
               ))}

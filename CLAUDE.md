@@ -32,16 +32,28 @@ src/
     bodyHierarchy.ts        — reconstructs the star/planet/moon/sub-moon nesting from body-naming
                               convention, for the System facilities tree's display only (UI-only,
                               not consumed by the solver or any other domain module)
+    solvedPlacement.ts       — turns a solved SolverResult back into a per-body/per-slot picture
+                              (present/primary/new/demolished, each tagged with its build-order
+                              number) for SolvedSystemPanel's read-only tree
+    solvedLinks.ts           — merges a solved plan's already-present facilities (minus anything
+                              demolished) with its newly-built ones before computing link topology
+                              — SolverResult.placements alone is new-builds-only (see solve.ts)
+    currentSystemScores.ts   — the CURRENT (not-yet-solved) system's score totals, plain-number
+                              reweighted sum over already-present facilities — no MILP needed for a
+                              fixed, already-built layout; feeds SystemConfigPanel's summary
   solver/
     expressionParser.ts    — safe recursive-descent parser for custom objective expressions
     objective.ts            — compiles parsed expressions into an LP-linearizable form
     lpExpr.ts / lpModel.ts — linear-expression algebra + LP-format model builder
     solve.ts                — the actual MILP: builds the model, calls HiGHS, parses the solution;
-                              optionally per-body (see "Per-body placement" below)
+                              optionally per-body (see "Per-body placement" below), including an
+                              `economy_synergy` score term (see "Update 3 link/economy modeling")
   state/plannerState.ts    — the app's one useReducer (form state) living in App.tsx
   persistence/             — localStorage-backed: saved plans, saved journal systems
   journal/                 — parses uploaded Elite Dangerous Journal files, estimates buildable slots
-  components/               — one component per UI panel, no component library
+  components/               — one component per UI panel, no component library; FacilityInfo.tsx
+                              (the "i" info icons) and SystemScoresSummary.tsx (score/points/slots
+                              readout) are shared between "Actual facilities" and "Solved system"
 ```
 
 State management is a single `useReducer` in `App.tsx` — no Redux/Zustand/Context. There's no backend
@@ -131,6 +143,25 @@ also revisable:
   links exist, never a number). Both cross-validated against a real in-game system's exact reported
   percentages/counts (see `links.test.ts`'s two dedicated regression tests) rather than just
   theoretical — but still flagged the same way as everything else in this section.
+- `economy_synergy` (`src/solver/solve.ts`'s `economySynergyCoefficient`, exposed as objective
+  letter `y`) — a genuinely new approximation (not from a source table at all, unlike most entries
+  above, which are at least community/official-*derived*): for a candidate (building, body) pair on
+  a body already known (before solving) to have a port — a present one, or the primary station's
+  assigned body — it applies the verbatim strong-link boost/decrease table (`computeBoostDecrease`)
+  as if a strong link had already formed there. For any OTHER body, it deliberately does NOT apply
+  that table — only a flat, body-attribute-independent `WEAK_LINK_CONTRIBUTION` (from
+  `domain/links.ts`) per economy the building carries, since a body with no confirmed port can only
+  ever weak-link elsewhere in the real mechanic, and weak links are unaffected by boost/decrease.
+  This split was added after the first version (which applied the full boost everywhere) started
+  actively steering the solver to dump facilities on port-less bodies purely to farm a boost that
+  could never really apply there — visible as a spike in `domain/links.ts`'s "has N facility
+  type(s) but no port" warnings once `economy_synergy` shipped (2026-07-25 user report). Still NOT
+  the same thing as `domain/links.ts`'s real post-solve `computeSystemLinks` (which the Links panel
+  uses unchanged, and which DOES know the true link graph once a layout is solved) — whether the
+  solver will ALSO build a brand-new port on a currently-port-less body is itself a decision
+  variable, so "known port" here means "known before solving," a conservative approximation in
+  both directions, not exact. If a future change makes exact link-graph-aware MILP scoring
+  tractable, replace this with that instead of layering more approximation on top.
 
 ## Gotchas worth knowing before touching the solver
 
@@ -158,6 +189,43 @@ also revisable:
   `computePresentPortsSeed` picks a deterministic stand-in order (by body, space before ground, then
   slot index) to charge their historical cost into the T2/T3 starting balance. Same kind of
   approximation as `links.ts`'s "ties broken by build order" tie-break below — flagged, not a bug.
+- **Tier-2-cost ports (Coriolis, Asteroid_Base) and Tier-3-cost ports (Orbis_or_Ocellus,
+  Dodecahedron, Planetary_Port) escalate along INDEPENDENT sequences** — real-game-confirmed (see
+  `computePresentPortsSeed`'s doc comment above). `domain/systemState.ts`'s `constructionPoints`
+  had a real bug here (fixed 2026-07-26, found via a real exported system with both port tiers
+  already present): it used one shared `this.ports.length` counter for both tiers, over-escalating
+  whichever tier's port got built after a port of the OTHER tier — inflated enough that
+  `ordering.ts`'s `computeFeasibleOrder` (used by `BuildOrderPanel`/`SolvedSystemPanel`) could throw
+  "Could not finish ordering" for a plan `solve.ts` had already confirmed was T2/T3-feasible. Now
+  fixed to count same-tier predecessors only (`systemState.test.ts`'s dedicated regression test).
+  **`solve.ts`'s own new-port MILP cost model still has the same shared-index shape** (its
+  `t2PortSlotSum`/`t3PortSlotSum` loop scales by `getT2PortCost(k)`/`getT3PortCost(k)` using ONE
+  global sequential slot `k` shared across all 5 escalating port types, not a per-tier index) — left
+  unfixed for now since, unlike the `systemState.ts` bug, this direction is *safe* (the shared global
+  index is always >= the true same-tier count, and both cost curves are monotonically increasing, so
+  it only ever OVER-estimates cost — conservative/suboptimal, never accepts a plan that's actually
+  infeasible in-game). Revisit if a solved plan's port cost ever looks implausibly high with a mixed
+  already-present port-tier set; fixing it properly means giving Tier-2-cost and Tier-3-cost ports
+  their own separate sequential slot-index sequences instead of one shared `port_k`-style index
+  across all 5 types — a bigger MILP restructuring than the `systemState.ts` fix, deliberately not
+  attempted in the same pass.
+- **`SolverResult.slotsRemaining` must subtract present/primary occupancy too, not just new
+  builds.** Real bug fixed 2026-07-26 (user report: a fully-built system still showed 15/16/10
+  slots "left"). `usedSlots.space`/`.ground`/`allVars.Asteroid_Base` are the raw NEW-BUILD decision-
+  variable sums (`allVars`, not `allValues`) — correct as-is for the per-body CAPACITY CONSTRAINT
+  (which separately subtracts present-hard/present-kept/primary occupancy per body before bounding
+  new construction), but the OLD reported `slotsRemaining` used them bare against the raw total slot
+  count, silently ignoring everything already standing. Fixed to subtract present-hard +
+  present-kept-and-not-demolished + the primary's reserved slot too (see the block right before
+  `solve()`'s `return`). Aggregate mode's formula is untouched (protected by the `bodies: []`-vs-
+  omitted byte-identical regression test) — `presentSplit`/`presentKeepVars` are always empty there,
+  so the new per-body-only terms are all 0 and it reduces to exactly the old formula. The `asteroid`
+  figure needed a second fix on top: asteroid-eligible slots are a SUBSET of orbital slots (any
+  orbital slot on a ring-eligible body — see `JournalBody.slots.asteroid`'s doc comment), so
+  occupancy there must count ANY building on a ring-eligible body, not just `Asteroid_Base`
+  specifically (the first fix pass still only checked for `Asteroid_Base`, which could
+  contradictorily report asteroid slots free while plain orbital slots — a superset — were already
+  fully used). `solve.test.ts` has dedicated regression tests for both.
 
 ## Testing conventions
 
@@ -172,6 +240,35 @@ also revisable:
   have a committed browser-driving setup yet (Playwright was installed ad hoc, `--no-save`, during
   development sessions and isn't a project dependency). If you need to do this again and it's not a
   quick one-off, consider running `/run-skill-generator` to make it a proper reusable project skill.
+- **`jsons/swoilz-aw-c-d52.json` is a real exported system (the user's own, committed to the repo —
+  see `SystemPortabilityBar.tsx`'s export format) and is always fair game as a test-data source.**
+  Free to read it directly, load it in an ad-hoc reproduction script (e.g. a temporary
+  `src/_debug.test.ts` run via `vitest run` and deleted afterward — this is exactly how the
+  `slotsRemaining`/`systemState.ts` port-escalation/`economySynergyCoefficient` bugs above were each
+  reproduced and confirmed fixed), or reference in a real regression test. It's real, played-out
+  in-game data — already-built facilities, real body attributes, a real primary station — so it's
+  also the go-to way to cross-check this app's computed numbers (scores, links, slot counts, T2/T3
+  balance) against actual reported in-game values when the user says something looks wrong; don't
+  hesitate to reach for it first instead of constructing a synthetic fixture from scratch. Multiple
+  bugs in this file were found exactly this way. If more `jsons/*.json` files show up locally later,
+  treat them the same way unless told otherwise — this is the first and, as of this note, only one
+  actually committed (an earlier version of this doc's "Update 3 link/economy modeling" section
+  called every `jsons/*.json` file "not committed," which was already stale for this one).
+- **`src/realSystems.test.ts`** (added 2026-07-26, at the user's request) makes the above permanent
+  and automatic instead of ad hoc: `describe.each` over every `*.json` file actually present in
+  `jsons/` (so dropping in another real exported system extends this suite with zero code changes —
+  no registration list to update), each run through the exact same pipeline a real "Solve for a
+  system" click plus the "Solved system" panel's own post-solve computations perform — `solve()`
+  with the app's real default objective (via `App.tsx`'s exported `buildSolverInput`, not a
+  hand-rolled reconstruction of it, so the test can't quietly drift from what the app actually does),
+  then build order (`getOrderingFromResult`) + link topology (`computeSolvedSystemLinks`) + per-slot
+  placement seating (`computeSolvedPlacements`). Asserts the invariants the four real bugs above each
+  broke: `slotsRemaining`/T2/T3 never negative, build order never throws, links never throw,
+  `computeSolvedPlacements`'s `warnings` stays empty. This is deliberately the broadest smoke test in
+  the project — closer to `App.test.tsx`'s end-to-end spirit than a narrow unit test, but without a
+  DOM (pure solver/domain pipeline) so it can run fast and `describe.each` cheaply over many systems.
+  `tsconfig.app.json` needed `"node"` added to its `types` array for this file's `node:fs`/`node:path`
+  usage — ambient types only, doesn't change what runs in the browser.
 
 ## Data source
 
@@ -299,25 +396,47 @@ escalating-cost-curve port buildings are never demolishable — this project sti
 construction-progress tracking.
 
 **Dodec Update score-weighting** (2025-11-11) — already implemented as `FIRST_STATION_BONUS`/
-`SUBSEQUENT_FACILITY_REDUCTION` in `solve.ts`, repeated here for completeness: first station
-+40%/+40%/+40%/+20%/+40% (development level/security/standard of living/tech level/wealth);
-subsequent facilities −10%/−10%/−20%/−25%/−25% (same five, same order).
+`SUBSEQUENT_FACILITY_REDUCTION` in `data/buildings.ts` (moved there from `solve.ts` 2026-07-26 once
+`domain/currentSystemScores.ts` needed the same constants for a plain-number reweight — it's a
+general game rule, not something specific to the solver's own LP formulation), repeated here for
+completeness: first station +40%/+40%/+40%/+20%/+40% (development level/security/standard of
+living/tech level/wealth); subsequent facilities −10%/−10%/−20%/−25%/−25% (same five, same order).
 
 ### Design notes
 
-**The solver's objective/scores are untouched by this feature.** Links govern commodity
-supply/demand — a mechanic this tool has never modeled — so there's no existing score for link
-topology to feed into, and none was invented. Body placement (`SolverInput.bodies`) enters the MILP
-purely as a *feasibility* constraint (real per-body slot capacity, replacing the old 3 aggregate
-slot pools when present) and as a *deterministic input* to `domain/links.ts`'s post-solve
-computation — mirroring how `domain/ordering.ts` already computes build order after `solve()`
-returns without being part of the MILP itself.
+**The solver's objective now DOES take link/economy into account, via `economy_synergy` — this
+superseded an earlier version of this section** (kept below, struck through in spirit not in
+markup, for anyone reading old PR history/comments referencing it) that said "the solver's
+objective/scores are untouched by this feature... no existing score for link topology to feed
+into, and none was invented." That was true through the initial link/economy display work,
+but user feedback (2026-07-25) overrode it: with Update 3+'s rules in place, recommending a layout
+that never considers *which body* suits *which* economy type isn't good enough, even without a full
+commodity-quantity model. See `solve.ts`'s header comment (search `economy_synergy`) for the exact
+mechanism: each candidate (building, body) pair gets a coefficient from
+`domain/economyOverrides.ts`'s existing verbatim strong-link boost/decrease table
+(`computeBoostDecrease`), applied to that building's own economy type(s)
+(`facilityBaseEconomies`) as if a strong link to it had already formed — regardless of whether one
+actually would in the final solved layout. This is a real, new approximation (not verbatim-sourced),
+added to the "Explicitly unverified/best-effort constants" section above; it is deliberately NOT an
+attempt to embed the full strong/weak-link *graph* (which body's port is dominant, etc.) inside the
+MILP — that depends circularly on the very placement decisions being solved for, and doing it exactly
+would need to know link topology before solving for the layout that produces it. `economy_synergy` is
+exposed as an ordinary `Score` (letter `y` in custom objective expressions) — see `ObjectivePanel`'s
+default expression, which now includes it. Body placement (`SolverInput.bodies`) still *also* enters
+the MILP purely as a *feasibility* constraint (real per-body slot capacity, replacing the old 3
+aggregate slot pools when present) and still separately feeds `domain/links.ts`'s post-solve
+computation for the Links panel's exact topology — `economy_synergy` is additive to both of those
+existing roles, not a replacement for either.
 
 **Backward compatibility is load-bearing, not incidental.** `SolverInput.bodies` absent/empty (the
 default — anyone using only the System facilities panel's aggregate slot fields) reproduces today's exact
 solver behavior; `PlannerFormState.bodies` empty is the same signal at the state layer. This is
 covered by an explicit regression test in `solve.test.ts` (`bodies: []` vs. omitted must be
-byte-identical) — don't remove it if you touch `solve.ts`'s per-body code paths.
+byte-identical) — don't remove it if you touch `solve.ts`'s per-body code paths. `SolverBody.economy`
+(feeding `economy_synergy` above) is its own nested opt-in on top of that: a body present but with
+`economy` omitted contributes 0 to `economy_synergy` rather than erroring, same degrade-gracefully
+pattern — covered by its own dedicated `solve.test.ts` case, separate from the `bodies: []`-vs-omitted
+one.
 
 **Port placement fidelity is deliberately approximate, not exact**, for the rare case of two
 *different* port types tied in tier landing on the same body: `solve.ts` doesn't thread body
@@ -334,6 +453,24 @@ spent on it yet), which this app's solver doesn't track at all (only aggregate p
 building type as already at its ceiling is an optimistic approximation that can overstate service
 availability for a freshly-built, not-yet-upgraded port.
 
+**`SolverResult.placements` is new-builds-only — feeding it alone to `computeSystemLinks` silently
+drops every already-present facility's link contribution.** Real bug found 2026-07-26 (user report:
+"already built facilities are not provid[ing] strong nor weak links in the solved system"):
+`solve.ts` folds already-present facilities into the MILP as plain constants, never as their own
+`bodyVars` decision-variable entry, so they never appear in `placements` at all — only newly-solved-
+for buildings and the primary station's own fixed reservation do (see `solve.ts`'s `placements`
+construction). Both `LinksPanel.tsx` and `SolvedSystemPanel.tsx` used to call `computeSystemLinks`
+with `result.placements` directly, which meant a system with any already-built, non-primary
+facility (nearly every real system) showed an incomplete link graph for its SOLVED state — present
+facilities' economy contribution just vanished from the "Links & economy" panel and the "Solved
+system" tree's info hovers, even though `SystemConfigPanel.tsx`'s own present-only view
+(`domain/presentLinks.ts`) always got this right. Fixed via `domain/solvedLinks.ts`'s
+`computeSolvedSystemLinks`, which merges `result.placements` with the same present-facilities
+conversion `presentLinks.ts` uses (excluding whatever `result.demolished` actually removed) before
+calling `computeSystemLinks` — both panels now use that instead of calling `computeSystemLinks`
+directly. If you add a third caller of a solved plan's link topology, use
+`computeSolvedSystemLinks`, not `computeSystemLinks(bodies, result.placements, ...)` directly.
+
 ### Per-facility economy ratio accumulation (System facilities panel hover — user-supplied, not verbatim source text)
 
 The System facilities panel's per-facility hover ("i" icon on a built slot) shows an "Economy
@@ -342,8 +479,12 @@ links" block (a 3-column Economy/Strong link/Weak link table of *counts*, not pe
 is entirely user-supplied real-game-testing rules, not from any official patch note text (which
 only ever says links "supply a proportion" of an economy, never a number). Implemented in
 `domain/links.ts`'s `computeSystemLinks` (`PortEconomyLine`/`MarketLinkLine`), consumed by
-`SystemConfigPanel.tsx`'s `facilityEconomyRatios`/`facilityMarketLinks`. Rules, in order of
-discovery/confirmation:
+`facilityEconomyRatios`/`facilityMarketLinks` — moved out of `SystemConfigPanel.tsx` into
+`components/FacilityInfo.tsx` (2026-07-26) once `SolvedSystemPanel.tsx`'s read-only "Solved system"
+tree needed the exact same "i" info icons (`FacilityInfoIcon`/`BodyInfoIcon`) fed a *different*
+`SystemLinksResult` — the present-only one from `domain/presentLinks.ts` for the "Actual facilities"
+tree, `domain/solvedLinks.ts`'s solved one (see above) for the "Solved system" tree. Rules, in order
+of discovery/confirmation:
 
 - **Strong-link contribution** = `LINK_TIER_CONTRIBUTION_RATE[giver's tier]` (0.4/0.8/1.2 for
   Tier 1/2/3) `+` that economy's own strong-link boost/decrease delta on the shared body —
@@ -375,8 +516,9 @@ discovery/confirmation:
   summed per economy, with zero rendered as "-" in the UI.
 
 All of the above is validated end-to-end in `links.test.ts` against the exact numbers from a real
-exported system (`jsons/*.json` — the user's own save data, not committed) rather than just
-theoretical worked examples.
+exported system (`jsons/swoilz-aw-c-d52.json` — the user's own save data, committed to the repo; see
+"Testing conventions" below for how freely this is meant to be used) rather than just theoretical
+worked examples.
 
 ## Workflow constraints
 

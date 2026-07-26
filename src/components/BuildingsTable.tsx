@@ -1,6 +1,7 @@
 import type { Dispatch } from "react";
 import { ALL_BUILDINGS, ALL_CATEGORIES, BASE_SCORES, toPrintable, type Building } from "../data/buildings";
 import { derivePresentCounts } from "../domain/presentFacilities";
+import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
 import type { SolverResult } from "../solver/solve";
 import { NumberInput } from "./NumberInput";
@@ -44,7 +45,10 @@ function contributionTooltip(building: Building, total: number) {
   return <>{lines}</>;
 }
 
+// Folded by default (per user request, see App.tsx) — this panel and ConstraintsPanel are
+// fine-tuning tools for later in a session, not needed for a first solve.
 export function BuildingsTable({ formState, dispatch, result }: BuildingsTableProps) {
+  const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(true);
   // Once a body layout is applied, already-present counts come from the System facilities panel's
   // per-slot tree instead of this flat map (see solve.ts's alreadyPresent doc comment) — shown here
   // read-only so the two sources of truth can't drift apart.
@@ -61,71 +65,83 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
 
   return (
     <section className="panel">
-      <h2>Buildings</h2>
-      {DISPLAY_GROUPS.map(({ label, names }) => (
-        <div key={label} style={{ marginBottom: 12 }}>
-          <div className="category-heading">{label}</div>
-          <table>
-            <thead>
-              <tr>
-                <th>Building</th>
-                <th>Already present</th>
-                <th>At least</th>
-                <th>At most</th>
-                <th>Built</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>
-              {names.map((name) => {
-                const building = ALL_BUILDINGS[name];
-                const built = result?.toBuild[name] ?? 0;
-                const total = (presentCounts[name] ?? 0) + built;
-                return (
-                  <tr key={name}>
-                    <td>{toPrintable(name)}</td>
-                    <td>
-                      {hasBodies ? (
-                        presentCounts[name] ?? 0
-                      ) : (
+      <button
+        ref={buttonRef}
+        type="button"
+        className="panel-toggle"
+        aria-expanded={!collapsed}
+        onClick={() => setCollapsed((c) => !c)}
+      >
+        <span className="panel-toggle-title">Buildings</span>
+        <span className="chevron" aria-hidden="true">
+          ▾
+        </span>
+      </button>
+      {!collapsed &&
+        DISPLAY_GROUPS.map(({ label, names }) => (
+          <div key={label} style={{ marginBottom: 12 }}>
+            <div className="category-heading">{label}</div>
+            <table>
+              <thead>
+                <tr>
+                  <th>Building</th>
+                  <th>Already present</th>
+                  <th>At least</th>
+                  <th>At most</th>
+                  <th>Built</th>
+                  <th>Total</th>
+                </tr>
+              </thead>
+              <tbody>
+                {names.map((name) => {
+                  const building = ALL_BUILDINGS[name];
+                  const built = result?.toBuild[name] ?? 0;
+                  const total = (presentCounts[name] ?? 0) + built;
+                  return (
+                    <tr key={name}>
+                      <td>{toPrintable(name)}</td>
+                      <td>
+                        {hasBodies ? (
+                          presentCounts[name] ?? 0
+                        ) : (
+                          <NumberInput
+                            ariaLabel={`${toPrintable(name)} already present`}
+                            value={formState.alreadyPresent[name]}
+                            onChange={(value) =>
+                              dispatch({ type: "setMapEntry", map: "alreadyPresent", name, value })
+                            }
+                          />
+                        )}
+                      </td>
+                      <td>
                         <NumberInput
-                          ariaLabel={`${toPrintable(name)} already present`}
-                          value={formState.alreadyPresent[name]}
-                          onChange={(value) =>
-                            dispatch({ type: "setMapEntry", map: "alreadyPresent", name, value })
-                          }
+                          ariaLabel={`${toPrintable(name)} at least`}
+                          value={formState.atLeast[name]}
+                          onChange={(value) => dispatch({ type: "setMapEntry", map: "atLeast", name, value })}
                         />
-                      )}
-                    </td>
-                    <td>
-                      <NumberInput
-                        ariaLabel={`${toPrintable(name)} at least`}
-                        value={formState.atLeast[name]}
-                        onChange={(value) => dispatch({ type: "setMapEntry", map: "atLeast", name, value })}
-                      />
-                    </td>
-                    <td>
-                      <NumberInput
-                        ariaLabel={`${toPrintable(name)} at most`}
-                        value={formState.atMost[name]}
-                        onChange={(value) => dispatch({ type: "setMapEntry", map: "atMost", name, value })}
-                      />
-                    </td>
-                    <td>{built > 0 ? built : ""}</td>
-                    <td>
-                      {total > 0 ? (
-                        <Tooltip content={contributionTooltip(building, total)}>{total}</Tooltip>
-                      ) : (
-                        0
-                      )}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      ))}
+                      </td>
+                      <td>
+                        <NumberInput
+                          ariaLabel={`${toPrintable(name)} at most`}
+                          value={formState.atMost[name]}
+                          onChange={(value) => dispatch({ type: "setMapEntry", map: "atMost", name, value })}
+                        />
+                      </td>
+                      <td>{built > 0 ? built : ""}</td>
+                      <td>
+                        {total > 0 ? (
+                          <Tooltip content={contributionTooltip(building, total)}>{total}</Tooltip>
+                        ) : (
+                          0
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        ))}
     </section>
   );
 }

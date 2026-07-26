@@ -36,6 +36,33 @@ describe("SystemState port cost escalation", () => {
     state.addBuilding("Coriolis", 1);
     expect(state.T2points).toBe(85);
   });
+
+  // Real bug found 2026-07-26 via a real exported system (jsons/swoilz-aw-c-d52.json, not
+  // committed) that already had both a Coriolis (Tier-2-cost) and an Orbis_or_Ocellus
+  // (Tier-3-cost) port present: an earlier version of `constructionPoints` used one shared
+  // `this.ports.length` counter for BOTH tiers' escalation sequences, so building a Tier-3-cost
+  // port after a Tier-2-cost one over-charged it as if it were a LATER Tier-3-cost port than it
+  // actually is — inflated enough, compounded over several more ports, to make
+  // `computeFeasibleOrder` (ordering.ts) wrongly throw "Could not finish ordering" for a plan
+  // solve.ts had already confirmed was T2/T3-feasible. Tier-2-cost and Tier-3-cost ports must
+  // escalate independently — same rule `presentFacilities.ts`'s `computePresentPortsSeed` already
+  // gets right (real-game-confirmed, see its own doc comment) via separate t2Index/t3Index.
+  it("escalates Tier-2-cost and Tier-3-cost ports along independent sequences", () => {
+    const state = new SystemState();
+    state.T2points = 100;
+    state.T3points = 100;
+    state.addBuilding("Coriolis", 1); // Tier-2-cost: costs getT2PortCost(0) = 3, grants T3points: 1.
+    expect(state.T2points).toBe(97);
+    expect(state.T3points).toBe(101);
+    // Orbis_or_Ocellus is the FIRST Tier-3-cost port ever built here — Coriolis being present
+    // must not push it to getT3PortCost(1) = 12; it should cost getT3PortCost(0) = 6.
+    state.addBuilding("Orbis_or_Ocellus", 1);
+    expect(state.T3points).toBe(95);
+    // A second Tier-2-cost port still only counts prior Tier-2-cost ports (1), unaffected by the
+    // Tier-3-cost port built in between: getT2PortCost(1) = 5.
+    state.addBuilding("Asteroid_Base", 1);
+    expect(state.T2points).toBe(92);
+  });
 });
 
 describe("SystemState.addFirstStation", () => {
