@@ -1,7 +1,7 @@
 import { type Dispatch, useRef, useState } from "react";
 import { deriveCurrentPoints, deriveSlotUsage, toSlotUsageBodies } from "../domain/presentFacilities";
 import { computeSystemSlotTotals, type JournalSystem } from "../journal/parser";
-import { saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
+import { listSavedSystems, saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
 import { SlotBar } from "./SlotBar";
 import { TierIcon } from "./TierIcon";
@@ -82,6 +82,38 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
   const slotUsageBodies = toSlotUsageBodies(formState.bodies);
   const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots, formState.firstStationBodyId);
   const points = deriveCurrentPoints(slotUsageBodies, formState.firstStationBuilding);
+
+  // Every saved system regardless of source (Journal upload or Spansh) — read fresh on every
+  // render rather than cached in state, so a save from a sibling panel (JournalImportPanel) is
+  // reflected immediately without needing a refresh-token plumbing scheme like that panel's own.
+  const savedSystems = listSavedSystems();
+
+  // Switches directly to an already-saved system with no separate "Apply" step — unlike
+  // JournalImportPanel's own dropdown (which picks among freshly-parsed-but-not-yet-reviewed
+  // systems still needing a slot-count check before Apply), everything here is already fully
+  // configured, so switching can just re-dispatch its saved shape immediately. Same dispatch shape
+  // as loadParsedSystem below, minus re-saving (it's already in the store) and onImported (nothing
+  // new was imported).
+  function switchToSavedSystem(systemAddress: number): void {
+    const system = savedSystems.find((s) => s.systemAddress === systemAddress);
+    if (!system) return;
+    setLastUsedSystemAddress(system.systemAddress);
+    dispatch({
+      type: "patch",
+      patch: {
+        slots: computeSystemSlotTotals(system),
+        bodies: system.bodies,
+        systemConfigured: true,
+        systemAddress: system.systemAddress,
+        starSystem: system.starSystem,
+        firstStationBuilding: system.firstStationBuilding ?? "",
+        firstStationBodyId: system.firstStationBodyId,
+        firstStationVariant: system.firstStationVariant,
+        firstStationCustomName: system.firstStationCustomName,
+      },
+    });
+    onSystemChanged?.();
+  }
 
   function handleSave(): void {
     const system = systemFromFormState(formState);
@@ -194,25 +226,56 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
             e.target.value = "";
           }}
         />
-        {canSaveOrExport && (
+        {(canSaveOrExport || savedSystems.length > 0) && (
           <div className="toolbar-summary">
-            <span className="toolbar-summary-system">{formState.starSystem}</span>
-            <span className="toolbar-summary-item">
-              <SlotBar built={slotUsage.space.built} total={slotUsage.space.total} />
-              Orbital {slotUsage.space.built}/{slotUsage.space.total}
-            </span>
-            <span className="toolbar-summary-item">
-              <SlotBar built={slotUsage.ground.built} total={slotUsage.ground.total} />
-              Ground {slotUsage.ground.built}/{slotUsage.ground.total}
-            </span>
-            <span className="toolbar-summary-item">
-              <TierIcon tier={2} />
-              {points.t2}
-            </span>
-            <span className="toolbar-summary-item">
-              <TierIcon tier={3} />
-              {points.t3}
-            </span>
+            {savedSystems.length > 1 || (savedSystems.length === 1 && !canSaveOrExport) ? (
+              <select
+                className="toolbar-summary-system"
+                aria-label="Switch system"
+                // No system is "current" yet on a fresh page load whose last-used system didn't
+                // have a primary station saved (JournalImportPanel's mount-effect only auto-
+                // restores when one was) — a blank/placeholder selection here still lets the user
+                // pick a saved system to get going again, instead of the whole toolbar summary
+                // (and this switcher along with it) simply staying gone until they re-import.
+                value={canSaveOrExport ? (formState.systemAddress ?? "") : ""}
+                onChange={(e) => {
+                  if (e.target.value) switchToSavedSystem(Number(e.target.value));
+                }}
+              >
+                {!canSaveOrExport && (
+                  <option value="" disabled>
+                    Pick a saved system…
+                  </option>
+                )}
+                {savedSystems.map((s) => (
+                  <option key={s.systemAddress} value={s.systemAddress}>
+                    {s.starSystem}
+                  </option>
+                ))}
+              </select>
+            ) : (
+              canSaveOrExport && <span className="toolbar-summary-system">{formState.starSystem}</span>
+            )}
+            {canSaveOrExport && (
+              <>
+                <span className="toolbar-summary-item">
+                  <SlotBar built={slotUsage.space.built} total={slotUsage.space.total} />
+                  Orbital {slotUsage.space.built}/{slotUsage.space.total}
+                </span>
+                <span className="toolbar-summary-item">
+                  <SlotBar built={slotUsage.ground.built} total={slotUsage.ground.total} />
+                  Ground {slotUsage.ground.built}/{slotUsage.ground.total}
+                </span>
+                <span className="toolbar-summary-item">
+                  <TierIcon tier={2} />
+                  {points.t2}
+                </span>
+                <span className="toolbar-summary-item">
+                  <TierIcon tier={3} />
+                  {points.t3}
+                </span>
+              </>
+            )}
           </div>
         )}
       </div>

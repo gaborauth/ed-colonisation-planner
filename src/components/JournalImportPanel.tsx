@@ -10,8 +10,12 @@ import {
   type JournalSystem,
 } from "../journal/parser";
 import { getLastUsedSystemAddress, listSavedSystems, saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
+import { spanshDumpToJournalSystem } from "../spansh/adapter";
+import { fetchSpanshSystemDump, searchSystemNames } from "../spansh/api";
 import type { PlannerAction } from "../state/plannerState";
 import { NumberInput } from "./NumberInput";
+
+type ImportTab = "journal" | "spansh";
 
 interface JournalImportPanelProps {
   dispatch: Dispatch<PlannerAction>;
@@ -101,6 +105,50 @@ export function JournalImportPanel({ dispatch, refreshToken, onSystemChanged }: 
   const [applied, setApplied] = useState(false);
   const [justSaved, setJustSaved] = useState(false);
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(false);
+
+  const [activeTab, setActiveTab] = useState<ImportTab>("journal");
+  const [spanshQuery, setSpanshQuery] = useState("");
+  const [spanshCandidates, setSpanshCandidates] = useState<{ id64: number; name: string }[]>([]);
+  const [spanshSelected, setSpanshSelected] = useState<{ id64: number; name: string } | null>(null);
+  const [spanshSearching, setSpanshSearching] = useState(false);
+  const [spanshLoading, setSpanshLoading] = useState(false);
+  const [spanshError, setSpanshError] = useState<string | null>(null);
+
+  // Debounced typeahead against Spansh's name-suggestion endpoint — minimum 2 characters, ~300ms
+  // after the user stops typing, so this doesn't fire a request per keystroke.
+  useEffect(() => {
+    const query = spanshQuery.trim();
+    if (query.length < 2) {
+      setSpanshCandidates([]);
+      return;
+    }
+    setSpanshSearching(true);
+    const handle = setTimeout(() => {
+      searchSystemNames(query)
+        .then((results) => setSpanshCandidates(results))
+        .catch((e) => setSpanshError((e as Error).message))
+        .finally(() => setSpanshSearching(false));
+    }, 300);
+    return () => clearTimeout(handle);
+  }, [spanshQuery]);
+
+  async function handleSpanshLoad(): Promise<void> {
+    if (!spanshSelected) return;
+    setSpanshLoading(true);
+    setSpanshError(null);
+    try {
+      const record = await fetchSpanshSystemDump(spanshSelected.id64);
+      const system = spanshDumpToJournalSystem(record);
+      setSystems((prev) => mergeBySystemAddress(prev, [system]));
+      setSelectedAddress(system.systemAddress);
+      setApplied(false);
+      setJustSaved(false);
+    } catch (e) {
+      setSpanshError((e as Error).message);
+    } finally {
+      setSpanshLoading(false);
+    }
+  }
 
   async function handleFile(file: File): Promise<void> {
     setApplied(false);
@@ -212,16 +260,23 @@ export function JournalImportPanel({ dispatch, refreshToken, onSystemChanged }: 
     });
   }
 
-  // On first load, silently re-apply whichever system was last used — if it has both bodies and a
-  // saved primary station, "Actual facilities in the system" should already look "applied" (filled
-  // in, Journal panel folded) without the user needing to click "Apply" again every session. A
-  // system with no saved primary station yet is left alone (incomplete configuration, nothing
-  // useful to auto-apply).
+  // On first load, silently re-apply whichever system was last used, as long as it has bodies —
+  // "Actual facilities in the system" should already look "applied" (filled in, Journal panel
+  // folded) without the user needing to click "Apply" again every session. Used to also require a
+  // saved primary station (leaving a system with none "incomplete, nothing useful to auto-apply"),
+  // but that created a real, user-reported inconsistency: this panel's own `systems`/
+  // `selectedAddress` state (below) already defaults to the same last-used system regardless of
+  // primary-station status, so the panel visually looked "loaded" while the rest of the app
+  // (`formState`, the toolbar system switcher, "Actual facilities in the system") stayed blank —
+  // two different parts of the UI disagreeing about whether a system was active. Not having a
+  // primary station yet is a perfectly normal, valid intermediate state elsewhere in the app
+  // (e.g. right after a brand-new system's first-ever Apply, before one's been chosen) — only
+  // actually solving requires one — so there's nothing unsafe about auto-restoring here too.
   useEffect(() => {
     const lastUsedAddress = getLastUsedSystemAddress();
     if (lastUsedAddress === null) return;
     const system = listSavedSystems().map(normalizeSystem).find((s) => s.systemAddress === lastUsedAddress);
-    if (!system || system.bodies.length === 0 || !system.firstStationBuilding) return;
+    if (!system || system.bodies.length === 0) return;
     applySystem(system);
     // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally mount-only
   }, []);
@@ -260,7 +315,7 @@ export function JournalImportPanel({ dispatch, refreshToken, onSystemChanged }: 
         onClick={() => setCollapsed((c) => !c)}
       >
         <span className="panel-toggle-title">
-          Import from journal
+          Import system
           {collapsed && applied && (
             <span className="panel-toggle-status">Applied to Actual facilities in the system and saved</span>
           )}
@@ -271,145 +326,250 @@ export function JournalImportPanel({ dispatch, refreshToken, onSystemChanged }: 
       </button>
       {!collapsed && (
         <>
-          <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 0 }}>
-            In-game, the automatic Discovery Scan ("honk") alone isn't enough — open the Full
-            Spectrum Scanner (throttle down to 0% in supercruise) and individually FSS-scan every
-            body in the system first. The more bodies scanned this way, the better the slot-count
-            guess below will be. Then upload your Journal file, which lives in your Saved Games
-            folder, named by date/time, e.g.{" "}
-            <code style={{ overflowWrap: "anywhere" }}>
-              {"C:\\Users\\<you>\\Saved Games\\Frontier Developments\\Elite Dangerous\\Journal.2026-07-26T081047.01.log"}
-            </code>{" "}
-            — pick the most recent one from your current play session.
-          </p>
-          <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 0 }}>
-            The Journal doesn't report real slot counts — they vary per body and can't be derived from
-            scan data. Fields below are pre-filled with a <strong>best-effort, unverified</strong> guess;
-            check your in-game System Map and correct each body's numbers as needed.
-          </p>
-          <input
-            type="file"
-            accept=".log,.jsonl,text/plain"
-            aria-label="Journal file"
-            onChange={(e) => {
-              const file = e.target.files?.[0];
-              if (file) void handleFile(file);
-              e.target.value = "";
-            }}
-          />
-          {error && <div className="status-banner">{error}</div>}
+          <div className="tablist" role="tablist" aria-label="Import source">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "journal"}
+              className="tab"
+              onClick={() => setActiveTab("journal")}
+            >
+              Journal file
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={activeTab === "spansh"}
+              className="tab"
+              onClick={() => setActiveTab("spansh")}
+            >
+              Spansh
+            </button>
+          </div>
 
-          {systems.length > 0 && (
-            <div style={{ marginTop: 10 }}>
+          {activeTab === "journal" && (
+            <div role="tabpanel" aria-label="Journal file import">
+              <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 10 }}>
+                In-game, the automatic Discovery Scan ("honk") alone isn't enough — open the Full
+                Spectrum Scanner (throttle down to 0% in supercruise) and individually FSS-scan every
+                body in the system first. The more bodies scanned this way, the better the slot-count
+                guess below will be. Then upload your Journal file, which lives in your Saved Games
+                folder, named by date/time, e.g.{" "}
+                <code style={{ overflowWrap: "anywhere" }}>
+                  {"C:\\Users\\<you>\\Saved Games\\Frontier Developments\\Elite Dangerous\\Journal.2026-07-26T081047.01.log"}
+                </code>{" "}
+                — pick the most recent one from your current play session.
+              </p>
+              <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 0 }}>
+                The Journal doesn't report real slot counts — they vary per body and can't be derived from
+                scan data. Fields below are pre-filled with a <strong>best-effort, unverified</strong> guess;
+                check your in-game System Map and correct each body's numbers as needed.
+              </p>
+              <input
+                type="file"
+                accept=".log,.jsonl,text/plain"
+                aria-label="Journal file"
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) void handleFile(file);
+                  e.target.value = "";
+                }}
+              />
+
+              {systems.length > 0 && (
+                <div className="row-grid" style={{ marginTop: 10 }}>
+                  <div className="field">
+                    <label htmlFor="journal-system">System</label>
+                    <select
+                      id="journal-system"
+                      value={selectedAddress ?? ""}
+                      onChange={(e) => {
+                        setSelectedAddress(Number(e.target.value));
+                        setApplied(false);
+                        setJustSaved(false);
+                      }}
+                    >
+                      {systems.map((s) => (
+                        <option key={s.systemAddress} value={s.systemAddress}>
+                          {s.starSystem} ({s.bodies.length} bodies scanned)
+                          {savedAddresses.has(s.systemAddress) ? " — saved" : ""}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {justSaved && (
+                    <span style={{ color: "var(--success)" }}>
+                      Saved — will still be here after a reload, no re-upload needed
+                    </span>
+                  )}
+                  <button type="button" onClick={resetToGuess} disabled={!selected} style={{ marginLeft: "auto" }}>
+                    Reset slots to guess
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "spansh" && (
+            <div role="tabpanel" aria-label="Spansh import">
+              <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 10 }}>
+                Alternative to uploading a Journal file: search Spansh's public system database by
+                name and load a starting point directly, no journal file needed — useful for a
+                system you haven't personally scanned yet. Spansh's body data is generally close to
+                a real Journal scan, but signal/genus data reflects whoever last scanned that body
+                in Spansh's own database, not necessarily your own play session; cross-check against
+                your in-game System Map the same as with a Journal import.
+              </p>
               <div className="row-grid">
                 <div className="field">
-                  <label htmlFor="journal-system">System</label>
-                  <select
-                    id="journal-system"
-                    value={selectedAddress ?? ""}
+                  <label htmlFor="spansh-query">System name</label>
+                  <input
+                    id="spansh-query"
+                    type="text"
+                    value={spanshQuery}
+                    placeholder="Start typing a system name…"
+                    autoComplete="off"
                     onChange={(e) => {
-                      setSelectedAddress(Number(e.target.value));
-                      setApplied(false);
-                      setJustSaved(false);
+                      setSpanshQuery(e.target.value);
+                      setSpanshSelected(null);
+                      setSpanshError(null);
                     }}
-                  >
-                    {systems.map((s) => (
-                      <option key={s.systemAddress} value={s.systemAddress}>
-                        {s.starSystem} ({s.bodies.length} bodies scanned)
-                        {savedAddresses.has(s.systemAddress) ? " — saved" : ""}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
-                {justSaved && (
-                  <span style={{ color: "var(--success)" }}>
-                    Saved — will still be here after a reload, no re-upload needed
-                  </span>
-                )}
-                <button type="button" onClick={resetToGuess} disabled={!selected} style={{ marginLeft: "auto" }}>
-                  Reset slots to guess
+                <button
+                  type="button"
+                  onClick={() => void handleSpanshLoad()}
+                  disabled={!spanshSelected || spanshLoading}
+                  style={{ marginLeft: "auto" }}
+                >
+                  {spanshLoading ? "Loading…" : "Load"}
                 </button>
               </div>
-
-              {selected && (
-                <>
-                  <table style={{ marginTop: 10 }}>
-                    <thead>
-                      <tr>
-                        <th>Body</th>
-                        {SLOT_KINDS.map((kind) => (
-                          <th key={kind}>{ALL_SLOTS[kind]}</th>
-                        ))}
-                        <th title="From the Journal's FSSBodySignals event (an ordinary FSS/'honk' scan) when present — correct freely if it's missing or wrong.">
-                          Bio signals
-                        </th>
-                        <th title="From the Journal's FSSBodySignals event (an ordinary FSS/'honk' scan) when present — correct freely if it's missing or wrong.">
-                          Geo signals
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {[...selected.bodies].sort(compareBodyNames).map((body) => (
-                        <tr key={body.bodyId}>
-                          <td title={estimateBodySlots(body).reason}>{body.bodyName}</td>
-                          {SLOT_KINDS.map((kind) =>
-                            kind === "asteroid" ? (
-                              <td key={kind}>
-                                <input
-                                  type="checkbox"
-                                  aria-label={`${body.bodyName} asteroid base eligible`}
-                                  checked={(body.slots?.[kind] ?? 0) > 0}
-                                  onChange={(e) => updateBodySlot(body.bodyId, kind, e.target.checked ? 1 : 0)}
-                                />
-                              </td>
-                            ) : (
-                              <td key={kind}>
-                                <NumberInput
-                                  ariaLabel={`${body.bodyName} ${ALL_SLOTS[kind]} slots`}
-                                  value={body.slots?.[kind] ?? 0}
-                                  blankMeans="zero"
-                                  onChange={(v) => updateBodySlot(body.bodyId, kind, v ?? 0)}
-                                />
-                              </td>
-                            ),
-                          )}
-                          <td>
-                            <input
-                              type="checkbox"
-                              aria-label={`${body.bodyName} biological signals`}
-                              checked={body.hasBiologicalSignals ?? false}
-                              onChange={(e) => updateBodySignal(body.bodyId, "hasBiologicalSignals", e.target.checked)}
-                            />
-                          </td>
-                          <td>
-                            <input
-                              type="checkbox"
-                              aria-label={`${body.bodyName} geological signals`}
-                              checked={body.hasGeologicalSignals ?? false}
-                              onChange={(e) => updateBodySignal(body.bodyId, "hasGeologicalSignals", e.target.checked)}
-                            />
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                  {totals && (
-                    <div className="row-grid" style={{ marginTop: 10 }}>
-                      <span>
-                        Total: {totals.space} orbital ({totals.asteroid} asteroid-eligible) / {totals.ground}{" "}
-                        ground
-                      </span>
-                      <button type="button" onClick={apply}>
-                        Apply slots and body layout to Actual facilities in the system
+              {spanshSearching && <div className="status-banner loading">Searching Spansh…</div>}
+              {!spanshSelected && spanshCandidates.length > 0 && (
+                <ul
+                  role="listbox"
+                  aria-label="Matching systems"
+                  style={{
+                    listStyle: "none",
+                    margin: "4px 0",
+                    padding: 0,
+                    maxHeight: 200,
+                    overflowY: "auto",
+                    border: "1px solid var(--border)",
+                    borderRadius: 4,
+                  }}
+                >
+                  {spanshCandidates.map((c) => (
+                    <li key={c.id64}>
+                      <button
+                        type="button"
+                        role="option"
+                        aria-selected={false}
+                        onClick={() => {
+                          setSpanshSelected(c);
+                          setSpanshQuery(c.name);
+                          setSpanshCandidates([]);
+                        }}
+                        style={{
+                          display: "block",
+                          width: "100%",
+                          textAlign: "left",
+                          padding: "4px 8px",
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                        }}
+                      >
+                        {c.name}
                       </button>
-                      {applied && (
-                        <span style={{ color: "var(--success)" }}>
-                          Applied to Actual facilities in the system and saved
-                        </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {spanshError && <div className="status-banner">{spanshError}</div>}
+            </div>
+          )}
+
+          {error && <div className="status-banner">{error}</div>}
+
+          {selected && (
+            <div style={{ marginTop: 10 }}>
+              <table style={{ marginTop: 10 }}>
+                <thead>
+                  <tr>
+                    <th>Body</th>
+                    {SLOT_KINDS.map((kind) => (
+                      <th key={kind}>{ALL_SLOTS[kind]}</th>
+                    ))}
+                    <th title="From the Journal's FSSBodySignals event (an ordinary FSS/'honk' scan) when present — correct freely if it's missing or wrong.">
+                      Bio signals
+                    </th>
+                    <th title="From the Journal's FSSBodySignals event (an ordinary FSS/'honk' scan) when present — correct freely if it's missing or wrong.">
+                      Geo signals
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {[...selected.bodies].sort(compareBodyNames).map((body) => (
+                    <tr key={body.bodyId}>
+                      <td title={estimateBodySlots(body).reason}>{body.bodyName}</td>
+                      {SLOT_KINDS.map((kind) =>
+                        kind === "asteroid" ? (
+                          <td key={kind}>
+                            <input
+                              type="checkbox"
+                              aria-label={`${body.bodyName} asteroid base eligible`}
+                              checked={(body.slots?.[kind] ?? 0) > 0}
+                              onChange={(e) => updateBodySlot(body.bodyId, kind, e.target.checked ? 1 : 0)}
+                            />
+                          </td>
+                        ) : (
+                          <td key={kind}>
+                            <NumberInput
+                              ariaLabel={`${body.bodyName} ${ALL_SLOTS[kind]} slots`}
+                              value={body.slots?.[kind] ?? 0}
+                              blankMeans="zero"
+                              onChange={(v) => updateBodySlot(body.bodyId, kind, v ?? 0)}
+                            />
+                          </td>
+                        ),
                       )}
-                    </div>
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`${body.bodyName} biological signals`}
+                          checked={body.hasBiologicalSignals ?? false}
+                          onChange={(e) => updateBodySignal(body.bodyId, "hasBiologicalSignals", e.target.checked)}
+                        />
+                      </td>
+                      <td>
+                        <input
+                          type="checkbox"
+                          aria-label={`${body.bodyName} geological signals`}
+                          checked={body.hasGeologicalSignals ?? false}
+                          onChange={(e) => updateBodySignal(body.bodyId, "hasGeologicalSignals", e.target.checked)}
+                        />
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {totals && (
+                <div className="row-grid" style={{ marginTop: 10 }}>
+                  <span>
+                    Total: {totals.space} orbital ({totals.asteroid} asteroid-eligible) / {totals.ground}{" "}
+                    ground
+                  </span>
+                  <button type="button" onClick={apply}>
+                    Apply slots and body layout to Actual facilities in the system
+                  </button>
+                  {applied && (
+                    <span style={{ color: "var(--success)" }}>
+                      Applied to Actual facilities in the system and saved
+                    </span>
                   )}
-                </>
+                </div>
               )}
             </div>
           )}

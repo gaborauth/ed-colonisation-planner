@@ -288,6 +288,33 @@ tbody tr:hover {
   align-items: flex-end;
 }
 
+/* JournalImportPanel's "Journal file"/"Spansh" tab bar. */
+.tablist {
+  display: flex;
+  gap: 4px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 4px;
+}
+
+.tab {
+  background: none;
+  border: none;
+  border-bottom: 2px solid transparent;
+  color: var(--text-dim);
+  padding: 6px 12px;
+  font: inherit;
+  cursor: pointer;
+}
+
+.tab:hover {
+  color: var(--text);
+}
+
+.tab[aria-selected="true"] {
+  color: var(--accent-text);
+  border-bottom-color: var(--accent);
+}
+
 /* SystemPortabilityBar's Save/Export/Import row — pinned to the viewport top so it stays reachable
  * while the title (and everything below it) scrolls underneath. Bleeds out to #root's own padding
  * (negative margin + matching padding) so the opaque background spans full-bleed under the sticky
@@ -320,6 +347,16 @@ tbody tr:hover {
   font-family: var(--font-display);
   letter-spacing: 0.06em;
   color: var(--accent-text);
+}
+
+/* When there's more than one saved system, .toolbar-summary-system is a <select> instead of a
+ * plain <span> — strip the native chrome so it still reads as the same plain accent-colored label,
+ * just with a dropdown affordance. */
+select.toolbar-summary-system {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 
 .toolbar-summary-item {

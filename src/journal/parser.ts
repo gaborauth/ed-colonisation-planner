@@ -192,6 +192,23 @@ interface BodySignals {
   geological: boolean;
 }
 
+/** The Journal's own signal-type strings, exported so `spansh/adapter.ts` can match against the
+ * identical keys Spansh's `/dump/{id64}` uses for its `signals.signals` map — confirmed to be the
+ * exact same strings, not just conceptually equivalent. */
+export const SIGNAL_TYPE_BIOLOGICAL = "$SAA_SignalType_Biological;";
+export const SIGNAL_TYPE_GEOLOGICAL = "$SAA_SignalType_Geological;";
+
+/** Converts the Journal's raw `Parents` shape (an array of single-key objects, key = parent type,
+ * value = that parent's own `BodyID`) into `JournalParent[]`. Exported so `spansh/adapter.ts` can
+ * reuse it verbatim — Spansh's `/dump/{id64}` uses the byte-identical shape for its own `parents`
+ * field. */
+export function parseParents(parents: Record<string, number>[] | undefined): JournalParent[] {
+  return (parents ?? []).map((p) => {
+    const [type, bodyId] = Object.entries(p)[0];
+    return { type, bodyId };
+  });
+}
+
 /** First pass over the file: collects every `FSSBodySignals` event into a `(SystemAddress, BodyID)`
  * lookup. Needed as a separate pass (rather than attaching inline while building bodies from `Scan`
  * events) because a body's `FSSBodySignals` event isn't guaranteed to appear after its `Scan` line
@@ -218,8 +235,8 @@ function collectBodySignals(text: string): Map<string, BodySignals> {
     const key = `${parsed.SystemAddress}:${parsed.BodyID}`;
     const existing = signalsByBody.get(key);
     signalsByBody.set(key, {
-      biological: (existing?.biological ?? false) || parsed.Signals.some((s) => s.Type === "$SAA_SignalType_Biological;"),
-      geological: (existing?.geological ?? false) || parsed.Signals.some((s) => s.Type === "$SAA_SignalType_Geological;"),
+      biological: (existing?.biological ?? false) || parsed.Signals.some((s) => s.Type === SIGNAL_TYPE_BIOLOGICAL),
+      geological: (existing?.geological ?? false) || parsed.Signals.some((s) => s.Type === SIGNAL_TYPE_GEOLOGICAL),
     });
   }
   return signalsByBody;
@@ -239,10 +256,7 @@ function toJournalBody(raw: RawScanEvent, rawJson: Record<string, unknown>, sign
     atmosphere: raw.Atmosphere || undefined,
     terraformState: raw.TerraformState || undefined,
     tidalLocked: raw.TidalLock,
-    parents: (raw.Parents ?? []).map((p) => {
-      const [type, bodyId] = Object.entries(p)[0];
-      return { type, bodyId };
-    }),
+    parents: parseParents(raw.Parents),
     rings: (raw.Rings ?? []).map((r) => ({
       name: r.Name,
       ringClass: r.RingClass,
