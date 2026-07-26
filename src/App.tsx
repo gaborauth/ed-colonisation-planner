@@ -13,7 +13,8 @@ import { SystemPortabilityBar } from "./components/SystemPortabilityBar";
 import { normalizeFacilitySlots } from "./domain/presentFacilities";
 import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
 import type { SavedPlan } from "./persistence/plans";
-import { solve, type SolverBody, type SolverInput } from "./solver/solve";
+import type { SolverBody, SolverInput } from "./solver/solve";
+import { solveInWorker } from "./solver/solveInWorker";
 import {
   INITIAL_FORM_STATE,
   INITIAL_RESULT_STATE,
@@ -78,7 +79,7 @@ function App() {
   async function handleSolve(): Promise<void> {
     setResultState({ status: "solving", result: null, message: null });
     try {
-      const result = await solve(buildSolverInput(formState));
+      const result = await solveInWorker(buildSolverInput(formState));
       if (result.status === "optimal") {
         setResultState({ status: "done", result, message: null });
       } else {

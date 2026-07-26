@@ -30,6 +30,28 @@ describe("computeFeasibleOrder", () => {
     expect(order).toEqual(["Coriolis"]);
     expect(state.firstStation).toBe("Coriolis");
   });
+
+  it("builds a later, currently-affordable port before an earlier, not-yet-affordable one instead of throwing", () => {
+    // Regression test for the extreme-demolition "Could not finish ordering" bug (see CLAUDE.md's
+    // Gotchas + TASKS.md): the old algorithm only ever tried remainingPorts[0], so if the FIRST
+    // port in the queue wasn't affordable yet, it gave up instead of checking whether a LATER port
+    // in the same queue could be built first. Real building costs from data/buildings.ts:
+    // getT2PortCost(0) === 3 (Coriolis's first-of-class cost), getT3PortCost(0) === 6
+    // (Orbis_or_Ocellus's first-of-class cost) — and Coriolis carries a flat, non-escalating
+    // `t3: 1` alongside its escalating T2 cost, so building it also generates one T3 point as a
+    // side effect.
+    const state = new SystemState();
+    state.T2points = 3; // exactly enough for Coriolis (getT2PortCost(0))
+    state.T3points = 5; // one short of Orbis_or_Ocellus's cost (getT3PortCost(0) === 6)
+
+    // Orbis_or_Ocellus is listed FIRST but isn't affordable yet; Coriolis is listed second, is
+    // affordable now, and its flat +1 T3 exactly funds Orbis_or_Ocellus afterward.
+    const order = computeFeasibleOrder(state, {}, ["Orbis_or_Ocellus", "Coriolis"]);
+
+    expect(order).toEqual(["Coriolis", "Orbis_or_Ocellus"]);
+    expect(state.T2points).toBe(0);
+    expect(state.T3points).toBe(0);
+  });
 });
 
 describe("getMixedOrderingFromResult", () => {

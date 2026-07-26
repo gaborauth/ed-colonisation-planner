@@ -31,12 +31,26 @@
 // your currently-standing facilities already generated banked before you tear anything down). Built
 // rows are sourced from EVERY present facility (`formState.bodies`' own `presentFacilities`, hard AND
 // demolishable alike), sequenced via its own `computeFeasibleOrder` pass so THIS section is also
-// guaranteed non-negative on its own; Demolish rows (from `result.demolished`) subtract afterward.
+// guaranteed non-negative on its own.
+//
+// Demolish and Planned rows are NOT simply "all demolishes, then all planned builds" — that naive
+// fixed order can force the running total negative when demolishing several point-generating
+// facilities before building anything to replace them, even though demolition itself is never
+// blocked by insufficient points in the real game (points are *refunded* on demolition, per
+// CLAUDE.md's demolition-mechanics notes — the deficit is purely an artifact of this table's own
+// display order, not something a real player would be forced into). Real bug found via user
+// testing 2026-07-27: marking every Medium Agricultural Settlement demolishable showed several
+// consecutive Demolish rows with an honest `-1` Delta each but a Total that had already hit its
+// floor — an earlier version of this file clamped the Total at 0 to hide this, which just made
+// Delta and Total disagree instead of fixing anything. Fixed by `scheduleDemolishAndPlanned`
+// (below): it interleaves Demolish and Planned rows, deferring any demolish that would currently
+// go negative until a Planned row has grown the balance back up, using `SystemState.canDemolish`/
+// `removeBuilding` (the demolish-side counterparts to `canBuild`/`addBuilding`).
 //
 // `domain/solvedPlacement.ts`'s `computeSolvedPlacements` is still reused for the Planned section's
 // body/slot seating (which empty slot each new unit lands in) and its own already-validated
 // `newBuildOrder` (from `getOrderingFromResult`) — that part was never the problem, only the T2/T3
-// cost formula applied on top of it was.
+// cost formula and row ordering applied on top of it were.
 
 import { ALL_BUILDINGS, BASE_SCORES, isPort, type BaseScore, type Building } from "../data/buildings";
 import { getOrderingFromResult, computeFeasibleOrder } from "./ordering";
@@ -165,6 +179,67 @@ function collectPlannedCandidates(formState: PlannerFormState, result: SolverRes
   return planned.sort((a, b) => a.order - b.order);
 }
 
+interface DemolishItem {
+  building: string;
+  bodyId: number;
+  kind: "space" | "ground";
+  index: number;
+}
+
+/** Chooses a real, executable interleaving of Demolish and Planned rows instead of the naive "all
+ * demolishes, then all planned builds" order — demolishing several point-generating facilities
+ * before building anything to replace them can force the running T2/T3 total negative even though
+ * a real player could simply build a replacement first (see this file's header comment; found via
+ * real user testing 2026-07-27 marking every Medium Agricultural Settlement demolishable). At each
+ * step, prefers any remaining demolish that's currently safe (`replay.canDemolish` — won't take T2
+ * or T3 negative); only once NONE are currently safe does it reach for a Planned candidate that's
+ * both affordable (`replay.canBuild`) and not waiting on a same-slot demolish that hasn't happened
+ * yet (a `"demolished-rebuilt"` slot's rebuild needs its own demolish first — the slot is
+ * physically occupied until then; see `solvedPlacement.ts`'s `SolvedSlot` — a plain `(bodyId, kind,
+ * index)` match against `remainingDemolish` is sufficient to detect this without threading the
+ * slot's status through, since a `"new"` candidate's location, by construction, never coincides
+ * with anything in `result.demolished`).
+ *
+ * Never regresses a case that already worked: this is strictly a superset of "do the first
+ * eligible item next" — since `findIndex` scans front-to-back, whenever today's given order was
+ * already safe at every step, that's exactly the order this picks too; it only starts reordering
+ * once the given order would otherwise go negative. `onDemolish`/`onPlanned` are the ONLY things
+ * that mutate `replay` (via the caller's `pushDemolish`/`pushAdd`) — `canDemolish`/`canBuild` here
+ * are pure reads used only to choose which item goes next, so there's no double-mutation risk.
+ *
+ * Throws if nothing is currently eligible but items remain — a genuine scheduling deadlock,
+ * surfaced via `computeBuildOrderTable`'s existing try/catch (same established precedent as
+ * `ordering.ts`'s `computeFeasibleOrder` "Could not finish ordering"), not a new failure mode. */
+function scheduleDemolishAndPlanned(
+  replay: SystemState,
+  demolishItems: DemolishItem[],
+  plannedItems: PlannedCandidate[],
+  onDemolish: (item: DemolishItem) => void,
+  onPlanned: (item: PlannedCandidate) => void,
+): void {
+  const remainingDemolish = [...demolishItems];
+  const remainingPlanned = [...plannedItems];
+
+  const isBlockedBySameSlotDemolish = (p: PlannedCandidate): boolean =>
+    remainingDemolish.some((d) => d.bodyId === p.bodyId && d.kind === p.kind && d.index === p.index);
+
+  while (remainingDemolish.length > 0 || remainingPlanned.length > 0) {
+    const di = remainingDemolish.findIndex((d) => replay.canDemolish(d.building));
+    if (di !== -1) {
+      const [d] = remainingDemolish.splice(di, 1);
+      onDemolish(d);
+      continue;
+    }
+    const pi = remainingPlanned.findIndex((p) => !isBlockedBySameSlotDemolish(p) && replay.canBuild(p.building));
+    if (pi !== -1) {
+      const [p] = remainingPlanned.splice(pi, 1);
+      onPlanned(p);
+      continue;
+    }
+    throw new Error("Could not schedule demolish/build order without going negative");
+  }
+}
+
 export function computeBuildOrderTable(formState: PlannerFormState, result: SolverResult): BuildOrderTableResult {
   try {
     const hasBodies = formState.bodies.length > 0;
@@ -209,14 +284,17 @@ export function computeBuildOrderTable(formState: PlannerFormState, result: Solv
 
     function pushDemolish(building: string, loc: { bodyId: number; kind: "space" | "ground"; index: number }): void {
       const b = ALL_BUILDINGS[building];
-      // Demolished facilities are never ports (see CLAUDE.md's scope-boundary note), so this is
-      // always a flat, non-escalating subtraction — mutating `SystemState`'s public T2/T3 fields
-      // directly (it has no `removeBuilding`) so the Planned section's subsequent `addBuilding`
-      // calls continue from a running total that correctly reflects the freed-up slot/points.
       const t2Delta = typeof b.T2points === "number" ? -b.T2points : 0;
       const t3Delta = typeof b.T3points === "number" ? -b.T3points : 0;
-      replay.T2points += t2Delta;
-      replay.T3points += t3Delta;
+      // Demolished facilities are never ports (see CLAUDE.md's scope-boundary note), so
+      // `removeBuilding`'s flat, non-escalating subtraction is always correct here.
+      replay.removeBuilding(building);
+      // NOT floored at 0 (an earlier version of this code did that, hiding the real number) —
+      // Delta and Total must stay honest with each other. Going negative here shouldn't happen in
+      // practice now: `scheduleDemolishAndPlanned` (below) only ever calls this once
+      // `replay.canDemolish(building)` was confirmed true for the CURRENT state, deferring any
+      // demolish that would otherwise force a real point deficit until a Planned row has grown the
+      // balance back up first.
       nr += 1;
       rows.push({
         nr,
@@ -243,13 +321,19 @@ export function computeBuildOrderTable(formState: PlannerFormState, result: Solv
         pushAdd("built", name, false, instance, instance?.nickname, instance?.variant);
       }
 
-      for (const d of result.demolished) {
-        pushDemolish(d.building, { bodyId: d.bodyId, kind: d.slotKind, index: d.index });
-      }
-
-      for (const c of collectPlannedCandidates(formState, result)) {
-        pushAdd("planned", c.building, false, { bodyId: c.bodyId, kind: c.kind, index: c.index });
-      }
+      const demolishItems: DemolishItem[] = result.demolished.map((d) => ({
+        building: d.building,
+        bodyId: d.bodyId,
+        kind: d.slotKind,
+        index: d.index,
+      }));
+      scheduleDemolishAndPlanned(
+        replay,
+        demolishItems,
+        collectPlannedCandidates(formState, result),
+        (d) => pushDemolish(d.building, d),
+        (p) => pushAdd("planned", p.building, false, p),
+      );
     } else {
       // Aggregate mode (no per-body layout applied) — no body/slot/nickname data exists at all (see
       // CLAUDE.md's "Backward compatibility is load-bearing" note), and demolition is a per-body-

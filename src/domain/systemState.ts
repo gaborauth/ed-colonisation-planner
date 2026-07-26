@@ -56,6 +56,27 @@ export class SystemState {
     for (const [name, nb] of result["already_present.ports"] ?? []) {
       this.addBuilding(name, nb);
     }
+    // `already_present.ports` credits each already-standing port via the SAME escalating-cost
+    // formula as a brand-new build (this.addBuilding -> constructionPoints), computed against a
+    // deterministic STAND-IN build order (see presentFacilities.ts's computePresentPortsSeed doc
+    // comment) since this app has no record of the true historical order/timing. With few or no
+    // OTHER already-present facilities left to "explain" how those ports were actually affordable
+    // (e.g. after heavy demolition removes them), that stand-in order can compute a NEGATIVE net
+    // T2/T3 total here — but a real player's true current balance can never actually be negative
+    // (the game would never have let construction proceed past 0). A negative result here is
+    // purely a bookkeeping artifact of the stand-in order being pessimistic about unknown history,
+    // not a real deficit, so floor it at 0 — this represents "at least what you visibly have,"
+    // never a manufactured debt. Deliberately NOT applied inside `addBuilding` itself: that method
+    // is also used for NEW construction going forward, where `canBuild`'s per-step non-negativity
+    // gate must keep working exactly as before (see ordering.ts's computeFeasibleOrder) — only the
+    // "seed my starting state from already-present/historical data" entry point gets this floor.
+    // Real bug this fixes: `getOrderingFromResult`'s solution-side `computeFeasibleOrder` pass
+    // (used by every real caller — see ordering.test.ts's dedicated regression test) could throw
+    // "Could not finish ordering" under extreme demolition purely because this starting seed was
+    // negative before a single new building was even attempted, with no amount of reordering able
+    // to recover from a deficit that exists before the search loop starts.
+    if (this.T2points < 0) this.T2points = 0;
+    if (this.T3points < 0) this.T3points = 0;
     return this;
   }
 
@@ -118,6 +139,31 @@ export class SystemState {
       return true;
     }
     return !this.dependenciesLocked.has(depKey(building.dependencies));
+  }
+
+  /** The demolish-side counterpart to `canBuild`/`addBuilding` — deliberately minimal, unlike
+   * `constructionPoints`'s escalating-port-cost handling, because ports are never demolishable in
+   * this app (see CLAUDE.md's scope-boundary note): a flat, non-escalating T2/T3 subtraction is
+   * always correct here. Used by `buildOrderTable.ts`'s scheduler to decide whether a pending
+   * demolish is safe *right now* (never letting the running total go negative) versus needing to
+   * be postponed until a Planned (rebuild) row has grown the balance back up — see that file's
+   * `scheduleDemolishAndPlanned`. `removeBuilding` deliberately does NOT touch `scores`/
+   * `slotsUsed`/`facilities` — matching what demolish rows have always tracked (T2/T3 only); not
+   * a new gap introduced here. */
+  canDemolish(buildingName: string): boolean {
+    const building = ALL_BUILDINGS[buildingName];
+    const t2 = typeof building.T2points === "number" ? building.T2points : 0;
+    const t3 = typeof building.T3points === "number" ? building.T3points : 0;
+    return this.T2points - t2 >= 0 && this.T3points - t3 >= 0;
+  }
+
+  removeBuilding(buildingName: string): this {
+    const building = ALL_BUILDINGS[buildingName];
+    const t2 = typeof building.T2points === "number" ? building.T2points : 0;
+    const t3 = typeof building.T3points === "number" ? building.T3points : 0;
+    this.T2points -= t2;
+    this.T3points -= t3;
+    return this;
   }
 
   /** Tier-2-cost ports (Coriolis, Asteroid_Base) and Tier-3-cost ports (Orbis_or_Ocellus,

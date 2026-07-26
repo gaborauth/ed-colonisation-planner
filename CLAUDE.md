@@ -178,6 +178,26 @@ also revisable:
   for a real Node runtime (`globalThis.process.versions.node`) rather than `typeof window` — jsdom
   polyfills `window` but is still real Node underneath, so a `window` check picks the wrong branch
   under jsdom-environment component tests and breaks them.
+- **`highs.solve(lpText, ...)` is a fully synchronous WASM call with no yielding — it blocks the JS
+  main thread for the whole solve** (real user report 2026-07-27: the "Running the solver…" progress
+  sweep visibly froze, since its CSS animation needs the main thread free to repaint). Fixed by
+  running the actual solve in a Web Worker: `App.tsx` calls `solver/solveInWorker.ts`'s
+  `solveInWorker()` instead of `solve()` directly, which posts the `SolverInput` to
+  `solver/solveWorker.ts` (a separate worker entry point Vite bundles as its own chunk — confirmed via
+  `npm run build`, no plugin needed) and resolves with the returned `SolverResult`.
+  `solve.ts` itself is untouched — `App.tsx` is the ONLY production call site that actually invokes
+  `solve()` (every other importer only uses its types), so no other code needed to change.
+  `SolverInput`/`SolverResult` are plain structured-clone-safe data (no functions/class instances),
+  so `postMessage` works with no adapter layer. `solveInWorker()` feature-detects `typeof Worker ===
+  "undefined"` and falls back to calling `solve()` directly when there's no real `Worker` (jsdom,
+  used by component tests including `App.test.tsx`, doesn't polyfill one) — this is a plain feature
+  detect, unlike the Node-vs-browser check above, since jsdom doesn't fake `Worker` the way it fakes
+  `window`. A fresh worker is created and terminated per call, matching `solve()`'s own existing
+  behavior of loading a fresh HiGHS WASM instance on every call today — not a new cost, just
+  relocated off the main thread. See `solveInWorker.test.ts` for the fallback path (real, exercised
+  by every existing test indirectly) and mocked-`Worker` message-plumbing tests (the actual
+  cross-thread path can't be exercised under jsdom — verified once via a real `npm run build` +
+  manual browser check instead).
 - Dependency constraints are big-M reformulations (HiGHS's LP-text interface has no native indicator
   constraints like the original's SCIP backend did) — see the comment block at the top of `solve.ts`.
 - Custom objective expressions go through a real parser (`expressionParser.ts` + `objective.ts`), not
@@ -236,18 +256,52 @@ also revisable:
   `computeSolvedPlacements`'s "present" status, which deliberately excludes anything
   `result.demolished` removes), undercounting the Built total and (compounding with the formula bug)
   driving the running total negative; (2) the formula bug described above.
-  **Known, deliberately-deferred follow-up (user decision, 2026-07-27):** with EXTREME demolition
-  (marking most/all present facilities demolishable), `computeFeasibleOrder` can still throw "Could
-  not finish ordering" even though `solve.ts` confirms a fully feasible optimal solution exists
-  (`result.status === "optimal"`, final T2/T3 non-negative) — confirmed this is a PRE-EXISTING
-  limitation of `computeFeasibleOrder`'s own greedy search itself (reproduced by calling the
-  unchanged `getOrderingFromResult` directly), not something `buildOrderTable.ts` introduced — it
-  would equally break `SolvedSystemPanel.tsx`'s "Solved system" tree for the same extreme scenario,
-  since both call that exact function. Root cause is a genuine search-algorithm limitation (it can
-  get stuck needing to build the next port in `result.portOrder`'s fixed sequence while nothing else
-  is affordable yet either, even though a different interleaving would work) — fixing it means
-  reworking `computeFeasibleOrder`'s core search, out of scope for the demolish-accounting fix above;
-  tracked in `TASKS.md` as a follow-up rather than expanding that fix's scope.
+  **Follow-up from the entry above, now fixed (2026-07-26):** with EXTREME demolition (marking
+  most/all present facilities demolishable), `computeFeasibleOrder` used to still throw "Could not
+  finish ordering" even though `solve.ts` confirmed a fully feasible optimal solution existed
+  (`result.status === "optimal"`, final T2/T3 non-negative) — this was left as a deliberately
+  deferred follow-up when first found (2026-07-27) rather than expanding the fix above's scope.
+  Investigating it for real (reproduced against `jsons/swoilz-aw-c-d52.json` with every present
+  facility marked demolishable) turned up TWO distinct, independent causes, both now fixed:
+  1. **`computeFeasibleOrder`'s port queue only ever tried its head element.** If the very next port
+     in `result.portOrder`'s fixed sequence wasn't affordable yet, the search gave up instead of
+     checking whether a LATER port in the same queue could be built first — unlike ordinary
+     facilities, which already search their whole tier list for anything currently buildable.
+     Fixed by reusing that exact same `buildFirstFromList` helper for the ports queue too. Safe
+     because `SystemState.constructionPoints` tracks the two escalating port-cost curves
+     independently PER CLASS — reordering which port gets built first (same-class or cross-class)
+     never changes what anything costs, so this can only ever unlock orderings the old code
+     forbade, never produce an invalid one. See `ordering.test.ts`'s dedicated regression test
+     (a hand-built repro using real Coriolis/Orbis_or_Ocellus costs, no solver needed).
+  2. **A separate, deeper bug**, found while building a real-system regression test for #1:
+     `SystemState.addResult` credits already-present ports via the same escalating-cost formula as
+     brand-new construction (see `computePresentPortsSeed`'s stand-in-order approximation above) —
+     with few or no OTHER present facilities left to "explain" how those ports were affordable
+     (exactly what heavy demolition does), that computation can land NEGATIVE before a single new
+     building is even attempted, and no amount of reordering can recover from a deficit that exists
+     before the search loop starts. A real player's current T2/T3 balance can never actually be
+     negative — this was a bookkeeping artifact of the stand-in order, not a real deficit — so it's
+     floored at 0 right where `addResult` finishes crediting (see that method's own comment in
+     `systemState.ts`) — this floor is internal bookkeeping only (feeds `getOrderingFromResult`'s
+     order computation), never a number shown in any UI, unlike #3 below.
+  3. **A THIRD issue, found via user review of #1/#2's fix**: `buildOrderTable.ts`'s own separate
+     replay (`pushDemolish`, used for the Build order table's actual DISPLAYED rows, not
+     `SystemState.addResult`) hit the identical "present ports' historical cost exceeds what's left
+     once generators are demolished" deficit — an earlier fix floored THAT running total at 0 too,
+     but since Delta still showed the true per-row value, this made Delta and Total visibly
+     disagree across consecutive rows (e.g. three rows all showing Delta `-1` while Total stayed
+     `0`) — correctly called out as "weird" rather than accepted. The real fix isn't a clamp: since
+     demolition itself is never blocked by insufficient points in the real game (points are
+     *refunded* on demolition — see the demolition-mechanics notes below), the deficit is purely an
+     artifact of this table's own strict "all Demolish rows, then all Planned rows" order, not
+     something a real player is forced into. Fixed by `buildOrderTable.ts`'s
+     `scheduleDemolishAndPlanned`: it interleaves Demolish and Planned rows, deferring any demolish
+     that would currently go negative until a Planned (rebuild) row has grown the balance back up —
+     using new `SystemState.canDemolish`/`removeBuilding` methods (the demolish-side counterparts to
+     `canBuild`/`addBuilding`, added for this). No floor needed anymore in `pushDemolish` — Delta and
+     Total are honest and always agree. See `buildOrderTable.test.ts`'s dedicated extreme-demolition
+     regression test (needs ALL THREE fixes above to pass), which also asserts genuine interleaving
+     occurred (a Planned row lands before the last Demolish row), not just "happens to stay safe."
 - **`SolverResult.slotsRemaining` must subtract present/primary occupancy too, not just new
   builds.** Real bug fixed 2026-07-26 (user report: a fully-built system still showed 15/16/10
   slots "left"). `usedSlots.space`/`.ground`/`allVars.Asteroid_Base` are the raw NEW-BUILD decision-

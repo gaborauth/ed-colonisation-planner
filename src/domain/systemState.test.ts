@@ -23,6 +23,26 @@ describe("SystemState.canBuild", () => {
   });
 });
 
+describe("SystemState.canDemolish/removeBuilding", () => {
+  it("is safe to demolish a generator exactly down to zero", () => {
+    const state = new SystemState();
+    state.addBuilding("Small_Military_Settlement", 1); // T2points: 1, generates +1 T2
+    expect(state.T2points).toBe(1);
+    expect(state.canDemolish("Small_Military_Settlement")).toBe(true);
+    state.removeBuilding("Small_Military_Settlement");
+    expect(state.T2points).toBe(0);
+  });
+
+  it("is blocked when demolishing a generator would take the total negative", () => {
+    const state = new SystemState();
+    state.addBuilding("Small_Military_Settlement", 1); // T2points: 1 -> T2 = 1
+    state.addBuilding("Military", 1); // Military costs 1 T2 (t2: -1) -> T2 = 0
+    expect(state.T2points).toBe(0);
+    // Demolishing the settlement that funded Military would leave T2 at -1.
+    expect(state.canDemolish("Small_Military_Settlement")).toBe(false);
+  });
+});
+
 describe("SystemState port cost escalation", () => {
   // Corrected 2026-07-24 along with data/buildings.ts's getT2PortCost/getT3PortCost fix — see
   // that function's doc comment. Curve is 3,5,7,... (never repeats its first value).
