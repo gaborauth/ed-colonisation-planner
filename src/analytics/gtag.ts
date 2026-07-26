@@ -22,28 +22,25 @@ let loaded = false;
 
 /** Idempotent — safe to call every time a page that already has consent mounts (StrictMode's
  * double-invoke included), without risking a duplicate <script> tag or a second `config` call. */
-export function loadGoogleAnalytics(): void {
-  if (loaded) return;
+export function loadGoogleAnalytics() {
+    if (loaded) return;
+    loaded = true;
 
-  window.dataLayer = window.dataLayer || [];
-  window.gtag =
-    window.gtag ||
-    ((...args: unknown[]): void => {
-      window.dataLayer!.push(args);
-    });
-  const gtag = window.gtag;
+    window.dataLayer = window.dataLayer || [];
+    window.gtag = function () {
+        window.dataLayer!.push(arguments);
+    };
 
-  gtag("js", new Date());
-  gtag("config", GA_MEASUREMENT_ID);
+    const script = document.createElement("script");
+    script.async = true;
+    script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
 
-  const script = document.createElement("script");
-  script.async = true;
-  script.src = `https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`;
-  script.onerror = () => {
-    loaded = false;
-  };
-  document.head.appendChild(script);
-  loaded = true;
+    script.onload = () => {
+        window.gtag!("js", new Date());
+        window.gtag!("config", GA_MEASUREMENT_ID);
+    };
+
+    document.head.appendChild(script);
 }
 
 /** Test-only escape hatch — `loaded` is deliberately module-scoped (not exported) so production
