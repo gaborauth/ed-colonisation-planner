@@ -81,6 +81,37 @@ describe("computeSystemLinks", () => {
     expect(facilityLink?.toPortBuilding).toBe("Asteroid_Base");
   });
 
+  it("treats extra physical instances of an identical port building type as their own strong-link givers into the one dominant instance", () => {
+    // Two Commercial_Outposts on one body (same building, hence trivially same tier) — real bug
+    // found 2026-07-26 via a user report against a real solved plan (the solver had placed two
+    // Commercial_Outposts, and two Dodecahedrons, each pair on one body): only ONE physical port
+    // instance can ever really be the dominant/receiving one in the game, but the old code
+    // collapsed same-named instances into a single logical port via `Set`-dedup, so both physical
+    // UI slots showed the SAME aggregate "receives strong links" content, as if each independently
+    // received everything. The second instance must instead behave exactly like a losing
+    // DIFFERENT-name non-dominant port already does: its own base economies flow INTO the one true
+    // dominant instance as an ordinary strong link.
+    const body = makeBody(1, { planetClass: "Rocky body" });
+    const placements: BuildingPlacement[] = [{ building: "Commercial_Outpost", bodyId: 1, count: 2 }];
+    const result = computeSystemLinks([body], placements, []);
+
+    const selfLink = result.strongLinks.find(
+      (l) => l.fromBuilding === "Commercial_Outpost" && l.toPortBuilding === "Commercial_Outpost",
+    );
+    expect(selfLink).toBeDefined();
+    expect(selfLink?.count).toBe(1);
+
+    // Still one aggregate PortSummary per (body, building name) — the per-physical-slot UI split
+    // that decides which slot's info hover actually shows this content lives in
+    // FacilityInfo.tsx's `isDominantInstance` parameter, not here.
+    const ports = result.ports.filter((p) => p.bodyId === 1 && p.building === "Commercial_Outpost");
+    expect(ports).toHaveLength(1);
+    expect(ports[0].isDominantOnBody).toBe(true);
+    // The sibling instance's own economies should show up as a nonzero incoming strong-link
+    // contribution on the aggregate — previously 0, since a port never strong-linked to itself.
+    expect(ports[0].economyRatios.some((r) => r.strongPercent > 0)).toBe(true);
+  });
+
   it("evaluates boost/decrease per individual strong link, not once per body", () => {
     // Matches the source's own example: a volcanic body's extraction facility strong link is
     // boosted, its agricultural facility strong link is not.

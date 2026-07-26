@@ -217,6 +217,20 @@ function BodySlotLeaves({
     dispatch({ type: "setFacilitySlot", bodyId: body.bodyId, kind, index, slot });
   }
 
+  // Tracks, per this body, how many times each building name has already been claimed while
+  // iterating its slots (space before ground, index ascending, primary first within space — the
+  // exact order this function renders in) — only the FIRST physical slot of a given port building
+  // type is the real dominant/receiving instance; see FacilityInfo.tsx's `isDominantInstance` doc
+  // comment for why every later occurrence of the same building name at this body must not show
+  // the same aggregate "receives links" content (real bug: a body with 2 identical port instances
+  // used to show BOTH as fully linked).
+  const seenCount = new Map<string, number>();
+  function takeInstanceRank(name: string): boolean {
+    const rank = seenCount.get(name) ?? 0;
+    seenCount.set(name, rank + 1);
+    return rank === 0;
+  }
+
   return (
     <>
       {SLOT_KINDS.flatMap(({ kind, label, category }) => {
@@ -228,15 +242,22 @@ function BodySlotLeaves({
         // `presentFacilities` (the reservation is tracked flatly in the solver, not as a present
         // facility entry) even though it's no longer offered here for editing.
         const reserveFirstForPrimary = kind === "space" && isFirstStationBody && count > 0;
+        // Claimed before the regular slot loop below (it's always physically slot 1) so it always
+        // wins instance rank 0 for `firstStationBuilding` — see PrimaryStationSlotLeaf's own render
+        // below, which relies on `facilityEconomyRatios`/`facilityMarketLinks`/
+        // `strongLinkedInstances`'s `isDominantInstance` default of `true`.
+        if (reserveFirstForPrimary) takeInstanceRank(firstStationBuilding);
         const editableSlots = reserveFirstForPrimary ? slots.slice(1) : slots;
         const leaves = editableSlots.map((slot, i) => {
           const index = reserveFirstForPrimary ? i + 1 : i;
           const building = slot ? ALL_BUILDINGS[slot.building] : undefined;
           const buildingIsPort = building ? isPort(building) : false;
           const variants = slot ? getBuildingVariants(slot.building) : undefined;
-          const strongLinks = slot && isPortRole(slot.building) ? strongLinkedInstances(linksResult, body, slot.building) : [];
-          const economyRatios = slot ? facilityEconomyRatios(slot.building, body, allBodies, linksResult) : [];
-          const marketLinks = slot ? facilityMarketLinks(slot.building, body, linksResult) : [];
+          const isDominantInstance = slot ? takeInstanceRank(slot.building) : true;
+          const strongLinks =
+            slot && isPortRole(slot.building) && isDominantInstance ? strongLinkedInstances(linksResult, body, slot.building) : [];
+          const economyRatios = slot ? facilityEconomyRatios(slot.building, body, allBodies, linksResult, isDominantInstance) : [];
+          const marketLinks = slot ? facilityMarketLinks(slot.building, body, linksResult, isDominantInstance) : [];
           return (
             <div className="facility-tree-slot" key={`${kind}-${index}`}>
               <FacilityInfoIcon

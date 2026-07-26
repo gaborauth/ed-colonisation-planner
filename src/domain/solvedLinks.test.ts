@@ -67,11 +67,11 @@ describe("toSolvedBuildingPlacements", () => {
 });
 
 describe("computeSolvedSystemLinks", () => {
-  // Real bug found 2026-07-26: LinksPanel.tsx and SolvedSystemPanel.tsx both used to feed
-  // `computeSystemLinks` only `result.placements`, which (see solve.ts) never includes
-  // already-present facilities at all — they're folded into the MILP as constants, not as their
-  // own decision-variable placement entry. That silently dropped every already-present facility's
-  // strong/weak-link contribution from both panels' displayed link topology.
+  // Real bug found 2026-07-26: the standalone Links panel (since removed) and SolvedSystemPanel.tsx
+  // both used to feed `computeSystemLinks` only `result.placements`, which (see solve.ts) never
+  // includes already-present facilities at all — they're folded into the MILP as constants, not as
+  // their own decision-variable placement entry. That silently dropped every already-present
+  // facility's strong/weak-link contribution from both panels' displayed link topology.
   it("forms a strong link from an already-present facility to an already-present port, with no new construction at all", () => {
     const bodies = [
       body(1, "A 1", {

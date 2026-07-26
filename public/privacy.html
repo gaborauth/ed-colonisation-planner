@@ -1,0 +1,160 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Privacy — EDCP</title>
+    <style>
+      :root {
+        --bg: #0a0e14;
+        --bg-panel: #121824;
+        --bg-inset: #0d1219;
+        --border: #2a3444;
+        --border-bright: #3d4a60;
+        --accent: #ff9e1b;
+        --accent-text: #ffb64d;
+        --text: #e7e6e2;
+        --text-dim: #8b93a1;
+        --text-faint: #5b6577;
+        --font-body: system-ui, "Segoe UI", sans-serif;
+        --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 32px 20px 80px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-body);
+        line-height: 1.55;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 4px;
+      }
+      .subtitle {
+        color: var(--text-dim);
+        margin: 0 0 32px;
+        font-size: 0.95rem;
+      }
+      .subtitle a {
+        color: var(--accent-text);
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 0 0 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+        scroll-margin-top: 20px;
+      }
+      section {
+        margin-bottom: 28px;
+        background: var(--bg-panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 16px 20px;
+      }
+      p {
+        margin: 0 0 10px;
+      }
+      p:last-child {
+        margin-bottom: 0;
+      }
+      ul {
+        margin: 0 0 10px;
+        padding-left: 20px;
+      }
+      li {
+        margin-bottom: 4px;
+      }
+      code {
+        font-family: var(--font-mono);
+        background: var(--bg-inset);
+        border: 1px solid var(--border-bright);
+        border-radius: 2px;
+        padding: 1px 5px;
+        font-size: 0.9em;
+      }
+      footer {
+        margin-top: 40px;
+        color: var(--text-faint);
+        font-size: 0.85rem;
+      }
+      footer a {
+        color: var(--text-dim);
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Privacy</h1>
+      <p class="subtitle">
+        What this app does and doesn't collect, and how the cookie consent choice works. Linked from the cookie
+        banner shown on first visit. See also the project's
+        <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">README</a>
+        for the full feature list.
+      </p>
+
+      <section id="what-the-app-itself-does">
+        <h2>What the app itself does</h2>
+        <p>
+          EDCP is a client-only, stateless web app — there's no backend, no account, and no server this app runs
+          that your data could be sent to. Everything you enter (system layout, saved plans, imported journal
+          data) stays in your browser's own local storage, on your own device, unless you explicitly export a
+          file yourself. The solver itself runs entirely in your browser too.
+        </p>
+      </section>
+
+      <section id="google-analytics">
+        <h2>Google Analytics (opt-in only)</h2>
+        <p>
+          The one exception to the above: this site can optionally use
+          <a href="https://marketingplatform.google.com/about/analytics/" target="_blank" rel="noreferrer"
+            >Google Analytics</a
+          >
+          to see aggregate usage stats (which pages get visited, roughly how often) — nothing this app collects
+          for its own features (system layouts, saved plans, etc.) is ever included.
+        </p>
+        <p>
+          It's <strong>off by default</strong>. Nothing is requested from Google's servers, and no analytics
+          cookie is set, until you click "Accept" on the cookie banner. If you click "Decline," or simply close
+          the banner without choosing, nothing loads — same as if Analytics didn't exist on this site at all.
+        </p>
+        <p>Once accepted, Google Analytics may set cookies to distinguish returning visits. Roughly:</p>
+        <ul>
+          <li><code>_ga</code> — distinguishes users, ~2 years</li>
+          <li><code>_ga_&lt;container-id&gt;</code> — persists session state, ~2 years</li>
+        </ul>
+        <p>
+          See Google's own
+          <a href="https://policies.google.com/privacy" target="_blank" rel="noreferrer">privacy policy</a> and
+          <a href="https://support.google.com/analytics/answer/6004245" target="_blank" rel="noreferrer"
+            >Analytics data disclosure</a
+          >
+          for what Google itself does with this data.
+        </p>
+      </section>
+
+      <section id="changing-your-mind">
+        <h2>Changing your mind</h2>
+        <p>
+          A small "Cookie settings" link stays visible in the bottom-left corner of the app at all times once
+          you've made a choice — click it to reopen the banner and change your answer (either direction) at any
+          time. Declining after previously accepting doesn't retroactively delete cookies Google has already set
+          in your browser; clear them yourself via your browser's own cookie settings if you want that too.
+        </p>
+      </section>
+
+      <footer>Last updated 2026-07-26.</footer>
+    </main>
+  </body>
+</html>

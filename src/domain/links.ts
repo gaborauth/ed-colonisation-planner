@@ -212,6 +212,26 @@ export function computeSystemLinks(bodies: JournalBody[], placements: BuildingPl
     const portNames = Array.from(new Set(bodyPlacements.filter((p) => isPortRole(p.building)).map((p) => p.building)));
     const facilities = bodyPlacements.filter((p) => !isPortRole(p.building));
 
+    // A body can physically have MULTIPLE instances of the exact same port building type (e.g. two
+    // Commercial_Outposts on one body with 2 orbital slots — nothing in solve.ts's per-body slot
+    // capacity constraint forbids it, and it's a real scenario the solver produces, not just a
+    // present-facilities edge case: real bug found 2026-07-26 via a user report against a real
+    // solved plan, `Commercial_Outpost` x2 and `Dodecahedron` x2 each on one body). `portNames`
+    // above already collapses those into a single name for the tie-break/dominance computation
+    // below (which only cares about DISTINCT building types), but the true per-name instance COUNT
+    // is still needed: only ONE physical instance of a port can ever be dominant/receiving in the
+    // real game, so every OTHER instance — including extra instances of the SAME winning building
+    // type — must itself behave as its own independent strong-link GIVER into the one true
+    // dominant, exactly like a different, losing port type already does. Without this, the old code
+    // silently treated "count > 1 of the identical port name" as if it were one logical port that
+    // several physical UI slots could equally claim to be — see `facilityEconomyRatios`/
+    // `facilityMarketLinks`'s `isDominantInstance` parameter for the matching per-slot display fix.
+    const portCounts = new Map<string, number>();
+    for (const p of bodyPlacements) {
+      if (!isPortRole(p.building)) continue;
+      portCounts.set(p.building, (portCounts.get(p.building) ?? 0) + p.count);
+    }
+
     if (portNames.length === 0) {
       if (facilities.length > 0) {
         warnings.push(
@@ -308,30 +328,40 @@ export function computeSystemLinks(bodies: JournalBody[], placements: BuildingPl
       }
     }
 
+    /** Every OTHER port instance among `names` (a same-side port name list) feeds `toPort` — the
+     * one true dominant instance — as its own independent strong-link giver, using each name's REAL
+     * total instance count (`portCounts`), not a flat "1 per distinct name": a losing (non-
+     * dominant) port type with 2 physical instances contributes 2 givers, and the WINNING
+     * (dominant) type's own extra instances beyond the one dominant instance itself contribute as
+     * self-siblings too — see `portCounts`'s doc comment above for why this matters (the real bug
+     * this fixes: a body with 2 identical-type ports used to show BOTH as fully "receiving" in the
+     * UI, since the whole name collapsed to one nominal giver instead of (instance count) of them). */
+    function addNonDominantSamePortLinks(names: string[], dominantName: string, toPort: string): void {
+      for (const name of names) {
+        const count = portCounts.get(name) ?? 1;
+        if (name === dominantName) {
+          if (count > 1) addStrongLink(name, toPort, count - 1, facilityBaseEconomies(name, body));
+          continue;
+        }
+        addStrongLink(name, toPort, count, facilityBaseEconomies(name, body));
+      }
+    }
+
     if (groundDominant && spaceDominant) {
       // Chain case: ground side feeds into the ground port, which forwards into the space port.
-      for (const name of groundPorts) {
-        if (name === groundDominant) continue;
-        addStrongLink(name, groundDominant, 1, facilityBaseEconomies(name, body));
-      }
+      addNonDominantSamePortLinks(groundPorts, groundDominant, groundDominant);
       for (const f of facilities.filter((p) => ALL_BUILDINGS[p.building].slot === "ground")) {
         addStrongLink(f.building, groundDominant, f.count, facilityBaseEconomies(f.building, body));
       }
       addStrongLink(groundDominant, spaceDominant, 1, accumulatedEconomies(groundDominant), { skipWeakGiver: true });
-      for (const name of spacePorts) {
-        if (name === spaceDominant) continue;
-        addStrongLink(name, spaceDominant, 1, facilityBaseEconomies(name, body));
-      }
+      addNonDominantSamePortLinks(spacePorts, spaceDominant, spaceDominant);
       for (const f of facilities.filter((p) => ALL_BUILDINGS[p.building].slot === "space")) {
         addStrongLink(f.building, spaceDominant, f.count, facilityBaseEconomies(f.building, body));
       }
       representativePort.set(bodyId, spaceDominant);
     } else {
       const dominant = (groundDominant ?? spaceDominant)!;
-      for (const name of portNames) {
-        if (name === dominant) continue;
-        addStrongLink(name, dominant, 1, facilityBaseEconomies(name, body));
-      }
+      addNonDominantSamePortLinks(portNames, dominant, dominant);
       for (const f of facilities) {
         addStrongLink(f.building, dominant, f.count, facilityBaseEconomies(f.building, body));
       }
