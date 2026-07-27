@@ -12,6 +12,10 @@ import FIXTURE from "./journal/fixtures/sample.jsonl?raw";
 async function importAndApplyJournal(user: ReturnType<typeof userEvent.setup>): Promise<void> {
   const file = new File([FIXTURE], "journal.log", { type: "text/plain" });
   await user.upload(screen.getByLabelText("Journal file"), file);
+  // The Journal tab now mirrors the Spansh tab's pick-then-Load pattern (2026-07-27) — uploading
+  // alone no longer touches the shared body/slot table, "Load" does. The fixture parses to exactly
+  // one system, so it's already the picker's default selection; just click Load.
+  await user.click(await screen.findByRole("button", { name: "Load" }));
   await user.click(
     await screen.findByRole("button", { name: "Apply slots and body layout to Actual facilities in the system" }),
   );
@@ -79,7 +83,7 @@ describe("App", () => {
     expect(screen.getByText(/solve the system to see the proposed layout/i)).toBeInTheDocument();
   }, 25000);
 
-  it("re-syncs the Journal file tab's own System picker when switching systems via the toolbar dropdown", async () => {
+  it("re-syncs the Journal file tab's shared body table when switching systems via the toolbar dropdown", async () => {
     // Regression test (2026-07-27 user report): "Import system"'s body/slot table didn't change
     // when switching systems via the sticky toolbar's own System dropdown. Root cause:
     // SystemPortabilityBar's `switchToSavedSystem` dispatches straight to `formState`, bypassing
@@ -87,6 +91,13 @@ describe("App", () => {
     // renders from) entirely — unlike Live Demo/file import, which go through `loadParsedSystem`
     // and bump `refreshToken`, that state never got a chance to notice the switch. Fixed via a new
     // `activeSystemAddress` prop (== `formState.systemAddress`) JournalImportPanel now watches.
+    //
+    // Asserts against the shared body/slot table's own content rather than the Journal tab's own
+    // "System" picker (unlike an earlier version of this test): that picker no longer reflects the
+    // active system at all post-redesign (2026-07-27) — it only ever shows candidates from the
+    // MOST RECENT upload, cleared once Applied. "Switch to an already-known system" is exclusively
+    // the toolbar switcher's job now; the shared table re-syncing to match is what this regression
+    // test actually cares about.
     const user = userEvent.setup();
     render(<App />);
 
@@ -94,30 +105,24 @@ describe("App", () => {
     await importAndApplyJournal(user);
 
     // System B: Live Demo (jsons/swoilz-aw-c-d52.json, "Swoilz AW-C d52") — also saves to the store.
-    // (findAllBy, not findBy: once applied, the name legitimately appears in several places at
-    // once — the toolbar switcher's own option among them — so this just waits for it to exist.)
     await user.click(screen.getByRole("button", { name: /live demo/i }));
     await screen.findAllByText("Swoilz AW-C d52");
 
     // Re-open "Import system" (the panel toggle, not the sticky toolbar's identically-named
     // "Import system" file-picker button — disambiguated by its own aria-expanded, since only
-    // the panel toggle carries one) and confirm its own System picker now shows System B (Live
-    // Demo's own apply flow does go through the normal refreshToken sync, so this much already
-    // worked).
+    // the panel toggle carries one) and confirm its shared body table now shows System B's own
+    // body, not System A's.
     await user.click(screen.getByRole("button", { name: /import system/i, expanded: false }));
-    const journalSystemSelect = (await screen.findByLabelText("System")) as HTMLSelectElement;
-    expect(within(journalSystemSelect).getByRole("option", { selected: true })).toHaveTextContent(
-      "Swoilz AW-C d52",
-    );
+    await screen.findByText("Swoilz AW-C d52 9");
+    expect(screen.queryByText("Test System A 2")).not.toBeInTheDocument();
 
     // Now switch BACK to System A via the sticky toolbar's own dropdown, not Live Demo/Apply.
     await user.selectOptions(screen.getByLabelText("Switch system"), "Test System A");
 
-    // The "Import system" panel's own System picker must now agree — this is the field that
-    // stayed stuck on System B before the fix.
-    expect(within(journalSystemSelect).getByRole("option", { selected: true })).toHaveTextContent(
-      "Test System A",
-    );
+    // The shared table must now agree — this is the table that stayed stuck on System B before the
+    // fix.
+    await screen.findByText("Test System A 2");
+    expect(screen.queryByText("Swoilz AW-C d52 9")).not.toBeInTheDocument();
   }, 25000);
 
   it("shows an error banner when the solver reports infeasibility", async () => {
