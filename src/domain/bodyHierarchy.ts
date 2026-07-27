@@ -48,8 +48,18 @@ function sortChildren(node: BodyHierarchyNode): void {
 export function buildBodyHierarchy(starSystem: string, bodies: JournalBody[]): BodyHierarchyNode {
   const root: BodyHierarchyNode = { label: starSystem, path: "", body: null, children: [] };
   const nodesByPath = new Map<string, BodyHierarchyNode>([["", root]]);
+  const bodyById = new Map<number, JournalBody>(bodies.map((b) => [b.bodyId, b]));
+
+  // Rings/belts (`journal/parser.ts`'s `withRingBodies`) are handled in a second pass below — their
+  // own `bodyName` has multiple trailing tokens ("A Belt"/"A Ring") that don't correspond to one
+  // hierarchy level each, unlike an ordinary star/planet/moon/sub-moon chain.
+  const ringBodies: JournalBody[] = [];
 
   for (const body of bodies) {
+    if (body.kind === "ring") {
+      ringBodies.push(body);
+      continue;
+    }
     const tokens = pathTokens(starSystem, body.bodyName);
     if (tokens.length === 0) {
       root.body = body;
@@ -68,6 +78,22 @@ export function buildBodyHierarchy(starSystem: string, bodies: JournalBody[]): B
       parent = node;
     }
     parent.body = body;
+  }
+
+  // Attach each ring/belt as a single leaf directly under its real parent's already-resolved node
+  // (found via the parent bodyId `parents[0]` carries), rather than walking its name token-by-token
+  // like an ordinary body above — its own name's trailing tokens become one combined leaf label
+  // instead of several spurious extra nesting levels.
+  for (const ring of ringBodies) {
+    const parentId = ring.parents[0]?.bodyId;
+    const parent = parentId !== undefined ? bodyById.get(parentId) : undefined;
+    const parentTokens = parent ? pathTokens(starSystem, parent.bodyName) : [];
+    const parentPath = parentTokens.join(" ");
+    const parentNode = nodesByPath.get(parentPath) ?? root;
+    const ringTokens = pathTokens(starSystem, ring.bodyName);
+    const label = ringTokens.slice(parentTokens.length).join(" ") || ring.bodyName;
+    const path = parentPath ? `${parentPath} ${label}` : label;
+    parentNode.children.push({ label, path, body: ring, children: [] });
   }
 
   sortChildren(root);

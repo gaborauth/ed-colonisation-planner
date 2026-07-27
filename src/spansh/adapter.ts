@@ -10,7 +10,7 @@
 // percentages) that would needlessly bloat every saved/exported system. `raw` here only ever
 // carries the one field anything in the codebase actually reads out of it
 // (`economyOverrides.ts`'s `hasVolcanism` reads `raw.Volcanism`).
-import { parseParents, SIGNAL_TYPE_BIOLOGICAL, SIGNAL_TYPE_GEOLOGICAL, type JournalBody, type JournalSystem } from "../journal/parser";
+import { parseParents, SIGNAL_TYPE_BIOLOGICAL, SIGNAL_TYPE_GEOLOGICAL, withRingBodies, type JournalBody, type JournalSystem } from "../journal/parser";
 import type { SpanshDumpBody, SpanshDumpRecord } from "./types";
 
 /** Spansh's `subType` wording -> Journal's exact `PlanetClass` string. Needed because several
@@ -95,7 +95,9 @@ function toJournalBody(body: SpanshDumpBody): JournalBody {
     terraformState: body.terraformingState === "Terraformable" ? "Terraformable" : undefined,
     tidalLocked: body.rotationalPeriodTidallyLocked,
     parents: parseParents(body.parents),
-    rings: (body.rings ?? []).map((r) => ({ name: r.name, ringClass: r.type, massMT: r.mass })),
+    // A star's belts arrive under `belts`, not `rings` (see SpanshDumpBody.belts's doc comment) —
+    // fall back to it so a star's asteroid eligibility isn't silently dropped.
+    rings: (body.rings ?? body.belts ?? []).map((r) => ({ name: r.name, ringClass: r.type, massMT: r.mass })),
     reserveLevel: body.reserveLevel,
     hasBiologicalSignals: signalKeys?.includes(SIGNAL_TYPE_BIOLOGICAL),
     hasGeologicalSignals: signalKeys?.includes(SIGNAL_TYPE_GEOLOGICAL),
@@ -116,6 +118,6 @@ export function spanshDumpToJournalSystem(record: SpanshDumpRecord): JournalSyst
     // same system lands under this identical key and merges correctly via
     // `JournalImportPanel.tsx`'s existing `mergeBySystemAddress`.
     systemAddress: record.id64,
-    bodies: record.bodies.filter((b) => b.type !== "Barycentre").map(toJournalBody),
+    bodies: withRingBodies(record.bodies.filter((b) => b.type !== "Barycentre").map(toJournalBody)),
   };
 }

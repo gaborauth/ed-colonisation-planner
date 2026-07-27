@@ -8,12 +8,15 @@ describe("parseJournalScans", () => {
     expect(systems).toHaveLength(1);
     const [system] = systems;
     expect(system.starSystem).toBe("Test System A");
-    expect(system.bodies.map((b) => b.bodyName)).toEqual([
+    expect(system.bodies.filter((b) => b.kind !== "ring").map((b) => b.bodyName)).toEqual([
       "Test System A",
       "Test System A 1",
       "Test System A 2",
       "Test System A 3",
     ]);
+    // Plus one synthesized `kind: "ring"` body for the STAR's own belt only — the gas giant's own
+    // ring stays plain metadata on the planet itself (see eligibility.test.ts for that case).
+    expect(system.bodies.filter((b) => b.kind === "ring").map((b) => b.bodyName)).toEqual(["Test System A A Ring"]);
   });
 
   it("classifies stars vs planets and carries over landable/gravity/rings", () => {
@@ -67,7 +70,10 @@ describe("parseJournalScans", () => {
   it("de-duplicates a body scanned twice, keeping the later scan", () => {
     const doubled = `${FIXTURE}\n${FIXTURE}`;
     const [system] = parseJournalScans(doubled);
-    expect(system.bodies).toHaveLength(4);
+    // 4 real bodies, deduplicated (not 8) + 1 synthesized star-belt ring body (not doubled either,
+    // since ring synthesis runs once, after deduplication).
+    expect(system.bodies.filter((b) => b.kind !== "ring")).toHaveLength(4);
+    expect(system.bodies.filter((b) => b.kind === "ring")).toHaveLength(1);
   });
 });
 

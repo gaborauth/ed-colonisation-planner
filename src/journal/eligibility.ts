@@ -19,13 +19,19 @@
 //    System Map if that body was never FSS-signal-scanned (the flag stays `undefined`, not `false`,
 //    in that case — see JournalImportPanel's "Geo signals" checkbox to correct it manually).
 //  - Asteroid eligibility: an Asteroid_Base is built on an ordinary orbital slot (see
-//    `buildings.ts`'s `Asteroid_Base` row — its `slot` is "space"), not a separate slot pool. The
-//    "asteroid" value here is a per-body yes/no: does this body have a ring (or, unconfirmed, does
-//    its star have an asteroid belt) that unlocks building one there at all. It's unconfirmed
-//    whether all ring classes actually support an asteroid base, and whether multiple rings on one
-//    body unlock more than one. (Community reports also describe a since-believed-patched bug where
-//    ringed/belted bodies could gain 10+ extra "free" orbital slots — still observable in systems
-//    built before the fix, but too unreliable to bake into the default guess.)
+//    `buildings.ts`'s `Asteroid_Base` row — its `slot` is "space"), not a separate slot pool — EXCEPT
+//    for a STAR's own belt, which (user-confirmed in-game via a real screenshot, 2026-07-27) is its
+//    own separate, dedicated constructible location, far from the star itself, modeled as its own
+//    synthetic `JournalBody` with `kind: "ring"` (see `journal/parser.ts`'s `withRingBodies`, applied
+//    by both the Journal and Spansh import paths) — a star's OWN slot(s) are never themselves
+//    asteroid-eligible. A planet's or moon's own ring is different (still unconfirmed whether all
+//    ring classes support this, and whether multiple rings unlock more than one Asteroid_Base) — it
+//    keeps making that PLANET's/moon's own orbital slot(s) asteroid-eligible directly, same as this
+//    app's original (pre-2026-07-27) behavior, since a planet's ring sits at the planet rather than
+//    being its own separate far-away location. (Community reports also describe a
+//    since-believed-patched bug where ringed/belted bodies could gain 10+ extra "free" orbital
+//    slots — still observable in systems built before the fix, but too unreliable to bake into the
+//    default guess.)
 
 import type { SlotKind } from "../data/buildings";
 import type { JournalBody } from "./parser";
@@ -69,9 +75,18 @@ function groundSlotsForBody(body: JournalBody): number {
 }
 
 export function estimateBodySlots(body: JournalBody): BodySlotEstimate {
+  // A synthetic star-belt body (see this file's header comment + `journal/parser.ts`'s
+  // `withRingBodies`) is its own dedicated, always-asteroid-eligible orbital slot — no ground slots,
+  // no further formula.
+  if (body.kind === "ring") {
+    return { slots: { space: 1, ground: 0, asteroid: 1 }, reason: "+1 orbital (ring/belt), asteroid base eligible" };
+  }
+
   const space = 1; // one orbital slot per star/planet
   const ground = groundSlotsForBody(body);
-  const asteroid = body.rings.length > 0 ? 1 : 0; // eligible (1) if this body has a ring, else 0
+  // A star's own slot is never itself asteroid-eligible (its belts are separate "ring" bodies
+  // instead — see above); a planet's/moon's own ring keeps making ITS OWN slot eligible directly.
+  const asteroid = body.kind === "planet" && body.rings.length > 0 ? 1 : 0;
 
   const reasons: string[] = [`+${space} orbital (${body.kind})`];
   if (ground > 0) reasons.push(`+${ground} ground (landable, under temp/gravity caps)`);

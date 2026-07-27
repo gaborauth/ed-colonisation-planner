@@ -253,6 +253,31 @@ describe("solve with per-body placement (input.bodies)", () => {
     expect(placement?.bodyId).toBe(2);
   }, 20000);
 
+  // 2026-07-27 user report: a synthetic `kind: "ring"` star-belt body (see `journal/parser.ts`'s
+  // `withRingBodies`) is an ordinary orbital slot that ADDITIONALLY qualifies for Asteroid_Base —
+  // not an Asteroid_Base-EXCLUSIVE slot (an earlier version of this fix wrongly restricted it that
+  // way, corrected after the user clarified it in-game). Same behavior a ring-eligible PLANET's own
+  // slot already had — no special-casing by `kind` needed in solve.ts at all.
+  it("still allows an ordinary building on a ring/belt-eligible body's slot, same as any other asteroid-eligible body", async () => {
+    const ringBody: JournalBody = {
+      bodyName: "Test A Belt",
+      bodyId: 2,
+      kind: "ring",
+      landable: false,
+      parents: [],
+      rings: [],
+      raw: {},
+    };
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 1 }, economy: ringBody }],
+        constraints: { atLeast: { Commercial_Outpost: 1 } },
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.placements).toContainEqual({ building: "Commercial_Outpost", bodyId: 1, count: 1 });
+  }, 20000);
+
   it("reserves one of the primary station's body's orbital slots, leaving the rest for other buildings", async () => {
     const result = await solve(
       baseInput({

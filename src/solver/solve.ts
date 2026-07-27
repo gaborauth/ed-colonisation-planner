@@ -304,7 +304,12 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       let bodySum: LPExpr = exprConst(0);
       for (const b of input.bodies) {
         // Asteroid_Base is hard-restricted to ring/belt-eligible bodies here, replacing the old
-        // system-wide `Asteroid_Base <= input.slots.asteroid` pseudo-pool entirely in this mode.
+        // system-wide `Asteroid_Base <= input.slots.asteroid` pseudo-pool entirely in this mode. A
+        // ring/belt-eligible body's slot (whether a ringed planet's own slot, or a star belt's
+        // dedicated synthetic `kind: "ring"` body — see `journal/parser.ts`'s `withRingBodies`)
+        // can ALSO host any ordinary building — user-confirmed 2026-07-27 that a belt cluster
+        // slot isn't Asteroid_Base-exclusive, it's an ordinary orbital slot that additionally
+        // qualifies for Asteroid_Base. No further restriction needed here beyond the existing one.
         const ub = name === "Asteroid_Base" && b.slots.asteroid === 0 ? 0 : DEFAULT_BUILDING_COUNT_CAP;
         const v = model.addVar(`${name}__body_${b.bodyId}`, "integer", 0, ub);
         bodyVars[name][b.bodyId] = v;
