@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { JournalBody, JournalSystem } from "../journal/parser";
@@ -97,6 +97,45 @@ describe("JournalImportPanel", () => {
         patch: expect.objectContaining({ systemAddress: 42, starSystem: "System A", systemConfigured: true }),
       }),
     );
+  });
+
+  it("loading a second Spansh system after one is already applied still replaces the shown system (regression, 2026-07-27)", async () => {
+    // Real bug: once `activeSystemAddress` (formState.systemAddress, mirroring what App.tsx would
+    // pass down after a real Apply) is non-null, the "sync to formState" effect used to fire on
+    // ANY divergence between it and this panel's own `selectedAddress` — including one caused by
+    // this panel's OWN Spansh "Load" button setting `selectedAddress` to a not-yet-applied
+    // candidate — and stomp `selectedAddress` straight back to `activeSystemAddress`, undoing the
+    // Load a moment after it happened. Reproduced here by first applying System A (so
+    // `activeSystemAddress` becomes non-null, matching what App.tsx would do after the dispatch),
+    // then loading a different System B from Spansh and asserting B's body actually shows,
+    // instead of reverting to A's.
+    const starA: JournalBody = { bodyName: "Star", bodyId: 0, kind: "star", landable: false, parents: [], rings: [], raw: {} };
+    const systemA: JournalSystem = { starSystem: "System A", systemAddress: 11, bodies: [starA] };
+    saveSystem(systemA);
+
+    mockedSearch.mockResolvedValue([CANDIDATE]);
+    mockedFetchDump.mockResolvedValue(DUMP_RECORD);
+    const dispatch = vi.fn();
+    const user = userEvent.setup();
+    const { rerender } = render(<JournalImportPanel dispatch={dispatch} activeSystemAddress={null} />);
+
+    // Simulate applying System A (Journal tab's existing "Apply" flow), then App.tsx re-rendering
+    // this panel with the resulting formState.systemAddress, same as the real parent would.
+    await user.click(screen.getByRole("button", { name: "Apply slots and body layout to Actual facilities in the system" }));
+    rerender(<JournalImportPanel dispatch={dispatch} activeSystemAddress={11} />);
+
+    // Applying folds the panel — reopen it before switching tabs.
+    await user.click(screen.getByRole("button", { name: /Import system/ }));
+    await user.click(screen.getByRole("tab", { name: "Spansh" }));
+    await user.type(screen.getByLabelText("System name"), "Swoil");
+    await user.click(await screen.findByRole("option", { name: "Swoilz AW-C d52" }));
+    await user.click(screen.getByRole("button", { name: "Load" }));
+
+    await screen.findByText("Swoilz AW-C d52 1");
+    // The bug reverted this back to System A's (empty) body list a tick after the Load — assert it
+    // stays showing System B even after the effect above has had a chance to run.
+    await waitFor(() => expect(screen.getByText("Swoilz AW-C d52 1")).toBeInTheDocument());
+    expect(screen.getByText("Swoilz AW-C d52")).toBeInTheDocument();
   });
 
   it("shows a readable error when the Spansh load fails", async () => {
