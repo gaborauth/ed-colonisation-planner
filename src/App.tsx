@@ -3,6 +3,7 @@ import { AboutHelpPanel } from "./components/AboutHelpPanel";
 import { BuildOrderPanel } from "./components/BuildOrderPanel";
 import { BuildingsTable } from "./components/BuildingsTable";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
+import { Footer } from "./components/Footer";
 import { JournalImportPanel } from "./components/JournalImportPanel";
 import { ObjectivePanel } from "./components/ObjectivePanel";
 import { SavedPlansPanel } from "./components/SavedPlansPanel";
@@ -10,6 +11,7 @@ import { SolvedSystemPanel } from "./components/SolvedSystemPanel";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
 import { SystemPortabilityBar } from "./components/SystemPortabilityBar";
 import { normalizeFacilitySlots } from "./domain/presentFacilities";
+import { useCookieConsent } from "./hooks/useCookieConsent";
 import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
 import type { SavedPlan } from "./persistence/plans";
 import type { SolverBody, SolverInput } from "./solver/solve";
@@ -74,6 +76,7 @@ function App() {
   // copy of the saved-systems list in local state (loaded once at mount), so writing a fresh
   // system into localStorage from a sibling component wouldn't otherwise be noticed there.
   const [journalStoreVersion, setJournalStoreVersion] = useState(0);
+  const cookieConsent = useCookieConsent();
 
   async function handleSolve(): Promise<void> {
     setResultState({ status: "solving", result: null, message: null });
@@ -111,7 +114,11 @@ function App() {
 
   return (
     <>
-      <CookieConsentBanner />
+      <CookieConsentBanner
+        open={cookieConsent.bannerOpen}
+        onAccept={cookieConsent.accept}
+        onDecline={cookieConsent.decline}
+      />
       <main>
         <h1>Elite Dangerous Colonisation Planner</h1>
 
@@ -156,6 +163,8 @@ function App() {
           result={resultState.result}
           onLoad={handleLoad}
         />
+
+        <Footer cookieChoice={cookieConsent.choice} onOpenCookieSettings={cookieConsent.reopen} />
       </main>
     </>
   );
