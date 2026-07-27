@@ -1,8 +1,14 @@
 import { useEffect, type Dispatch } from "react";
-import { ALL_SCORES, toPrintable, type Score } from "../data/buildings";
+import { ALL_ECONOMY_TYPES, ALL_SCORES, toPrintable, type Score } from "../data/buildings";
+import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
+import { getStoredPanelCollapsed, setStoredPanelCollapsed } from "../persistence/panelCollapse";
 import { setObjectivePreference } from "../persistence/objectivePreference";
+import type { EconomyPreference } from "../solver/solve";
 import { DEFAULT_OBJECTIVE_EXPRESSION, type PlannerAction, type PlannerFormState } from "../state/plannerState";
 import { NumberInput } from "./NumberInput";
+
+const SCORE_CONSTRAINTS_PANEL_ID = "objective-score-constraints";
+const ECONOMY_PREFERENCES_PANEL_ID = "objective-economy-preferences";
 
 interface ObjectivePanelProps {
   formState: PlannerFormState;
@@ -81,7 +87,18 @@ const SCORE_DESCRIPTIONS: Record<Score, string> = {
   system_score_beta: "A compound score: security + tech level + wealth + standard of living, added together.",
   economy_synergy:
     "How well the solver's picks fit each body's own economy — a solver-side signal, not a real in-game stat; only ever nonzero once you've actually solved with a per-body layout.",
+  economy_preference:
+    "Your own Must/Want/Don't want/Forbid economy preferences below, turned into a number — a solver-side signal, not a real in-game stat; only ever nonzero once you've set a preference and solved with a per-body layout.",
 };
+
+// Order matches the backlog's own stated wording — Must / Want / Dunno / Don't want / Forbid.
+const ECONOMY_PREFERENCE_OPTIONS: { value: EconomyPreference | ""; label: string }[] = [
+  { value: "must", label: "Must" },
+  { value: "want", label: "Want" },
+  { value: "", label: "Dunno" },
+  { value: "dont_want", label: "Don't want" },
+  { value: "forbid", label: "Forbid" },
+];
 
 export function ObjectivePanel({ formState, dispatch, onSolve, solving }: ObjectivePanelProps) {
   // Which preset (if any) matches the CURRENT customExpression — drives the select's `value` for
@@ -91,6 +108,26 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
   // written while the now-hidden expression editor was in use) so the select always has a valid,
   // non-crashing value to show.
   const selectedPreset = PRESETS.find((p) => p.expression === formState.customExpression);
+
+  // Score constraints / Economy preferences are individually foldable (2026-07-27 user request),
+  // unlike the always-visible single table this used to be — but default to EXPANDED (`?? false`,
+  // same as AboutHelpPanel), not collapsed: the original reason these moved out of a foldable
+  // ConstraintsPanel in the first place was a real user missing the default "at least 1 security"
+  // constraint while it sat folded away. Making it foldable again is fine as long as it isn't
+  // folded-by-default; each panel's own choice is then remembered across sessions via
+  // persistence/panelCollapse.ts, same as AboutHelpPanel.
+  const scoreConstraints = useScrollAnchoredCollapse<HTMLButtonElement>(
+    getStoredPanelCollapsed(SCORE_CONSTRAINTS_PANEL_ID) ?? false,
+  );
+  useEffect(() => {
+    setStoredPanelCollapsed(SCORE_CONSTRAINTS_PANEL_ID, scoreConstraints.collapsed);
+  }, [scoreConstraints.collapsed]);
+  const economyPreferencesCollapse = useScrollAnchoredCollapse<HTMLButtonElement>(
+    getStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID) ?? false,
+  );
+  useEffect(() => {
+    setStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID, economyPreferencesCollapse.collapsed);
+  }, [economyPreferencesCollapse.collapsed]);
 
   // Remembers the objective selection across sessions (2026-07-26 user request) — App.tsx's
   // `useReducer` lazy initializer (`applyStoredObjectivePreference`) restores it on the NEXT load;
@@ -211,46 +248,142 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
         </div>
       </div>
 
-      {/* Moved here from its own foldable ConstraintsPanel (2026-07-27, user request, after a real
-       * user found the default "at least 1 security" constraint confusing when it sat inside a
-       * folded-by-default pane — easy to not realize it was set at all). Score constraints ARE
-       * part of the objective (they bound what the solver's free to pick, same as the objective
-       * expression shapes what it prefers), so this panel — always visible, never folded — is
-       * where a user should expect to find and recognize them, not a separate pane. */}
+      {/* Individually foldable (2026-07-27 user request) — was briefly always-visible-never-folded
+       * (see the collapse-hook setup above for why that changed and what stayed the same: default
+       * EXPANDED, not folded-by-default, so the "at least 1 security" default constraint stays
+       * discoverable). Score constraints ARE part of the objective (they bound what the solver's
+       * free to pick, same as the objective expression shapes what it prefers), so this still lives
+       * directly in this panel, not a separate one. */}
       <div style={{ marginTop: 14 }}>
-        <div className="category-heading">Score constraints</div>
-        <table>
-          <thead>
-            <tr>
-              <th>Score</th>
-              <th>Min</th>
-              <th>Max</th>
-            </tr>
-          </thead>
-          <tbody>
-            {ALL_SCORES.map((score) => (
-              <tr key={score}>
-                <td>{toPrintable(score)}</td>
-                <td>
-                  <NumberInput
-                    allowNegative
-                    ariaLabel={`Minimum ${toPrintable(score)}`}
-                    value={formState.scoreMin[score]}
-                    onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMin", score, value })}
-                  />
-                </td>
-                <td>
-                  <NumberInput
-                    allowNegative
-                    ariaLabel={`Maximum ${toPrintable(score)}`}
-                    value={formState.scoreMax[score]}
-                    onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMax", score, value })}
-                  />
-                </td>
+        <button
+          ref={scoreConstraints.buttonRef}
+          type="button"
+          className="panel-toggle"
+          aria-expanded={!scoreConstraints.collapsed}
+          onClick={() => scoreConstraints.setCollapsed((c) => !c)}
+        >
+          <span className="panel-toggle-title">Score constraints</span>
+          <span className="chevron" aria-hidden="true">
+            ▾
+          </span>
+        </button>
+        {!scoreConstraints.collapsed && (
+          <table>
+            <thead>
+              <tr>
+                <th>Score</th>
+                <th>Min</th>
+                <th>Max</th>
               </tr>
-            ))}
-          </tbody>
-        </table>
+            </thead>
+            <tbody>
+              {ALL_SCORES.map((score) => (
+                <tr key={score}>
+                  <td>{toPrintable(score)}</td>
+                  <td>
+                    <NumberInput
+                      allowNegative
+                      ariaLabel={`Minimum ${toPrintable(score)}`}
+                      value={formState.scoreMin[score]}
+                      onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMin", score, value })}
+                    />
+                  </td>
+                  <td>
+                    <NumberInput
+                      allowNegative
+                      ariaLabel={`Maximum ${toPrintable(score)}`}
+                      value={formState.scoreMax[score]}
+                      onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMax", score, value })}
+                    />
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      {/* Per-EconomyType Must/Want/Dunno/Don't want/Forbid steering (TASKS.md backlog item 3,
+       * 2026-07-27) — same foldable placement as Score constraints above, right after it, since
+       * it's conceptually the same kind of control (bounding/steering what the solver picks).
+       * Requires a per-body layout: `facilityBaseEconomies` needs a real body's attributes to
+       * resolve a generic port's economy set (see solve.ts's SolverInput.economyPreferences doc
+       * comment) — aggregate-mode-only users get a disabled section with an explanation instead of
+       * a silently-inert control (still foldable either way, so the explanation itself can be
+       * tucked away once read). Preference picked via a radio-button grid (one column per option),
+       * not a per-row dropdown (2026-07-27 user request — reads better across this panel's full
+       * width than a narrow select per row). */}
+      <div style={{ marginTop: 14 }}>
+        <button
+          ref={economyPreferencesCollapse.buttonRef}
+          type="button"
+          className="panel-toggle"
+          aria-expanded={!economyPreferencesCollapse.collapsed}
+          onClick={() => economyPreferencesCollapse.setCollapsed((c) => !c)}
+        >
+          <span className="panel-toggle-title">Economy preferences</span>
+          <span className="chevron" aria-hidden="true">
+            ▾
+          </span>
+        </button>
+        {!economyPreferencesCollapse.collapsed &&
+          (formState.bodies.length === 0 ? (
+            <p className="panel-hint">
+              Requires a per-body system layout — apply one via the Import system panel first. A generic port's
+              economy depends on the body it's built on, which plain aggregate slot counts don't carry.
+            </p>
+          ) : (
+            <>
+              <p className="panel-hint">
+                Steers which economies the solver favors or avoids. Forbid/Must are hard requirements. A port's
+                body-derived economies stack (e.g. every port on an Earth-like world carries Agriculture, High
+                Tech, Military, and Tourism together, non-selectably) — Forbidding one can rule out every generic
+                port option on that body, not just that one economy; intended, not a bug. Want/Don't want are
+                soft nudges (the "economy preference" score) — like economy synergy, they only actually bias the
+                solve when the active objective includes it (the default expression does).
+              </p>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Economy</th>
+                    {ECONOMY_PREFERENCE_OPTIONS.map((opt) => (
+                      <th key={opt.label} style={{ textAlign: "center" }}>
+                        {opt.label}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {ALL_ECONOMY_TYPES.map((economy) => {
+                    const current = formState.economyPreferences[economy] ?? "";
+                    return (
+                      <tr key={economy}>
+                        <td>{economy}</td>
+                        {ECONOMY_PREFERENCE_OPTIONS.map((opt) => (
+                          <td key={opt.label} style={{ textAlign: "center" }}>
+                            <input
+                              type="radio"
+                              name={`economy-preference-${economy}`}
+                              title={opt.label}
+                              aria-label={`${economy}: ${opt.label}`}
+                              checked={current === opt.value}
+                              onChange={() =>
+                                dispatch({
+                                  type: "setEconomyPreference",
+                                  economy,
+                                  value: (opt.value || undefined) as EconomyPreference | undefined,
+                                })
+                              }
+                            />
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </>
+          ))}
       </div>
     </section>
   );

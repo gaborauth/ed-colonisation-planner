@@ -26,12 +26,15 @@ export type CompoundScore = (typeof COMPOUND_SCORES)[number];
 /** Scores that exist outside both the per-building stat table (`BASE_SCORES`) and the
  * base-score-derived compound formulas (`COMPOUND_SCORES`/`computeCompoundScore`) — computed
  * instead from *where* a building lands (per-body placement), not just *how many* of it exist.
- * `economy_synergy` is the only one: see `solve.ts`'s header comment and CLAUDE.md's "Update 3
- * link/economy modeling" section for what it means and how it's computed. Always 0 in aggregate
- * mode (no body layout applied) or in `domain/systemState.ts`'s already-present/build-order
- * accounting (neither has per-body placement data) — only `solve.ts`'s per-body MILP path ever
- * sets it to something else. */
-export const DERIVED_SCORES = ["economy_synergy"] as const;
+ * `economy_synergy` approximates the real link-boost mechanic; `economy_preference` is a distinct,
+ * separate term for the user's own manual Must/Want/Don't-want/Forbid steering (see `solve.ts`'s
+ * header comment and CLAUDE.md's "Update 3 link/economy modeling" section for what each means and
+ * how it's computed — deliberately not merged into one number, so a user's own preference bias
+ * never silently distorts `economy_synergy`'s real-mechanic approximation). Both are always 0 in
+ * aggregate mode (no body layout applied) or in `domain/systemState.ts`'s already-present/build-
+ * order accounting (neither has per-body placement data) — only `solve.ts`'s per-body MILP path
+ * ever sets either to something else. */
+export const DERIVED_SCORES = ["economy_synergy", "economy_preference"] as const;
 export type DerivedScore = (typeof DERIVED_SCORES)[number];
 
 export type Score = BaseScore | CompoundScore | DerivedScore;
@@ -402,6 +405,21 @@ export type EconomyType =
   | "Military"
   | "Terraforming"
   | "Colony";
+
+/** Every `EconomyType`, in a fixed display order — feeds `ObjectivePanel`'s "Economy preferences"
+ * table (Must/Want/Dunno/Don't want/Forbid per economy). Deliberately includes `Colony` — no
+ * filtering, matching this app's general "don't hide data" convention (see `ALL_SCORES`). */
+export const ALL_ECONOMY_TYPES: EconomyType[] = [
+  "Agriculture",
+  "Extraction",
+  "HighTech",
+  "Industrial",
+  "Refinery",
+  "Tourism",
+  "Military",
+  "Terraforming",
+  "Colony",
+];
 
 /** Update 3's link-topology "Ports" bucket (14 buildings): Outposts, Coriolis/Orbis/Ocellus/
  * Dodecahedron, Asteroid Base, Planetary Port, and the Planetary Port Outposts — i.e.

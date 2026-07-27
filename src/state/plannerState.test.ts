@@ -68,6 +68,32 @@ describe("plannerReducer", () => {
     expect(state.scoreMin).toEqual({});
   });
 
+  it("setEconomyPreference sets/clears a per-economy preference independently", () => {
+    let state = plannerReducer(INITIAL_FORM_STATE, {
+      type: "setEconomyPreference",
+      economy: "Military",
+      value: "forbid",
+    });
+    expect(state.economyPreferences).toEqual({ Military: "forbid" });
+
+    state = plannerReducer(state, { type: "setEconomyPreference", economy: "Agriculture", value: "want" });
+    expect(state.economyPreferences).toEqual({ Military: "forbid", Agriculture: "want" });
+
+    state = plannerReducer(state, { type: "setEconomyPreference", economy: "Military", value: undefined });
+    expect(state.economyPreferences).toEqual({ Agriculture: "want" });
+  });
+
+  it("load defaults economyPreferences to {} for a plan saved before it existed", () => {
+    // Same shim style as `bodies ?? []`/`systemAddress ?? null` for older SavedPlan shapes — see
+    // plannerState.ts's `load` case.
+    const { economyPreferences: _drop, ...withoutPreferences } = INITIAL_FORM_STATE;
+    const state = plannerReducer(INITIAL_FORM_STATE, {
+      type: "load",
+      state: withoutPreferences as PlannerFormState,
+    });
+    expect(state.economyPreferences).toEqual({});
+  });
+
   it("reset restores the initial state", () => {
     const changed = plannerReducer(INITIAL_FORM_STATE, { type: "patch", patch: { allowCriminal: false } });
     expect(plannerReducer(changed, { type: "reset" })).toEqual(INITIAL_FORM_STATE);

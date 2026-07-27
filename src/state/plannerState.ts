@@ -1,14 +1,17 @@
-import { ALL_SCORES, type Score } from "../data/buildings";
+import { ALL_SCORES, type EconomyType, type Score } from "../data/buildings";
 import { normalizeFacilitySlots, syncPrimaryIntoBodies, type PresentFacilitySlot } from "../domain/presentFacilities";
 import type { JournalBody } from "../journal/parser";
-import type { Direction, SlotAvailability, SolverResult } from "../solver/solve";
+import type { Direction, EconomyPreference, SlotAvailability, SolverResult } from "../solver/solve";
 
 // Exported (not just inlined into INITIAL_FORM_STATE below) so ObjectivePanel.tsx's "Default
 // preset" entry can reference the exact same string — one source of truth, so the dropdown's
 // "is this preset currently active" check (`expression === formState.customExpression`) can never
-// silently drift out of sync with what a fresh session actually starts with.
+// silently drift out of sync with what a fresh session actually starts with. `+ p` (economy_
+// preference) added alongside `y` (economy_synergy) — same precedent as when `y` itself was added:
+// Want/Don't want preferences only actually bias the solve when the active objective references
+// `p`, same as economy_synergy today (see solve.ts's SolverInput.economyPreferences doc comment).
 export const DEFAULT_OBJECTIVE_EXPRESSION =
-  "sqrt(i) + sqrt(m) + sqrt(e) + sqrt(t) + sqrt(w) + sqrt(n) + sqrt(d) + 2 * w + t - abs(w - 2 * t) + y";
+  "sqrt(i) + sqrt(m) + sqrt(e) + sqrt(t) + sqrt(w) + sqrt(n) + sqrt(d) + 2 * w + t - abs(w - 2 * t) + y + p";
 
 export interface PlannerFormState {
   slots: SlotAvailability;
@@ -51,6 +54,12 @@ export interface PlannerFormState {
   customDirection: Direction;
   scoreMin: Partial<Record<Score, number>>;
   scoreMax: Partial<Record<Score, number>>;
+  /** Per-`EconomyType` Must/Want/Don't-want/Forbid steering — ObjectivePanel's "Economy
+   * preferences" table. Absent per economy = "Dunno", today's unbiased default. Only meaningful
+   * once `bodies` is non-empty (see `solve.ts`'s `SolverInput.economyPreferences` doc comment) —
+   * same session/system scope as `scoreMin`/`scoreMax`/`atLeast`/`atMost`, not persisted to
+   * localStorage the way `objectiveMode`/`customExpression` are. */
+  economyPreferences: Partial<Record<EconomyType, EconomyPreference>>;
 }
 
 export const INITIAL_FORM_STATE: PlannerFormState = {
@@ -79,12 +88,14 @@ export const INITIAL_FORM_STATE: PlannerFormState = {
   customDirection: "maximize",
   scoreMin: { security: 1 },
   scoreMax: {},
+  economyPreferences: {},
 };
 
 export type PlannerAction =
   | { type: "patch"; patch: Partial<PlannerFormState> }
   | { type: "setMapEntry"; map: "alreadyPresent" | "atLeast" | "atMost"; name: string; value: number | undefined }
   | { type: "setScoreBound"; bound: "scoreMin" | "scoreMax"; score: Score; value: number | undefined }
+  | { type: "setEconomyPreference"; economy: EconomyType; value: EconomyPreference | undefined }
   | {
       type: "setFacilitySlot";
       bodyId: number;
@@ -131,6 +142,15 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
       }
       return { ...state, [action.bound]: next };
     }
+    case "setEconomyPreference": {
+      const next = { ...state.economyPreferences };
+      if (action.value === undefined) {
+        delete next[action.economy];
+      } else {
+        next[action.economy] = action.value;
+      }
+      return { ...state, economyPreferences: next };
+    }
     case "setFacilitySlot": {
       const bodies = state.bodies.map((b) => {
         if (b.bodyId !== action.bodyId) return b;
@@ -167,7 +187,10 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
       // until the user re-applies a journal system — not worth losing the rest of the plan over.
       const systemAddress = action.state.systemAddress ?? null;
       const starSystem = action.state.starSystem ?? "";
-      return { ...action.state, bodies, systemConfigured, systemAddress, starSystem };
+      // Same shim style for `economyPreferences` (added after `bodies`): a plan saved before it
+      // existed just has no preferences set, not a broken/undefined lookup target.
+      const economyPreferences = action.state.economyPreferences ?? {};
+      return { ...action.state, bodies, systemConfigured, systemAddress, starSystem, economyPreferences };
     }
     case "reset":
       return INITIAL_FORM_STATE;

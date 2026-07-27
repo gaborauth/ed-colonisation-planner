@@ -541,3 +541,102 @@ describe("solve with economy_synergy (input.bodies[].economy)", () => {
     expect(result.objectiveValue).toBeCloseTo(0.05, 5);
   }, 20000);
 });
+
+describe("solve with economyPreferences (Must/Want/Don't want/Forbid)", () => {
+  // Small_Military_Settlement is a leaf building (no `dependencies`) whose economy comes from
+  // FACILITY_ECONOMY_GUESS (body-independent) — a real body still needs to be attached via
+  // `economy` for solve.ts to evaluate `facilityBaseEconomies` at all (see SolverBody.economy's
+  // doc comment: no `economy` means no economy-based effect whatsoever, Forbid/Must/Want/Don't
+  // want included, same backward-compatible degrade `economy_synergy` already follows).
+  const plainBody: JournalBody = {
+    bodyName: "Test 1",
+    bodyId: 1,
+    kind: "planet",
+    landable: false,
+    parents: [],
+    rings: [],
+    raw: {},
+  };
+
+  it("Forbid zeroes out every building carrying that economy, making an otherwise-satisfiable atLeast requirement infeasible", async () => {
+    const bodies = [{ bodyId: 1, slots: { space: 0, ground: 3, asteroid: 0 }, economy: plainBody }];
+
+    const withoutForbid = await solve(
+      baseInput({ bodies, constraints: { atLeast: { Small_Military_Settlement: 1 } } }),
+    );
+    expect(withoutForbid.status).toBe("optimal");
+    expect(withoutForbid.toBuild.Small_Military_Settlement).toBeGreaterThanOrEqual(1);
+
+    const withForbid = await solve(
+      baseInput({
+        bodies,
+        constraints: { atLeast: { Small_Military_Settlement: 1 } },
+        economyPreferences: { Military: "forbid" },
+      }),
+    );
+    expect(withForbid.status).toBe("infeasible");
+  }, 20000);
+
+  it("Must on an economy no candidate building can actually satisfy (zero physical capacity) returns a clean infeasible status, not a crash", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 0, ground: 0, asteroid: 0 }, economy: plainBody }],
+        economyPreferences: { Military: "must" },
+      }),
+    );
+    expect(result.status).toBe("infeasible");
+  }, 20000);
+
+  it("Must is satisfied without erroring once a body can actually host a qualifying building", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 }, economy: plainBody }],
+        economyPreferences: { Military: "must" },
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    const militaryBuilt =
+      (result.toBuild.Small_Military_Settlement ?? 0) +
+      (result.toBuild.Medium_Military_Settlement ?? 0) +
+      (result.toBuild.Large_Military_Settlement ?? 0) +
+      (result.toBuild.Military_Hub ?? 0) +
+      (result.toBuild.Military_Outpost ?? 0);
+    expect(militaryBuilt).toBeGreaterThanOrEqual(1);
+  }, 20000);
+
+  it("Want vs Don't want measurably shifts which buildings the solver picks (maximizing economy_preference alone)", async () => {
+    const bodies = [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 }, economy: plainBody }];
+    const objective: SolverInput["objective"] = { kind: "simple", score: "economy_preference" };
+
+    const wantResult = await solve(baseInput({ bodies, objective, economyPreferences: { Military: "want" } }));
+    const dontWantResult = await solve(
+      baseInput({ bodies, objective, economyPreferences: { Military: "dont_want" } }),
+    );
+
+    expect(wantResult.status).toBe("optimal");
+    expect(dontWantResult.status).toBe("optimal");
+    const militaryCount = (r: typeof wantResult) =>
+      (r.toBuild.Small_Military_Settlement ?? 0) +
+      (r.toBuild.Medium_Military_Settlement ?? 0) +
+      (r.toBuild.Large_Military_Settlement ?? 0);
+    expect(militaryCount(wantResult)).toBeGreaterThan(0);
+    expect(militaryCount(dontWantResult)).toBe(0);
+  }, 20000);
+
+  it("economyPreferences omitted, {}, and every value explicitly undefined are byte-identical (backward-compat)", async () => {
+    const bodies = [{ bodyId: 1, slots: { space: 1, ground: 1, asteroid: 0 }, economy: plainBody }];
+    const omitted = await solve(baseInput({ bodies }));
+    const empty = await solve(baseInput({ bodies, economyPreferences: {} }));
+    const allUndefined = await solve(
+      baseInput({ bodies, economyPreferences: { Military: undefined, Agriculture: undefined } }),
+    );
+    expect(empty).toEqual(omitted);
+    expect(allUndefined).toEqual(omitted);
+  }, 20000);
+
+  it("has no effect in aggregate mode (bodies absent) — silently ignored, not an error", async () => {
+    const withPrefs = await solve(baseInput({ economyPreferences: { Military: "forbid" } }));
+    const without = await solve(baseInput());
+    expect(withPrefs).toEqual(without);
+  }, 20000);
+});

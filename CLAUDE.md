@@ -407,6 +407,77 @@ also revisable:
   variable, so "known port" here means "known before solving," a conservative approximation in
   both directions, not exact. If a future change makes exact link-graph-aware MILP scoring
   tractable, replace this with that instead of layering more approximation on top.
+- `ECONOMY_PREFERENCE_WEIGHT` (flat 0.5) in `src/solver/solve.ts` — the per-(building, body) pull of
+  a Want/Don't-want `economyPreferences` entry (`economy_preference`, objective letter `p`; see
+  "Per-economy Must/Want/Don't want/Forbid preference controls" below). Purely user-supplied, no
+  source at all (unlike `economy_synergy`, which at least approximates a real link mechanic) — this
+  is a direct preference nudge with no in-game equivalent to validate against. Chosen to sit in the
+  same order of magnitude as `economy_synergy`'s own deltas (0.05 weak-link trickle, 0.4 per boost/
+  decrease condition, 0.4-1.2 full strong-link tier contribution) so one preferred building's pull is
+  comparable to a single real link-boost, not negligible or overwhelming — revise if real usage shows
+  it's too weak/strong to actually shift the solver's picks.
+
+## Per-economy Must/Want/Don't want/Forbid preference controls
+
+Added 2026-07-27 (TASKS.md backlog item 3) — lets the user steer *which* `EconomyType`s the solver
+favors or avoids, on top of the aggregate score-based objective. `ObjectivePanel`'s new "Economy
+preferences" section (right after "Score constraints" — same kind of control) presents a 5-state
+per-`EconomyType` choice (Must / Want / Dunno / Don't want / Forbid) as a radio-button grid (one
+column per option, one row per economy — reads better across this panel's full width than a
+per-row `<select>`, user feedback after the first version shipped with dropdowns).
+`PlannerFormState.economyPreferences` / `SolverInput.economyPreferences`
+(`Partial<Record<EconomyType, EconomyPreference>>`, absent per economy = "Dunno", today's unbiased
+default). Reuses `domain/economyOverrides.ts#facilityBaseEconomies(buildingName, body.economy)` —
+the same per-(building, body) economy-set lookup `economy_synergy` already uses — to know which
+`bodyVars[name][bodyId]` decision variables carry a given economy; all four states are computed in
+the SAME per-body loop `solve.ts` already runs for `economy_synergy`, right below it.
+
+**Both this section and "Score constraints" are individually foldable** (same day follow-up, user
+request), reusing `hooks/useScrollAnchoredCollapse` + `persistence/panelCollapse.ts` (same pattern
+as `AboutHelpPanel`/`BuildingsTable`) — a step back from "Score constraints" being always-visible/
+never-folded, which is how it shipped just one day earlier (2026-07-27) specifically because a real
+user missed the default "at least 1 security" constraint while it sat inside a folded-by-default
+`ConstraintsPanel`. Reconciled by defaulting BOTH sections to EXPANDED
+(`getStoredPanelCollapsed(id) ?? false`), not collapsed — foldable is fine as long as the default
+still surfaces the constraint; each section's own fold choice is then remembered per its own panel
+id across sessions, same as `AboutHelpPanel`.
+
+- **Scoped to per-body mode only**, same as `economy_synergy`: `facilityBaseEconomies` needs a real
+  body's attributes to resolve a generic port's body-derived economy set
+  (`computeBodyEconomyOverrides`), which aggregate mode has no way to supply. `solve.ts` silently
+  ignores `economyPreferences` when `input.bodies` is absent/empty (no error, matching every other
+  backward-compatible degrade in this file); `ObjectivePanel`'s section shows a disabled explanatory
+  hint instead of the per-economy table when `formState.bodies` is empty.
+- **Forbid** (hard): zeroes every `bodyVars[name][bodyId]` whose `facilityBaseEconomies` includes the
+  forbidden economy (`model.addConstraint(..., "==", 0, ...)`). The pre-existing
+  `body_split_<name>` equality constraint (bodySum == the building's aggregate/`port_k` variables)
+  means zeroing every body's slot for a building automatically zeroes its port-slot variables too —
+  no separate port-specific handling needed.
+- **Must** (hard): `sum(every qualifying bodyVar) >= 1` per Must economy. Does NOT offset against
+  already-present facilities already carrying the economy — a real, documented limitation (matches
+  the backlog's own spec exactly), not an oversight. An economy with zero eligible (building, body)
+  pairs anywhere (e.g. every candidate var's capacity is already 0) naturally reports
+  `status: "infeasible"` through HiGHS, same as every other hard constraint in this file — no new
+  error-handling code needed.
+- **Want / Don't want** (soft): contribute `± ECONOMY_PREFERENCE_WEIGHT` (see the constants section
+  above) into a **separate** new derived score, `economy_preference` (objective letter `p`,
+  `src/data/buildings.ts`'s `DERIVED_SCORES`) — deliberately NOT folded into `economy_synergy`
+  itself, so a user's own manual preference bias can never silently distort `economy_synergy`'s
+  real-link-mechanic approximation in the Scores summary / Score constraints table. Applied
+  unconditionally per qualifying (building, body) pair, unlike `economy_synergy`'s boost/decrease
+  table — this isn't simulating a real link mechanic, it's a direct system-wide preference signal, so
+  it doesn't need `economy_synergy`'s "known port body" gate. Same precedent as when `economy_synergy`
+  itself was added: `state/plannerState.ts`'s `DEFAULT_OBJECTIVE_EXPRESSION` gained `+ p` alongside
+  the existing `+ y`, so Want/Don't want only actually bias a solve when the active objective
+  (simple-mode score choice, or custom expression) references `p` — same known limitation
+  `economy_synergy` already has, surfaced in the new section's own help text, not hidden.
+- **Port-stacking caveat, surfaced in the UI, not hidden** (explicitly called out in the original
+  backlog scoping): a generic port's Colony-derived economy set is body-attribute-driven and stacks
+  (e.g. every port on an Earth-like world carries Agriculture + High Tech + Military + Tourism
+  together, non-selectably) — Forbidding one of those economies rules out every generic port option
+  on that body, not just that one economy. A `PORT_FIXED_ECONOMY` port (e.g. `Military_Outpost`) is
+  unaffected unless its own fixed economy also matches. Intended MILP consequence of the existing
+  body-attribute override table, not a bug.
 
 ## Gotchas worth knowing before touching the solver
 
