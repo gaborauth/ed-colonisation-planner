@@ -321,8 +321,27 @@ export function JournalImportPanel({
   // equal by the time this effect would run and it's a no-op). No `setJustSaved`/`setApplied` here
   // unlike the refreshToken effect above — nothing was actually saved or applied FROM this panel,
   // it's just catching up to a change made elsewhere.
+  //
+  // Real bug found via user report (2026-07-27): once a system had ever been applied,
+  // `activeSystemAddress` (formState.systemAddress) stayed fixed at that address while the Spansh
+  // tab's "Load" button set `selectedAddress` to a DIFFERENT, not-yet-applied candidate for local
+  // preview — which made `activeSystemAddress !== selectedAddress` true and re-triggered this very
+  // effect (it's a dependency), which then reloaded ONLY the persisted systems from localStorage
+  // (the freshly-loaded Spansh candidate isn't saved yet — only `applySystem` calls `saveSystem`)
+  // and reset `selectedAddress` straight back to `activeSystemAddress`, silently undoing the Load a
+  // moment after it happened. Confirmed to explain every symptom reported: it worked on the very
+  // first Load of a session (activeSystemAddress starts `null`, so the effect's `== null` guard
+  // already skipped it), and broke on every subsequent Load once formState had a real system
+  // applied. Fixed by only treating this as an EXTERNAL change (the toolbar switcher case this
+  // effect exists for) when `activeSystemAddress` itself just changed — tracked via a ref — rather
+  // than whenever it merely differs from this panel's own `selectedAddress`, which can legitimately
+  // diverge for a while during an in-progress Load/Apply preview that hasn't been applied yet.
+  const prevActiveSystemAddress = useRef(activeSystemAddress);
   useEffect(() => {
-    if (activeSystemAddress == null || activeSystemAddress === selectedAddress) return;
+    const previousActiveSystemAddress = prevActiveSystemAddress.current;
+    prevActiveSystemAddress.current = activeSystemAddress;
+    if (activeSystemAddress == null || activeSystemAddress === previousActiveSystemAddress) return;
+    if (activeSystemAddress === selectedAddress) return;
     const saved = listSavedSystems().map(normalizeSystem);
     setSystems(saved);
     setSavedAddresses(new Set(saved.map((s) => s.systemAddress)));
