@@ -1,3 +1,10 @@
+## [1.0.1](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.0.0...v1.0.1) (2026-07-27)
+
+### Bug Fixes
+
+* add version number to footer, fixed changelog content ([9341c68](https://github.com/gaborauth/ed-colonisation-planner/commit/9341c685e55f7967c50eb2f0be2eca6647aa36ef))
+* spansh load bug ([8253a53](https://github.com/gaborauth/ed-colonisation-planner/commit/8253a53e1ead95adaa3559921513856bff2880b2))
+
 ## 1.0.0 (2026-07-27)
 
 ### Features
