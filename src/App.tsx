@@ -64,6 +64,10 @@ export function buildSolverInput(formState: PlannerFormState): SolverInput {
     alreadyPresent: hasBodies ? {} : formState.alreadyPresent,
     constraints: { atLeast: formState.atLeast, atMost: formState.atMost },
     scoreConstraints: { min: formState.scoreMin, max: formState.scoreMax },
+    // Only actually meaningful when `bodies` is non-empty (see SolverInput.economyPreferences's
+    // doc comment) — solve.ts silently ignores it otherwise, so no need to gate the pass-through
+    // here on `hasBodies` too.
+    economyPreferences: formState.economyPreferences,
   };
 }
 

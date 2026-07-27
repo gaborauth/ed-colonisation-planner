@@ -60,6 +60,7 @@
 import {
   ALL_BUILDINGS,
   ALL_SCORES,
+  type EconomyType,
   type Score,
   computeCompoundScore,
   FIRST_STATION_BONUS,
@@ -94,6 +95,15 @@ export type { Direction } from "./objective";
 const DEPENDENCY_BIG_M = 1000;
 const DEFAULT_BUILDING_COUNT_CAP = 300;
 const DEFAULT_MAX_NEW_PORTS = 20;
+
+/** Flat weight for a Want/Don't-want `economyPreferences` entry, added (Want) or subtracted (Don't
+ * want) into `economy_preference` per qualifying (building, body) pair. User-supplied, no source —
+ * chosen to sit in the same order of magnitude as `economy_synergy`'s own existing deltas (a single
+ * strong-link boost/decrease is ±0.4, weak-link trickle is 0.05, full strong-link tier
+ * contributions run 0.4-1.2), so one preferred building's pull is comparable to a single real
+ * link-boost, not negligible or overwhelming. See CLAUDE.md's "Explicitly unverified/best-effort
+ * constants" section. */
+const ECONOMY_PREFERENCE_WEIGHT = 0.5;
 
 export interface SlotAvailability {
   space: number;
@@ -172,7 +182,23 @@ export interface SolverInput {
    * buildings stay body-unassigned either way — only newly solved-for buildings (and the primary
    * station, if `firstStationBodyId` is given) get placed. */
   bodies?: SolverBody[];
+  /** Per-`EconomyType` Must/Want/Don't-want/Forbid steering (absent per economy = no bias, today's
+   * default). Only meaningful when `bodies` is present and non-empty — like `economy_synergy`,
+   * evaluating a generic port's economy set needs a real body's attributes
+   * (`domain/economyOverrides.ts#facilityBaseEconomies`), which aggregate mode doesn't have.
+   * Silently ignored (no effect, no error) when `bodies` is absent/empty — same backward-compatible
+   * degrade pattern as `SolverBody.economy` itself. See this file's `economy_preference`/Forbid/Must
+   * block (search "economyPreferences") for exactly how each value is enforced. */
+  economyPreferences?: Partial<Record<EconomyType, EconomyPreference>>;
 }
+
+/** One of five states a user can set per `EconomyType` in `ObjectivePanel`'s "Economy preferences"
+ * table. `undefined`/absent (not a listed member here) = "Dunno", today's unbiased default.
+ * - `forbid`/`must` are hard MILP constraints (zero out / require at least one carrying variable).
+ * - `want`/`dont_want` are soft: a flat `± ECONOMY_PREFERENCE_WEIGHT` folded into the
+ *   `economy_preference` score (letter `p`) rather than a constraint, so they never make an
+ *   otherwise-feasible plan infeasible. */
+export type EconomyPreference = "must" | "want" | "dont_want" | "forbid";
 
 export interface SolverResult {
   status: "optimal" | "infeasible" | "error";
@@ -209,6 +235,7 @@ const SCORE_LETTER_TO_SCORE: Record<ScoreLetter, Score> = {
   d: "development_level",
   c: "construction_cost",
   y: "economy_synergy",
+  p: "economy_preference",
 };
 
 function errorResult(message: string): SolverResult {
@@ -546,15 +573,19 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     addExpr(systemScores.wealth, systemScores.standard_of_living),
   );
 
-  // --- economy_synergy: per-body economy-fit term (see this file's header comment) -------------
+  // --- economy_synergy / economy_preference / Forbid / Must (per-body economy-fit + steering) ----
   // Only meaningful in per-body mode, and only for bodies whose caller actually supplied
   // `economy` — see `SolverBody.economy`'s doc comment for the backward-compatible degrade.
   // `allEconomyBodies` is the whole-system `JournalBody[]` `computeBoostDecrease` needs for its
   // system-wide checks (resource level, black hole/white dwarf/neutron star presence) — built once
   // rather than per (building, body) pair. `knownPortBodyIds` gates the full strong-link-style
   // delta to bodies that actually have (or will certainly have) a port — see the header comment's
-  // "One thing this term does NOT get to ignore" paragraph for why.
+  // "One thing this term does NOT get to ignore" paragraph for why. `economy_preference`/Forbid/
+  // Must reuse this exact same (building, body) loop and `facilityBaseEconomies` lookup — see
+  // `SolverInput.economyPreferences`'s doc comment for why this stays a separate score from
+  // `economy_synergy` rather than folded into it.
   systemScores.economy_synergy = exprConst(0);
+  systemScores.economy_preference = exprConst(0);
   if (input.bodies && input.bodies.length > 0) {
     const allEconomyBodies: JournalBody[] = input.bodies
       .map((b) => b.economy)
@@ -578,16 +609,50 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       return economies.reduce((sum, economy) => sum + (deltas[economy] ?? 0), 0);
     }
 
+    const preferences = input.economyPreferences;
+    // Must: `sum(vars carrying this economy) >= 1`, collected per economy across every (building,
+    // body) pair before adding one constraint each below. Deliberately does NOT offset against
+    // already-present facilities already carrying the economy (matches the backlog spec exactly) —
+    // a known, documented limitation, not an oversight.
+    const mustSums: Partial<Record<EconomyType, LPExpr>> = {};
+
     let synergy: LPExpr = exprConst(0);
+    let preference: LPExpr = exprConst(0);
     for (const name of Object.keys(ALL_BUILDINGS)) {
       for (const b of input.bodies) {
-        const coeff = economySynergyCoefficient(name, b);
-        if (coeff !== 0) {
-          synergy = addExpr(synergy, scaleExpr(exprVar(bodyVars[name][b.bodyId], 1), coeff));
+        const synergyCoeff = economySynergyCoefficient(name, b);
+        if (synergyCoeff !== 0) {
+          synergy = addExpr(synergy, scaleExpr(exprVar(bodyVars[name][b.bodyId], 1), synergyCoeff));
+        }
+
+        if (!preferences || !b.economy) continue;
+        const economies = facilityBaseEconomies(name, b.economy);
+        if (economies.length === 0) continue;
+        const v = bodyVars[name][b.bodyId];
+        for (const economy of economies) {
+          const pref = preferences[economy];
+          if (!pref) continue;
+          if (pref === "forbid") {
+            // Zeroing every carrying (building, body) var is enough even for ports: the pre-
+            // existing `body_split_<name>` equality constraint (bodySum == allVars[name]) forces
+            // the building's aggregate/port_k variables to 0 too once every body's slot is zeroed.
+            model.addConstraint(exprVar(v, 1), "==", 0, `forbid_${economy}_${name}_${b.bodyId}`);
+          } else if (pref === "must") {
+            mustSums[economy] = addExpr(mustSums[economy] ?? exprConst(0), exprVar(v, 1));
+          } else if (pref === "want") {
+            preference = addExpr(preference, scaleExpr(exprVar(v, 1), ECONOMY_PREFERENCE_WEIGHT));
+          } else if (pref === "dont_want") {
+            preference = addExpr(preference, scaleExpr(exprVar(v, 1), -ECONOMY_PREFERENCE_WEIGHT));
+          }
         }
       }
     }
     systemScores.economy_synergy = synergy;
+    systemScores.economy_preference = preference;
+
+    for (const [economy, sum] of Object.entries(mustSums) as [EconomyType, LPExpr][]) {
+      model.addConstraint(sum, ">=", 1, `must_${economy}`);
+    }
   }
 
   // --- Objective -----------------------------------------------------------------------------
