@@ -82,16 +82,20 @@ export function AboutHelpPanel() {
             order" panel below it lays the whole plan out as one numbered, step-by-step table.
           </p>
 
-          <p>
-            This is a free, open-source project — the full source is on{" "}
-            <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">
-              GitHub
-            </a>
-            . Found a bug, have a feature idea, or just want to say what does or doesn't work for
-            you? Feedback is very welcome — open an issue on the GitHub repo above.
-          </p>
-
-          <p style={{ display: "flex", alignItems: "center", gap: 12, marginBottom: 0 }}>
+          <p style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 0 }}>
+            <span>
+              This is a free, open-source project — the full source is on{" "}
+              <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">
+                GitHub
+              </a>
+              . Found a bug, have a feature idea, or just want to say what does or doesn't work for
+              you? Feedback is very welcome — open an issue on the GitHub repo above. And if this
+              tool saved you some time or Credits, you can{" "}
+              <a href="https://buymeacoffee.com/gabor.auth" target="_blank" rel="noreferrer">
+                buy me a coffee
+              </a>{" "}
+              — entirely optional, appreciated either way.
+            </span>
             <a
               href="https://buymeacoffee.com/gabor.auth"
               target="_blank"
@@ -106,13 +110,6 @@ export function AboutHelpPanel() {
                 style={{ display: "block" }}
               />
             </a>
-            <span>
-              If this tool saved you some time or Credits, you can{" "}
-              <a href="https://buymeacoffee.com/gabor.auth" target="_blank" rel="noreferrer">
-                buy me a coffee
-              </a>{" "}
-              — entirely optional, appreciated either way.
-            </span>
           </p>
         </div>
       )}
