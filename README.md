@@ -6,36 +6,47 @@ solver to work out which facilities to build — taking construction points, fac
 the escalating cost of building multiple ports into account.
 
 Runs entirely client-side: no backend, no account, nothing leaves your browser. The solver
-([HiGHS](https://highs.dev/), via WebAssembly) runs locally against the data you enter.
+([HiGHS](https://highs.dev/), via WebAssembly) runs locally against the data you enter. The one
+exception: the **Spansh** import tab (see below) queries Spansh's public system database through a
+small CORS proxy to fetch that system's data — everything else, including the Journal-file import
+path, stays fully local.
 
 ## Using it
 
 Open the app (see the GitHub Pages link at the top of this repo, or run it locally — see below).
 
-**No journal file handy?** Click **Live Demo** (next to **Import system** in the top toolbar) to
-load a real, already-played example system and try the planner immediately — no upload needed.
+**No journal file handy?** Click **Live Demo** (next to the toolbar's **Import system** button) to
+load a real, already-played example system and try the planner immediately — no upload needed. Once
+more than one system has been loaded/saved, a dropdown appears there too, letting you switch between
+them directly without reopening the Import system panel below.
 
 Otherwise:
 
-1. **Import from journal** — upload an Elite Dangerous Journal `.log` file to get a starting
-   estimate of each body's buildable slots from your scanned system data. That estimate is a
-   best-effort guess (see [Known limitations](#known-limitations)) and pre-fills editable fields —
-   always sanity check it against your in-game System Map. Clicking **Apply slots and body layout
-   to System facilities** switches the solver into *per-body placement* mode (real per-body slot
-   capacity, plus the Links & economy panel below) instead of just aggregate totals.
-2. **System facilities** — pick your primary station (required), then mark what's already built in
-   each body's slots using the tree below (one dropdown per physical orbital/ground slot). Flag an
-   already-built facility **Demolishable** to let the solver optionally remove it — refunding its
-   stat/T2/T3 contribution and freeing its slot — if replacing it scores better; ports can't be
-   demolished. Your current T2/T3 construction-point balance is derived automatically from what you
-   mark here, not entered by hand. Hit **Save** to persist your already-built layout for next time.
+1. **Import system** — either upload an Elite Dangerous Journal `.log` file (**Journal file** tab) to
+   get a starting estimate of each body's buildable slots from your own scanned system data, or
+   search Spansh's public system database by name and load a starting point directly (**Spansh**
+   tab) — handy for a system you haven't personally scanned yet (Spansh's signal/genus data reflects
+   whoever last scanned that body in its own database, not necessarily your own play session).
+   Either way, the slot-count estimate is a best-effort guess (see
+   [Known limitations](#known-limitations)) and pre-fills editable fields — always sanity check it
+   against your in-game System Map. Clicking **Apply slots and body layout to Actual facilities in
+   the system** switches the solver into *per-body placement* mode (real per-body slot capacity)
+   instead of just aggregate totals.
+2. **Actual facilities in the system** — pick your primary station (required), then mark what's
+   already built in each body's slots using the tree below (one dropdown per physical orbital/ground
+   slot). Flag an already-built facility **Demolishable** to let the solver optionally remove it —
+   refunding its stat/T2/T3 contribution and freeing its slot — if replacing it scores better; ports
+   can't be demolished. Your current T2/T3 construction-point balance is derived automatically from
+   what you mark here, not entered by hand. Hit **Save** (top toolbar) to persist your already-built
+   layout for next time.
 3. **Objective** — maximize a single system score (construction cost is minimized instead), or write
    a custom expression (`sqrt(w) + sqrt(n)`, `2*w + t - abs(w - 2*t)`, etc.) over the score letters
    `i m e t w n d c`.
 4. **System score constraints** — optional min/max bounds per score.
 5. **Buildings** — pin per-building minimums/maximums, and hover a building's total (after solving)
    to see its contribution to each score. The "Already present" column is only editable without a
-   journal-imported body layout — with one, it's a read-only mirror of the System facilities tree.
+   journal-imported body layout — with one, it's a read-only mirror of the Actual facilities in the
+   system tree.
 6. Hit **Solve for a system**. The **Solved system** panel shows the resulting scores, remaining
    slots/points, and the per-body proposed layout with its Update 3 Strong/Weak links and economy
    types (hover any facility's "i" icon). The **Build order** panel below it lays out the whole plan
@@ -62,11 +73,10 @@ the solver recommends building:
 - Strong links (only) get a further boost or penalty from body/system characteristics — e.g. an
   Extraction link is boosted on a volcanic body or in a resource-rich system, and an Agriculture
   link is penalized on an icy or tidally-locked body.
-- The panel also shows which station services (Commodities Market, Shipyard, Outfitting, Black
-  Market, etc.) each port would unlock, per the June 2025 follow-up patch's activation rules.
-- In the **System facilities** panel, hovering a built facility's "i" icon shows an "Economy
-  ratios" breakdown (total economy per type, broken down into body/strong-link/weak-link sources)
-  and a "Market links" table (how many strong- and weak-link building instances feed each economy).
+- In the **Actual facilities in the system** panel, hovering a built facility's "i" icon shows an
+  "Economy ratios" breakdown (total economy per type, broken down into body/strong-link/weak-link
+  sources) and a "Market links" table (how many strong- and weak-link building instances feed each
+  economy).
 
 A few of the game's own trigger conditions (a body having organics, geologicals, or volcanism; a
 system's overall resource richness) aren't reported anywhere in the Elite Dangerous Journal files
@@ -90,9 +100,11 @@ sources. A few pieces are explicitly best-effort and flagged as such in both the
   official mapping from every Hub/Settlement/Installation building to an economy type was ever
   published — that mapping is inferred from naming and flagged as a guess; some buildings are left
   deliberately unmapped rather than guessed.
-- **Population growth curve** (`src/domain/populationEstimate.ts`): purely illustrative. No official
-  growth formula has ever been published — do not treat its numbers as predictions; the UI carries
-  a permanent disclaimer for the same reason.
+- **Spansh import's planet-class/star-type mapping** (`src/spansh/adapter.ts`): Spansh's system
+  database uses slightly different wording than the Journal for some body/star types — translated
+  via a small lookup table built from general game knowledge, but only actually verified against one
+  real committed example system. If a system you load through the Spansh tab looks misclassified,
+  that's the file to check.
 - **Strong/weak link contribution rates** (`src/domain/links.ts`): the official patch notes only say
   a link "supplies a proportion" of an economy, never a number. The tier-scaled strong-link rate is
   community-sourced; the flat 5% weak-link rate has no official-source equivalent at all. Both have
@@ -104,7 +116,9 @@ sources. A few pieces are explicitly best-effort and flagged as such in both the
 If you have more accurate numbers for any of these, they're all single, well-commented constants to
 edit. (The first-station/subsequent-facility stat-weighting split used to be listed here too — it's
 now sourced from the Dodec Update's official patch notes, see `src/solver/solve.ts`'s
-`FIRST_STATION_BONUS`/`SUBSEQUENT_FACILITY_REDUCTION`.)
+`FIRST_STATION_BONUS`/`SUBSEQUENT_FACILITY_REDUCTION`. An illustrative-only population growth curve
+used to be listed here too — it was never based on any published formula and has since been removed
+entirely, along with the panel that displayed it.)
 
 Also out of scope: real commodity supply/demand simulation (exact tradeable quantities) and
 construction-progress/demolition tracking — see [Update 3: links & economy](#update-3-links--economy)

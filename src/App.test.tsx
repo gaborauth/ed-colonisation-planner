@@ -79,12 +79,52 @@ describe("App", () => {
     expect(screen.getByText(/solve the system to see the proposed layout/i)).toBeInTheDocument();
   }, 25000);
 
+  it("re-syncs the Journal file tab's own System picker when switching systems via the toolbar dropdown", async () => {
+    // Regression test (2026-07-27 user report): "Import system"'s body/slot table didn't change
+    // when switching systems via the sticky toolbar's own System dropdown. Root cause:
+    // SystemPortabilityBar's `switchToSavedSystem` dispatches straight to `formState`, bypassing
+    // JournalImportPanel's own `selectedAddress`/`systems` state (which its body table actually
+    // renders from) entirely — unlike Live Demo/file import, which go through `loadParsedSystem`
+    // and bump `refreshToken`, that state never got a chance to notice the switch. Fixed via a new
+    // `activeSystemAddress` prop (== `formState.systemAddress`) JournalImportPanel now watches.
+    const user = userEvent.setup();
+    render(<App />);
+
+    // System A: the journal fixture ("Test System A"), saved by applying it.
+    await importAndApplyJournal(user);
+
+    // System B: Live Demo (jsons/swoilz-aw-c-d52.json, "Swoilz AW-C d52") — also saves to the store.
+    // (findAllBy, not findBy: once applied, the name legitimately appears in several places at
+    // once — the toolbar switcher's own option among them — so this just waits for it to exist.)
+    await user.click(screen.getByRole("button", { name: /live demo/i }));
+    await screen.findAllByText("Swoilz AW-C d52");
+
+    // Re-open "Import system" (the panel toggle, not the sticky toolbar's identically-named
+    // "Import system" file-picker button — disambiguated by its own aria-expanded, since only
+    // the panel toggle carries one) and confirm its own System picker now shows System B (Live
+    // Demo's own apply flow does go through the normal refreshToken sync, so this much already
+    // worked).
+    await user.click(screen.getByRole("button", { name: /import system/i, expanded: false }));
+    const journalSystemSelect = (await screen.findByLabelText("System")) as HTMLSelectElement;
+    expect(within(journalSystemSelect).getByRole("option", { selected: true })).toHaveTextContent(
+      "Swoilz AW-C d52",
+    );
+
+    // Now switch BACK to System A via the sticky toolbar's own dropdown, not Live Demo/Apply.
+    await user.selectOptions(screen.getByLabelText("Switch system"), "Test System A");
+
+    // The "Import system" panel's own System picker must now agree — this is the field that
+    // stayed stuck on System B before the fix.
+    expect(within(journalSystemSelect).getByRole("option", { selected: true })).toHaveTextContent(
+      "Test System A",
+    );
+  }, 25000);
+
   it("shows an error banner when the solver reports infeasibility", async () => {
     const user = userEvent.setup();
     render(<App />);
 
-    // System score constraints is folded by default — expand it to reach the field.
-    await user.click(screen.getByRole("button", { name: /system score constraints/i }));
+    // Score constraints now live inline in the Objective panel (always visible, no fold to open).
     // An unreachable constraint -> infeasible, regardless of how many slots are available.
     await user.type(screen.getByLabelText(/minimum security/i), "1000");
     await importAndApplyJournal(user);
