@@ -16,6 +16,10 @@ import type { PlannerFormState } from "./plannerState";
  * build-order purposes once a fresh solve says otherwise. */
 export function toPlanResult(formState: PlannerFormState, result: SolverResult | null): PlanResult {
   const hasBodies = formState.bodies.length > 0;
+  // `excludePrimary`: the primary's own contribution is already handled separately below via
+  // `first_station` (-> `SystemState.addFirstStation`'s own cost exemption) — including its synced
+  // `presentFacilities` entry here too would double-count it as an ordinary already-present port
+  // (see PresentFacilitySlot.primary's doc comment).
   const presentCounts = hasBodies
     ? derivePresentCounts(
         formState.bodies.map((b) => ({
@@ -23,6 +27,7 @@ export function toPlanResult(formState: PlannerFormState, result: SolverResult |
           space: b.presentFacilities?.space ?? [],
           ground: b.presentFacilities?.ground ?? [],
         })),
+        { excludePrimary: true },
       )
     : formState.alreadyPresent;
   const demolishedCounts: Record<string, number> = {};

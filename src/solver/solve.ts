@@ -72,6 +72,7 @@ import {
 import { computeBoostDecrease, facilityBaseEconomies } from "../domain/economyOverrides";
 import { WEAK_LINK_CONTRIBUTION, type BuildingPlacement } from "../domain/links";
 import {
+  applyPrimaryReservation,
   computeHardNonPortSeed,
   computePresentPortsSeed,
   splitPresentFacilities,
@@ -248,16 +249,30 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // hard-vs-demolishable split, and SolverBody's doc comment for why `presentFacilities` replaces
   // the flat `alreadyPresent` map's role entirely once `bodies` is used). Computed unconditionally
   // — both lists are simply empty when `input.bodies` is absent/empty.
-  const presentBodies: PresentFacilitiesBody[] = (input.bodies ?? []).map((b) => ({
-    bodyId: b.bodyId,
-    space: b.presentFacilities?.space ?? [],
-    ground: b.presentFacilities?.ground ?? [],
-  }));
+  //
+  // `applyPrimaryReservation` overwrites the primary station's own assigned body's Orbital-1 slot
+  // with its own real, synced entry (see `PresentFacilitySlot.primary`'s doc comment) — authoritative
+  // regardless of whatever `input.bodies` itself says was there, exactly like this file already
+  // never trusts a caller to have independently gotten `firstStationBuilding` itself right. This is
+  // what lets the capacity constraint below, `computeHardNonPortSeed`/`computePresentPortsSeed`'s
+  // T2/T3 seed (further down), and the reported `slotsRemaining` all treat the primary's slot as an
+  // ordinary occupied one via `presentSplit.hard` directly — no separate "+1 for the primary" is
+  // needed anywhere in this file, which would otherwise double-count it whenever `input.bodies`
+  // also has a real facility recorded in that same slot.
+  const presentBodies: PresentFacilitiesBody[] = applyPrimaryReservation(
+    (input.bodies ?? []).map((b) => ({
+      bodyId: b.bodyId,
+      space: b.presentFacilities?.space ?? [],
+      ground: b.presentFacilities?.ground ?? [],
+    })),
+    input.firstStationBodyId,
+    input.firstStationBuilding,
+  );
   const presentSplit = splitPresentFacilities(presentBodies);
 
   const nbPortsAlreadyPresent =
     input.bodies && input.bodies.length > 0
-      ? presentSplit.hard.filter((f) => isPort(ALL_BUILDINGS[f.building])).length
+      ? presentSplit.hard.filter((f) => !f.primary && isPort(ALL_BUILDINGS[f.building])).length
       : Object.entries(input.alreadyPresent)
           .filter(([name]) => isPort(ALL_BUILDINGS[name]))
           .reduce((sum, [, nb]) => sum + nb, 0);
@@ -409,9 +424,11 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     // the body's TOTAL physical slot count (see SolverBody's doc comment) — occupied-by-already-
     // present capacity is subtracted here: hard-present facilities always occupy their slot;
     // demolishable ones do too unless the solver's `keepVar` for that slot solves to 0. The
-    // primary station's body (if assigned, see SolverInput.firstStationBodyId) has one further
-    // orbital slot reserved for it, on top of whatever's already present — it's a real physical
-    // slot like any other, just fixed to the chosen firstStationBuilding instead of solved for.
+    // primary station's body (if assigned, see SolverInput.firstStationBodyId) has its own
+    // reserved orbital slot too — it's a real physical slot like any other, just fixed to the
+    // chosen firstStationBuilding instead of solved for; it's already included in `hardSpaceCount`
+    // below via `presentSplit.hard` (see `applyPrimaryReservation`, applied above), so it needs no
+    // separate reservation term here.
     for (const b of input.bodies) {
       let spaceUsage: LPExpr = exprConst(0);
       let groundUsage: LPExpr = exprConst(0);
@@ -433,13 +450,7 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
         if (d.kind === "space") spaceUsage = addExpr(spaceUsage, contribution);
         else groundUsage = addExpr(groundUsage, contribution);
       }
-      const firstStationReservation = b.bodyId === input.firstStationBodyId ? 1 : 0;
-      model.addConstraint(
-        spaceUsage,
-        "<=",
-        b.slots.space - hardSpaceCount - firstStationReservation,
-        `body_${b.bodyId}_space`,
-      );
+      model.addConstraint(spaceUsage, "<=", b.slots.space - hardSpaceCount, `body_${b.bodyId}_space`);
       model.addConstraint(groundUsage, "<=", b.slots.ground - hardGroundCount, `body_${b.bodyId}_ground`);
     }
   } else {
@@ -802,7 +813,6 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   const presentOccupiedGround =
     presentSplit.hard.filter((f) => f.kind === "ground").length +
     presentKeepVars.filter((d) => d.kind === "ground" && Math.round(colValues[d.keepVar] ?? 1) === 1).length;
-  const primaryReservation = input.bodies && input.bodies.length > 0 && input.firstStationBodyId !== undefined ? 1 : 0;
   const totalSpaceSlots =
     input.bodies && input.bodies.length > 0 ? input.bodies.reduce((sum, b) => sum + b.slots.space, 0) : input.slots.space;
   const totalGroundSlots =
@@ -815,9 +825,10 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // occupancy by every OTHER building (present or new) sitting on a ring-eligible body's orbital
   // slots — contradictorily reporting asteroid slots free while plain orbital slots (a superset)
   // were already all used up. `bodySpaceOccupied` mirrors the per-body capacity constraint above
-  // (new + present-hard + present-kept-demolishable + primary reservation) for one specific body.
+  // (new + present-hard [which already includes the primary's own synced entry, see
+  // `applyPrimaryReservation`] + present-kept-demolishable) for one specific body.
   function bodySpaceOccupied(b: SolverBody): number {
-    let used = primaryReservation && b.bodyId === input.firstStationBodyId ? 1 : 0;
+    let used = 0;
     for (const [name, building] of Object.entries(ALL_BUILDINGS)) {
       if (building.slot !== "space") continue;
       used += Math.round(colValues[bodyVars[name][b.bodyId]] ?? 0);
@@ -848,7 +859,7 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     finalT2Points: Math.round(evalExprAt(finalT2Expr, colValues)),
     finalT3Points: Math.round(evalExprAt(finalT3Expr, colValues)),
     slotsRemaining: {
-      space: totalSpaceSlots - presentOccupiedSpace - primaryReservation - Math.round(evalExprAt(usedSlots.space, colValues)),
+      space: totalSpaceSlots - presentOccupiedSpace - Math.round(evalExprAt(usedSlots.space, colValues)),
       ground: totalGroundSlots - presentOccupiedGround - Math.round(evalExprAt(usedSlots.ground, colValues)),
       asteroid: totalAsteroidEligibleSlots - occupiedAsteroidEligibleSlots,
     },

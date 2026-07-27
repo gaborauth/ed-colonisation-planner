@@ -558,6 +558,85 @@ also revisable:
   specifically (the first fix pass still only checked for `Asteroid_Base`, which could
   contradictorily report asteroid slots free while plain orbital slots — a superset — were already
   fully used). `solve.test.ts` has dedicated regression tests for both.
+- **The primary station is now a real, synced `PresentFacilitySlot` entry, not a separate "+1"
+  convention** (redesigned 2026-07-27, replacing an earlier same-day fix that just patched the
+  double-counting symptom below). Real bug found by the user: filling in a body's Orbital 1 slot by
+  hand via the System facilities panel, THEN assigning that same body as the primary station, left
+  a stale facility entry there — `SystemConfigPanel.tsx`'s `BodySlotLeaves` only ever stopped
+  *rendering* that slot once a primary was assigned, never cleared the stale state behind it, so it
+  was invisible in the UI but still double-counted everywhere something separately added "+1 for
+  the primary's reservation" on top. The user's explicit direction, after discussing a narrower
+  masking-only fix and a full data-model replacement: keep `PlannerFormState`'s flat
+  `firstStationBuilding`/`firstStationBodyId`/`firstStationVariant`/`firstStationCustomName` fields
+  as the actual source of truth (still required — `firstStationBuilding` is needed even in aggregate
+  mode, which has no `bodies` array to attach a slot entry to at all), but ALSO copy them into a
+  real `presentFacilities.space[0]` entry flagged `PresentFacilitySlot.primary: true`, and make every
+  capacity/count/point computation actually respect that flag instead of maintaining its own
+  separate bookkeeping.
+  - `domain/presentFacilities.ts`'s `applyPrimaryReservation`/`syncPrimaryIntoBodies` overwrite that
+    slot with the primary's own canonical entry — authoritative regardless of whatever the caller's
+    own data said was there. `state/plannerState.ts`'s `plannerReducer` now wraps every action with
+    `reconcilePrimarySlot`, which calls this after EVERY action (not just the ones that touch these
+    fields directly), so the invariant holds regardless of action path — including `"load"`ing an
+    already-saved system from before this existed, reconciled the moment it loads, no separate
+    migration step needed. `solve.ts` independently calls the same function on its own
+    `presentBodies` construction — self-contained, matching how it already never trusted a caller to
+    have gotten `firstStationBuilding` itself right, so a direct/API caller that doesn't go through
+    the reducer at all (e.g. `solve.test.ts`) still gets a correct result.
+  - This let several separate "+1 for the primary" mechanisms be deleted outright as now-redundant:
+    `deriveSlotUsage`'s `firstStationBodyId` parameter, and `solve.ts`'s `firstStationReservation`/
+    `primaryReservation` (in the capacity constraint, `bodySpaceOccupied`, and the aggregate
+    `slotsRemaining` formula) — all now correctly count the primary via `presentSplit.hard` directly.
+  - `computeHardNonPortSeed`/`computePresentPortsSeed` explicitly skip a `primary: true` ref entirely
+    (no cost, no generation, doesn't consume an escalation-sequence position) — the primary's own
+    T2/T3 point contribution and exemption from its own escalating port cost is still handled
+    entirely by `deriveCurrentPoints`'s/`solve.ts`'s own separate, pre-existing, already-correct
+    logic; counting it again via the new real entry would triple-count it.
+  - **Four other call sites already had their own separate, older "fold the primary in manually"
+    mechanism, predating this whole redesign** — each would have started double-counting the
+    primary the moment its real entry started flowing through unfiltered, so each needed either an
+    `excludePrimary` option or its old mechanism removed entirely: `SystemConfigPanel.tsx`'s
+    `computeCurrentSystemScores` call (own bonus-vs-reduction split — `derivePresentCounts(...,
+    {excludePrimary: true})`); `state/toPlanResult.ts` (feeds `domain/systemState.ts`'s
+    `addFirstStation`, its own cost-exemption path — same `excludePrimary` option); and
+    `domain/presentLinks.ts`'s `computePresentSystemLinks`, which used to take its own explicit
+    `firstStation` parameter to manually push a placement (removed entirely — redundant now) and
+    `domain/solvedLinks.ts`'s `toSolvedBuildingPlacements`, which merges present-facility placements
+    with `SolverResult.placements` (which unconditionally includes the primary already) — needed
+    `toBuildingPlacements(..., {excludePrimary: true})` on its present-facility half.
+    `domain/solvedPlacement.ts` was checked and needed no change — it already resolves the primary's
+    slot via its own independent `result.firstStationBodyId` check before ever consulting
+    `presentFacilities`, so it never read the stale/synced entry either way.
+  - Two real, useful side effects, not just risk to patch: the primary now automatically shows up in
+    `BuildingsTable.tsx`'s Constructions table (a previously-known display gap, `derivePresentCounts`
+    left unfiltered there on purpose), and `presentLinks.ts`'s `strongLinkedInstances` had a
+    documented "known limitation" (a non-dominant primary's strong link wouldn't resolve to a
+    nickname, since it was never a real `presentFacilities` entry) that's now simply resolved, not
+    special-cased.
+  - **A SIXTH call site found only after real user testing, not code review** (2026-07-27): the
+    "Solved system" tree worked fine, but "Build order" threw "Could not schedule demolish/build
+    order without going negative" — reproducible only when the primary is an ESCALATING-cost port
+    (Coriolis); an Outpost (flat T1 cost) never showed it, which is what led straight to the root
+    cause. `domain/buildOrderTable.ts`'s `computeValidatedBuiltOrder` already seeds a scratch
+    `SystemState` with the primary via `formState.firstStationBuilding` passed straight to
+    `computeFeasibleOrder` (its own pre-existing, correct exemption mechanism) — but its `bodies`
+    construction for `presentBuildOrderHint` was unfiltered, so the primary's real synced entry ALSO
+    flowed in as an extra, un-exempted port on top of that seed, one-off pushing the escalating-cost
+    curve into an unaffordable position for every subsequent real port. Exactly the same bug shape
+    as the four call sites above, just missed initially because this file's OWN existing tests build
+    `formState.bodies` by direct assignment from a fixture, bypassing `plannerReducer` entirely — so
+    they never exercised the reconciled, synced-primary-entry code path the real app always goes
+    through. Fixed the same way: `presentBuildOrderHint` gained the same `excludePrimary` option
+    (used here; `presentLinks.ts`'s own use of it stays unfiltered, since dominance tie-break DOES
+    want the primary included and has no other source for it anymore), and `presentInstanceQueues`
+    (a second, separate raw iteration over `presentFacilities` in the same file, feeding per-row
+    body/slot/nickname seating) also needed its own `!slot.primary` filter, since leaving the
+    primary's entry in that queue risked a later same-name instance popping the primary's own
+    slot/nickname by mistake. New regression test in `buildOrderTable.test.ts` reconciles the real
+    `jsons/swoilz-aw-c-d52.json` fixture's bodies via `syncPrimaryIntoBodies` before constructing
+    `formState` (simulating the real reducer path this file's other tests don't), and — since that
+    fixture's own real primary happens to be a Coriolis — reproduces the exact reported error
+    message before the fix, confirmed via a temporary local revert.
 
 ## Testing conventions
 

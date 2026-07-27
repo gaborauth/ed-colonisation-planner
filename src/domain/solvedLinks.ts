@@ -37,7 +37,11 @@ export function toSolvedBuildingPlacements(bodies: JournalBody[], result: Solver
       demolished.has(demolishedKey(b.bodyId, "ground", index)) ? null : slot,
     ),
   }));
-  return [...toBuildingPlacements(presentBodies), ...result.placements];
+  // `excludePrimary`: `result.placements` already unconditionally includes the primary's own fixed
+  // placement (solve.ts's own assignment, not decision-dependent) — including its synced
+  // `presentFacilities` entry here too would double-count it (see
+  // `PresentFacilitySlot.primary`'s doc comment).
+  return [...toBuildingPlacements(presentBodies, { excludePrimary: true }), ...result.placements];
 }
 
 /** Link topology for a solved plan's FULL standing layout (already-present, minus demolished, plus

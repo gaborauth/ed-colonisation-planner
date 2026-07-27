@@ -479,16 +479,7 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
   // Link topology for what's actually built today (see domain/presentLinks.ts) — feeds the
   // "Strong market link(s)" hover section below. Recomputed only when the underlying present-
   // facility/primary-station state actually changes, not on every render.
-  const linksResult = useMemo(
-    () =>
-      computePresentSystemLinks(
-        formState.bodies,
-        formState.firstStationBuilding && formState.firstStationBodyId !== undefined
-          ? { building: formState.firstStationBuilding, bodyId: formState.firstStationBodyId }
-          : undefined,
-      ),
-    [formState.bodies, formState.firstStationBuilding, formState.firstStationBodyId],
-  );
+  const linksResult = useMemo(() => computePresentSystemLinks(formState.bodies), [formState.bodies]);
 
   // The primary station shows up as a leaf under whichever body it's assigned to (see
   // HierarchyBranch/the root's own leaves below) — but if it's been picked without a body
@@ -505,14 +496,17 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
   // `deriveSlotUsage`'s doc comment — so they're shown nested under "Orbital slots" rather than as
   // a third sibling field.
   const slotUsageBodies = toSlotUsageBodies(formState.bodies);
-  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots, formState.firstStationBodyId);
+  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots);
 
   // "The actual sum of values of the system" (moved in from the old standalone Result panel,
   // 2026-07-26) — the CURRENT, already-built system's totals, computed directly (no MILP: nothing
   // to optimize for a fixed layout) via domain/currentSystemScores.ts. Falls back to the flat
   // `alreadyPresent` map in aggregate mode, same source BuildingsTable.tsx already uses there —
   // this panel's own tree only exists in per-body mode.
-  const presentCounts = hasBodies ? derivePresentCounts(slotUsageBodies) : formState.alreadyPresent;
+  // `excludePrimary`: `computeCurrentSystemScores` already adds the primary's own contribution
+  // separately (with its own bonus, distinct from every other facility's reduction) — including it
+  // here too would double-count it (see PresentFacilitySlot.primary's doc comment).
+  const presentCounts = hasBodies ? derivePresentCounts(slotUsageBodies, { excludePrimary: true }) : formState.alreadyPresent;
   const currentScores = computeCurrentSystemScores(presentCounts, formState.firstStationBuilding);
   const currentPoints = deriveCurrentPoints(slotUsageBodies, formState.firstStationBuilding);
 

@@ -32,6 +32,8 @@ export interface PresentFacilityRef {
   kind: "space" | "ground";
   index: number;
   building: string;
+  /** Mirrors `PresentFacilitySlot.primary` — see that field's doc comment. */
+  primary?: boolean;
 }
 
 interface FlatPresentFacility extends PresentFacilityRef {
@@ -66,10 +68,14 @@ function flatten(bodies: PresentFacilitiesBody[]): FlatPresentFacility[] {
   const flat: FlatPresentFacility[] = [];
   for (const body of bodies) {
     body.space.forEach((slot, index) => {
-      if (slot) flat.push({ bodyId: body.bodyId, kind: "space", index, building: slot.building, demolishable: slot.demolishable });
+      if (slot) {
+        flat.push({ bodyId: body.bodyId, kind: "space", index, building: slot.building, demolishable: slot.demolishable, primary: slot.primary });
+      }
     });
     body.ground.forEach((slot, index) => {
-      if (slot) flat.push({ bodyId: body.bodyId, kind: "ground", index, building: slot.building, demolishable: slot.demolishable });
+      if (slot) {
+        flat.push({ bodyId: body.bodyId, kind: "ground", index, building: slot.building, demolishable: slot.demolishable, primary: slot.primary });
+      }
     });
   }
   return flat;
@@ -91,11 +97,17 @@ export function sortDeterministic<T extends { bodyId: number; kind: "space" | "g
 
 /** Flat building-name -> count aggregate of every already-present facility (hard AND demolishable
  * alike — this doesn't know about any particular solve's demolish decision, it's just "what's
- * marked in the tree"). Used for display (`BuildingsTable`) and pre-solve build-order purposes
- * (`state/toPlanResult.ts` / `domain/ordering.ts`) when per-body placement is in use. */
-export function derivePresentCounts(bodies: PresentFacilitiesBody[]): Record<string, number> {
+ * marked in the tree"). Used for display (`BuildingsTable`, where the primary's own synced entry —
+ * see `PresentFacilitySlot.primary` — SHOULD show up, fixing a real display gap) and pre-solve
+ * build-order purposes (`state/toPlanResult.ts` / `domain/ordering.ts`) when per-body placement is
+ * in use. Pass `excludePrimary: true` wherever the caller ALREADY separately accounts for the
+ * primary's own contribution with its own different rules (e.g. `computeCurrentSystemScores`'s own
+ * bonus-vs-reduction split, or `domain/systemState.ts`'s `addFirstStation` cost exemption via
+ * `toPlanResult.ts`'s `first_station` field) — including it here too would double-count it. */
+export function derivePresentCounts(bodies: PresentFacilitiesBody[], options?: { excludePrimary?: boolean }): Record<string, number> {
   const counts: Record<string, number> = {};
   for (const ref of flatten(bodies)) {
+    if (options?.excludePrimary && ref.primary) continue;
     counts[ref.building] = (counts[ref.building] ?? 0) + 1;
   }
   return counts;
@@ -104,10 +116,17 @@ export function derivePresentCounts(bodies: PresentFacilitiesBody[]): Record<str
 /** Per-(body, building) instance counts, in `domain/links.ts`'s `BuildingPlacement` shape — feeds
  * `computeSystemLinks` (via `domain/presentLinks.ts`) with what's actually built today, the same
  * way `solve.ts` feeds it a solved plan's placements. Unlike `derivePresentCounts` above (a flat
- * system-wide total), link topology is per-body, so this keeps bodies separate. */
-export function toBuildingPlacements(bodies: PresentFacilitiesBody[]): BuildingPlacement[] {
+ * system-wide total), link topology is per-body, so this keeps bodies separate. Pass
+ * `excludePrimary: true` where the caller already gets the primary's placement from elsewhere —
+ * `domain/solvedLinks.ts`'s `toSolvedBuildingPlacements` merges this with `SolverResult.placements`,
+ * which unconditionally includes the primary already (`solve.ts`'s own fixed assignment, not
+ * decision-dependent) — including it here too would double-count it (see
+ * `PresentFacilitySlot.primary`'s doc comment). `presentLinks.ts`'s present-only case has no such
+ * other source, so it leaves this unset (include it). */
+export function toBuildingPlacements(bodies: PresentFacilitiesBody[], options?: { excludePrimary?: boolean }): BuildingPlacement[] {
   const counts = new Map<string, BuildingPlacement>();
   for (const ref of flatten(bodies)) {
+    if (options?.excludePrimary && ref.primary) continue;
     const key = `${ref.bodyId}:${ref.building}`;
     const existing = counts.get(key);
     if (existing) existing.count++;
@@ -118,9 +137,17 @@ export function toBuildingPlacements(bodies: PresentFacilitiesBody[]): BuildingP
 
 /** Building names in the same deterministic stand-in order as `computePresentPortsSeed`'s cost
  * curve — reused here as `computeSystemLinks`'s `buildOrderHint`, an approximate same-tier
- * tie-break signal (see that function's own doc comment; not a real recorded build order). */
-export function presentBuildOrderHint(bodies: PresentFacilitiesBody[]): string[] {
-  return sortDeterministic(flatten(bodies)).map((ref) => ref.building);
+ * tie-break signal (see that function's own doc comment; not a real recorded build order).
+ * `presentLinks.ts`'s dominance tie-break wants the primary included (it's a real port that should
+ * participate there); pass `excludePrimary: true` for a cost/feasibility context that's ALREADY
+ * seeding the primary separately (`domain/buildOrderTable.ts`'s `computeValidatedBuiltOrder`, which
+ * passes `firstStationBuilding` straight to `computeFeasibleOrder` — including the primary's real
+ * synced entry here too would double-seed it, and for an escalating-cost port like Coriolis,
+ * double-CHARGE it, throwing off every subsequent real port's escalation-sequence position). */
+export function presentBuildOrderHint(bodies: PresentFacilitiesBody[], options?: { excludePrimary?: boolean }): string[] {
+  return sortDeterministic(flatten(bodies))
+    .filter((ref) => !(options?.excludePrimary && ref.primary))
+    .map((ref) => ref.building);
 }
 
 export interface SlotUsage {
@@ -149,13 +176,10 @@ export interface SlotUsageBody extends PresentFacilitiesBody {
  * free, per the "System facilities" tree the user fills in by hand — same "built" definition as
  * `derivePresentCounts` (every marked facility counts, demolishable or not; this isn't about any
  * particular solve's demolish decision). The primary station consumes a real orbital slot on its
- * assigned body but is never itself an entry in `presentFacilities` (see solve.ts's
- * `firstStationReservation`), so it's counted here as a separate +1 rather than missed entirely. */
-export function deriveSlotUsage(
-  bodies: SlotUsageBody[],
-  totals: { space: number; ground: number; asteroid: number },
-  firstStationBodyId: number | undefined,
-): SystemSlotUsage {
+ * assigned body via its own synced `presentFacilities` entry (`PresentFacilitySlot.primary` — see
+ * that field's doc comment), so it's counted here by the exact same generic loop as any other
+ * facility — no `firstStationBodyId` parameter or separate "+1" needed. */
+export function deriveSlotUsage(bodies: SlotUsageBody[], totals: { space: number; ground: number; asteroid: number }): SystemSlotUsage {
   let builtSpace = 0;
   let builtGround = 0;
   let builtAsteroidSpace = 0;
@@ -164,11 +188,6 @@ export function deriveSlotUsage(
     builtSpace += spaceBuilt;
     builtGround += body.ground.filter((slot) => slot !== null).length;
     if (body.asteroidEligible) builtAsteroidSpace += spaceBuilt;
-  }
-  const firstStationBody = bodies.find((b) => b.bodyId === firstStationBodyId);
-  if (firstStationBody) {
-    builtSpace += 1;
-    if (firstStationBody.asteroidEligible) builtAsteroidSpace += 1;
   }
   const usage = (total: number, built: number): SlotUsage => ({
     built,
@@ -200,11 +219,15 @@ export function splitPresentFacilities(bodies: PresentFacilitiesBody[]): Present
 
 /** Non-port present facilities' T2/T3 seed contribution — pass the `hard` list from
  * `splitPresentFacilities` (present ports are always in `hard` too, but contribute 0 here; see
- * `computePresentPortsSeed` for their cost, which depends on curve position, not a fixed stat). */
+ * `computePresentPortsSeed` for their cost, which depends on curve position, not a fixed stat).
+ * Skips the primary station's own synced entry (`ref.primary`) entirely — its point contribution
+ * is handled by `deriveCurrentPoints`/`solve.ts`'s own separate, already-correct logic (see
+ * `PresentFacilitySlot.primary`'s doc comment); counting it again here would double it. */
 export function computeHardNonPortSeed(hard: PresentFacilityRef[]): PresentSeed {
   let t2 = 0;
   let t3 = 0;
   for (const ref of hard) {
+    if (ref.primary) continue;
     const building = ALL_BUILDINGS[ref.building];
     if (!building || isPort(building)) continue;
     if (typeof building.T2points === "number") t2 += building.T2points;
@@ -226,9 +249,13 @@ export function computeHardNonPortSeed(hard: PresentFacilityRef[]): PresentSeed 
  * separately rather than sharing one counter (also confirmed against that same real system: a
  * T2-cost port built before a T3-cost port didn't push the T3-cost port past its own
  * first-of-type price). Pass the `hard` list from `splitPresentFacilities` (ports are always
- * hard). */
+ * hard). Skips the primary station's own synced entry (`ref.primary`) entirely — not just its
+ * cost, its escalation-sequence POSITION too (it never increments `t2Index`/`t3Index`), since the
+ * primary is exempt from its own port-escalation cost and was never counted toward this sequence
+ * before it became a real `presentFacilities` entry — see `deriveCurrentPoints`/`solve.ts`'s own
+ * separate, already-correct exemption logic, and `PresentFacilitySlot.primary`'s doc comment. */
 export function computePresentPortsSeed(hard: PresentFacilityRef[]): PresentSeed {
-  const ports = sortDeterministic(hard).filter((ref) => isPort(ALL_BUILDINGS[ref.building]));
+  const ports = sortDeterministic(hard).filter((ref) => !ref.primary && isPort(ALL_BUILDINGS[ref.building]));
   let t2 = 0;
   let t3 = 0;
   let t2Index = 0;
@@ -290,4 +317,80 @@ export function toSlotUsageBodies(bodies: JournalBody[]): SlotUsageBody[] {
     ground: b.presentFacilities?.ground ?? [],
     asteroidEligible: (b.slots?.asteroid ?? 0) > 0,
   }));
+}
+
+function primaryFacilitySlot(building: string, variant?: string, customName?: string): PresentFacilitySlot {
+  return { building, demolishable: false, variant, customName, primary: true };
+}
+
+function slotsEqual(a: PresentFacilitySlot | null, b: PresentFacilitySlot): boolean {
+  return !!a && a.primary === true && a.building === b.building && a.variant === b.variant && a.customName === b.customName;
+}
+
+/** Overwrites the primary station's assigned body's Orbital-1 slot with its own real, synced entry
+ * (see `PresentFacilitySlot.primary`'s doc comment) — authoritative regardless of whatever the
+ * caller's own data says was there (a stale manual entry, already-synced data, or nothing at all)
+ * — and clears a stale `primary: true` leftover on any OTHER body (the primary moved since, or the
+ * caller's data is otherwise out of sync). `firstStationBodyId`/`firstStationBuilding` are the
+ * single source of truth for "who and where the primary is"; this is what makes that fact show up
+ * correctly in every capacity/count computation below that reads `presentFacilities`, instead of
+ * each needing its own separate "+1 for the primary" bookkeeping.
+ *
+ * Used directly by `solve.ts` (self-contained — a direct/API caller that doesn't go through
+ * `state/plannerState.ts`'s reducer at all still gets a correct result, matching how `solve.ts`
+ * already never trusted caller data hygiene for `firstStationBuilding` itself) and, via
+ * `syncPrimaryIntoBodies` below, by that reducer (so `formState.bodies` itself stays correct for
+ * every OTHER consumer too — the Constructions table, build order table, etc.). Returns the input
+ * array unchanged (same reference) if nothing needed reconciling, so callers that care about
+ * reference identity across unrelated updates (e.g. `plannerState.test.ts`'s "untouched fields keep
+ * identity" convention) aren't disrupted needlessly. */
+export function applyPrimaryReservation<T extends PresentFacilitiesBody>(
+  bodies: T[],
+  firstStationBodyId: number | undefined,
+  firstStationBuilding: string | undefined,
+  firstStationVariant?: string,
+  firstStationCustomName?: string,
+): T[] {
+  let changed = false;
+  const next = bodies.map((b) => {
+    const existingSlot0 = b.space[0] ?? null;
+    if (b.bodyId === firstStationBodyId && firstStationBuilding) {
+      const primarySlot = primaryFacilitySlot(firstStationBuilding, firstStationVariant, firstStationCustomName);
+      if (slotsEqual(existingSlot0, primarySlot)) return b;
+      changed = true;
+      const space = [...b.space];
+      space[0] = primarySlot;
+      return { ...b, space };
+    }
+    if (existingSlot0?.primary) {
+      changed = true;
+      const space = [...b.space];
+      space[0] = null;
+      return { ...b, space };
+    }
+    return b;
+  });
+  return changed ? next : bodies;
+}
+
+/** `JournalBody`-shaped counterpart to `applyPrimaryReservation` above, for
+ * `state/plannerState.ts`'s reducer — `JournalBody.presentFacilities` nests `space`/`ground` rather
+ * than carrying them at the top level like `PresentFacilitiesBody` does. */
+export function syncPrimaryIntoBodies(
+  bodies: JournalBody[],
+  firstStationBodyId: number | undefined,
+  firstStationBuilding: string | undefined,
+  firstStationVariant?: string,
+  firstStationCustomName?: string,
+): JournalBody[] {
+  const flat = bodies.map((b) => ({
+    bodyId: b.bodyId,
+    space: b.presentFacilities?.space ?? [],
+    ground: b.presentFacilities?.ground ?? [],
+  }));
+  const applied = applyPrimaryReservation(flat, firstStationBodyId, firstStationBuilding, firstStationVariant, firstStationCustomName);
+  if (applied === flat) return bodies;
+  return bodies.map((b, i) =>
+    applied[i] === flat[i] ? b : { ...b, presentFacilities: { space: applied[i].space, ground: applied[i].ground } },
+  );
 }
