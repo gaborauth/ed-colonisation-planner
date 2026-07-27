@@ -4,6 +4,38 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>EDCP: Elite Dangerous Colonisation Planner</title>
+    <meta
+      name="description"
+      content="A free, browser-based planner for Elite Dangerous system colonisation. Import your Journal file or search Spansh, pick a goal, and a MILP solver works out what to build — entirely client-side, no account needed."
+    />
+
+    <!-- Open Graph / Twitter Card: static tags, not React-rendered — Facebook/Twitter/Discord
+         crawlers don't execute JS, so anything set only inside the app (e.g. document.title) is
+         invisible to them; this is the one place that actually reaches a share preview. Absolute
+         URLs throughout (og:image in particular): crawlers fetch it directly, not resolved against
+         the page like a normal <img>. `feature.jpg` lives in `public/images/` specifically so Vite
+         copies it into `dist/` at the exact path referenced below — anywhere outside `public/`
+         wouldn't survive the build. Update both URLs together if the GitHub Pages
+         org/repo/base path (see vite.config.ts's `base`) ever changes. -->
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="EDCP: Elite Dangerous Colonisation Planner" />
+    <meta property="og:title" content="EDCP: Elite Dangerous Colonisation Planner" />
+    <meta
+      property="og:description"
+      content="A free, browser-based planner for Elite Dangerous system colonisation. Import your Journal file or search Spansh, pick a goal, and a MILP solver works out what to build — entirely client-side, no account needed."
+    />
+    <meta property="og:url" content="https://gaborauth.github.io/ed-colonisation-planner/" />
+    <meta property="og:image" content="https://gaborauth.github.io/ed-colonisation-planner/images/feature.jpg" />
+    <meta property="og:image:width" content="1385" />
+    <meta property="og:image:height" content="885" />
+
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="EDCP: Elite Dangerous Colonisation Planner" />
+    <meta
+      name="twitter:description"
+      content="A free, browser-based planner for Elite Dangerous system colonisation. Import your Journal file or search Spansh, pick a goal, and a MILP solver works out what to build — entirely client-side, no account needed."
+    />
+    <meta name="twitter:image" content="https://gaborauth.github.io/ed-colonisation-planner/images/feature.jpg" />
   </head>
   <body>
     <div id="root"></div>
