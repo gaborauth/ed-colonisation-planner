@@ -111,18 +111,21 @@ describe("App", () => {
     // Re-open "Import system" (the panel toggle, not the sticky toolbar's identically-named
     // "Import system" file-picker button — disambiguated by its own aria-expanded, since only
     // the panel toggle carries one) and confirm its shared body table now shows System B's own
-    // body, not System A's.
+    // body, not System A's. Scoped to the panel itself with `within` — these body names also show
+    // up in the main "Actual facilities in the system" tree elsewhere on the page at the same time,
+    // so an unscoped query would (correctly) find more than one match.
     await user.click(screen.getByRole("button", { name: /import system/i, expanded: false }));
-    await screen.findByText("Swoilz AW-C d52 9");
-    expect(screen.queryByText("Test System A 2")).not.toBeInTheDocument();
+    const importPanel = screen.getByRole("button", { name: /import system/i, expanded: true }).closest(".panel") as HTMLElement;
+    await within(importPanel).findByText("Swoilz AW-C d52 9");
+    expect(within(importPanel).queryByText("Test System A 2")).not.toBeInTheDocument();
 
     // Now switch BACK to System A via the sticky toolbar's own dropdown, not Live Demo/Apply.
     await user.selectOptions(screen.getByLabelText("Switch system"), "Test System A");
 
     // The shared table must now agree — this is the table that stayed stuck on System B before the
     // fix.
-    await screen.findByText("Test System A 2");
-    expect(screen.queryByText("Swoilz AW-C d52 9")).not.toBeInTheDocument();
+    await within(importPanel).findByText("Test System A 2");
+    expect(within(importPanel).queryByText("Swoilz AW-C d52 9")).not.toBeInTheDocument();
   }, 25000);
 
   it("shows an error banner when the solver reports infeasibility", async () => {
