@@ -2,8 +2,6 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import type { JournalBody, JournalSystem } from "../journal/parser";
-import { saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
 import { JournalImportPanel } from "./JournalImportPanel";
 
 vi.mock("../spansh/api", () => ({
@@ -27,6 +25,22 @@ const DUMP_RECORD = {
   ],
 };
 
+// Minimal single-line Journal log — one Scan event is enough for `parseJournalScans` to produce a
+// full JournalSystem (a `StarType` marks it a star, per journal/parser.ts's `toJournalBody`).
+function journalLogFor(systemAddress: number, starSystem: string, bodyName: string): string {
+  return JSON.stringify({
+    timestamp: "2026-01-01T00:00:00Z",
+    event: "Scan",
+    ScanType: "Detailed",
+    BodyName: bodyName,
+    BodyID: 0,
+    StarSystem: starSystem,
+    SystemAddress: systemAddress,
+    StarType: "K",
+    Parents: [],
+  });
+}
+
 describe("JournalImportPanel", () => {
   beforeEach(() => {
     localStorage.clear();
@@ -39,6 +53,26 @@ describe("JournalImportPanel", () => {
     expect(screen.getByRole("button", { name: /Import system/ })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Journal file" })).toBeInTheDocument();
     expect(screen.getByRole("tab", { name: "Spansh" })).toBeInTheDocument();
+  });
+
+  it("uploads a Journal file, picks a candidate, and Loads it into the shared table (pick-then-Load, mirroring the Spansh tab)", async () => {
+    const user = userEvent.setup();
+    render(<JournalImportPanel dispatch={vi.fn()} />);
+
+    const file = new File([journalLogFor(11, "System A", "System A A")], "Journal.log", { type: "text/plain" });
+    await user.upload(screen.getByLabelText("Journal file"), file);
+
+    const picker = await screen.findByLabelText("System");
+    expect(picker).toHaveValue("11");
+
+    // Picking alone must NOT touch the shared table yet — only "Load" does.
+    expect(screen.queryByText("System A A")).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Load" }));
+
+    expect(await screen.findByText("System A A")).toBeInTheDocument();
+    // "Reset slots to guess" lives in the shared table block now, not the Journal-tab row.
+    expect(screen.getByRole("button", { name: "Reset slots to guess" })).toBeInTheDocument();
   });
 
   it("searches, loads, and applies a system from the Spansh tab, feeding the same shared table and dispatch shape as a Journal import", async () => {
@@ -77,47 +111,28 @@ describe("JournalImportPanel", () => {
     );
   });
 
-  it("auto-restores the last-used saved system on mount even without a saved primary station yet", () => {
-    // Regression test: this used to require a saved primary station before auto-restoring, which
-    // left a real inconsistency after a page reload — this panel's own selected-system state
-    // (below) already defaults to the last-used system regardless of primary-station status, so it
-    // visually looked "loaded" while the rest of the app (formState, the toolbar system switcher)
-    // stayed blank until a primary station had been chosen and saved at least once.
-    const star: JournalBody = { bodyName: "Star", bodyId: 0, kind: "star", landable: false, parents: [], rings: [], raw: {} };
-    const system: JournalSystem = { starSystem: "System A", systemAddress: 42, bodies: [star] };
-    saveSystem(system);
-    setLastUsedSystemAddress(42);
-
-    const dispatch = vi.fn();
-    render(<JournalImportPanel dispatch={dispatch} />);
-
-    expect(dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({
-        type: "patch",
-        patch: expect.objectContaining({ systemAddress: 42, starSystem: "System A", systemConfigured: true }),
-      }),
-    );
-  });
-
   it("loading a second Spansh system after one is already applied still replaces the shown system (regression, 2026-07-27)", async () => {
     // Real bug: once `activeSystemAddress` (formState.systemAddress, mirroring what App.tsx would
     // pass down after a real Apply) is non-null, the "sync to formState" effect used to fire on
     // ANY divergence between it and this panel's own `selectedAddress` — including one caused by
     // this panel's OWN Spansh "Load" button setting `selectedAddress` to a not-yet-applied
     // candidate — and stomp `selectedAddress` straight back to `activeSystemAddress`, undoing the
-    // Load a moment after it happened. Reproduced here by first applying System A (so
-    // `activeSystemAddress` becomes non-null, matching what App.tsx would do after the dispatch),
-    // then loading a different System B from Spansh and asserting B's body actually shows,
-    // instead of reverting to A's.
-    const starA: JournalBody = { bodyName: "Star", bodyId: 0, kind: "star", landable: false, parents: [], rings: [], raw: {} };
-    const systemA: JournalSystem = { starSystem: "System A", systemAddress: 11, bodies: [starA] };
-    saveSystem(systemA);
-
+    // Load a moment after it happened. Reproduced here by first applying System A (loaded via the
+    // Journal tab's own pick-then-Load flow — this panel no longer browses already-saved systems,
+    // so a real upload is needed to get System A into the shared table at all), then loading a
+    // different System B from Spansh and asserting B's body actually shows, instead of reverting
+    // to A's.
     mockedSearch.mockResolvedValue([CANDIDATE]);
     mockedFetchDump.mockResolvedValue(DUMP_RECORD);
     const dispatch = vi.fn();
     const user = userEvent.setup();
     const { rerender } = render(<JournalImportPanel dispatch={dispatch} activeSystemAddress={null} />);
+
+    const file = new File([journalLogFor(11, "System A", "System A A")], "Journal.log", { type: "text/plain" });
+    await user.upload(screen.getByLabelText("Journal file"), file);
+    await screen.findByLabelText("System");
+    await user.click(screen.getByRole("button", { name: "Load" }));
+    await screen.findByText("System A A");
 
     // Simulate applying System A (Journal tab's existing "Apply" flow), then App.tsx re-rendering
     // this panel with the resulting formState.systemAddress, same as the real parent would.

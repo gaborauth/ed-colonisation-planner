@@ -3,7 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { JournalBody, JournalSystem } from "../journal/parser";
-import { saveSystem } from "../persistence/journalSystems";
+import { getLastUsedSystemAddress, listSavedSystems, saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
 import { INITIAL_FORM_STATE, type PlannerFormState } from "../state/plannerState";
 import { SystemPortabilityBar } from "./SystemPortabilityBar";
 
@@ -81,5 +81,80 @@ describe("SystemPortabilityBar", () => {
         }),
       }),
     );
+  });
+
+  it("auto-restores the last-used saved system on mount (moved here from JournalImportPanel, 2026-07-27 — see that panel's now-removed mount effect)", () => {
+    saveSystem(SYSTEM_A);
+    setLastUsedSystemAddress(SYSTEM_A.systemAddress);
+    const dispatch = vi.fn();
+    render(<SystemPortabilityBar formState={INITIAL_FORM_STATE} dispatch={dispatch} />);
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "patch",
+        patch: expect.objectContaining({ systemAddress: 1, starSystem: "System A", systemConfigured: true }),
+      }),
+    );
+  });
+
+  it("does not auto-restore when a system is already active", () => {
+    saveSystem(SYSTEM_A);
+    saveSystem(SYSTEM_B);
+    setLastUsedSystemAddress(SYSTEM_A.systemAddress);
+    const dispatch = vi.fn();
+    render(<SystemPortabilityBar formState={formStateFor(SYSTEM_B)} dispatch={dispatch} />);
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  describe("Delete", () => {
+    it("is disabled when no system is active", () => {
+      render(<SystemPortabilityBar formState={INITIAL_FORM_STATE} dispatch={vi.fn()} />);
+      expect(screen.getByRole("button", { name: "Delete" })).toBeDisabled();
+    });
+
+    it("does nothing when the user cancels the confirm dialog", async () => {
+      saveSystem(SYSTEM_A);
+      const dispatch = vi.fn();
+      const user = userEvent.setup();
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(false);
+      render(<SystemPortabilityBar formState={formStateFor(SYSTEM_A)} dispatch={dispatch} />);
+
+      await user.click(screen.getByRole("button", { name: "Delete" }));
+
+      expect(confirmSpy).toHaveBeenCalled();
+      expect(dispatch).not.toHaveBeenCalled();
+      expect(listSavedSystems().some((s) => s.systemAddress === SYSTEM_A.systemAddress)).toBe(true);
+      confirmSpy.mockRestore();
+    });
+
+    it("deletes the active system, resets formState, clears the stale result, and refreshes siblings when confirmed", async () => {
+      saveSystem(SYSTEM_A);
+      setLastUsedSystemAddress(SYSTEM_A.systemAddress);
+      const dispatch = vi.fn();
+      const onSystemChanged = vi.fn();
+      const onImported = vi.fn();
+      const user = userEvent.setup();
+      const confirmSpy = vi.spyOn(window, "confirm").mockReturnValue(true);
+      render(
+        <SystemPortabilityBar
+          formState={formStateFor(SYSTEM_A)}
+          dispatch={dispatch}
+          onSystemChanged={onSystemChanged}
+          onImported={onImported}
+        />,
+      );
+
+      await user.click(screen.getByRole("button", { name: "Delete" }));
+
+      expect(confirmSpy).toHaveBeenCalled();
+      expect(dispatch).toHaveBeenCalledWith({ type: "reset" });
+      expect(onSystemChanged).toHaveBeenCalled();
+      expect(onImported).toHaveBeenCalled();
+      expect(listSavedSystems().some((s) => s.systemAddress === SYSTEM_A.systemAddress)).toBe(false);
+      // The dangling last-used pointer must go with it too, or the next mount would try (and fail)
+      // to restore a system that no longer exists.
+      expect(getLastUsedSystemAddress()).toBeNull();
+      confirmSpy.mockRestore();
+    });
   });
 });
