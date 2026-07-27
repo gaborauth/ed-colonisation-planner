@@ -116,6 +116,59 @@ at all), which must map to `undefined` ("unknown", matching Journal's own conven
 un-FSS'd body) rather than `false` ("confirmed absent") — the adapter is careful about this
 distinction (see its own comment).
 
+**Real bug found by the user, Spansh-import-only (2026-07-27)**: a star's own asteroid belts were
+dropped entirely. Spansh's `/dump/{id64}` names a planet's rings `rings` but a star's own belts
+`belts` (confirmed against `spansh-jsons/swoilz-cd-e-c1-1-dump.json` — the star has a `belts` array,
+no `rings` key at all; ordinary planets in the same dump use `rings`); `adapter.ts` only read
+`body.rings`, so the star's belts vanished entirely. Fixed: `toJournalBody` now reads
+`body.rings ?? body.belts ?? []`. Confirmed NOT to affect Journal-file import — `journal/parser.ts`
+already uses one uniform `Rings` key for both stars and planets.
+
+**Second, deeper fix found investigating the above, STAR belts only** (2026-07-27, user-clarified
+via a real in-game screenshot after the first version of this fix): a star's belt isn't extra
+capacity on the star's own orbital slot(s) at all — it's its own separate, dedicated constructible
+location, physically far from the star (visible as its own distinct point in the system map,
+"Swoilz CD-E c1-1 A Belt Cluster 1 Slot 0"). `journal/parser.ts`'s new `withRingBodies` synthesizes
+one extra `JournalBody` (`kind: "ring"`) per named belt on every scanned STAR only, appended after
+the real bodies (applied by both `parseJournalScans` and `spansh/adapter.ts`'s
+`spanshDumpToJournalSystem`) — so it shows up as its own row in `JournalImportPanel`'s table and its
+own node in `domain/bodyHierarchy.ts`'s tree (special-cased there too — a ring's multi-token name
+like "A Belt" attaches as one leaf directly under its real parent, not walked token-by-token like an
+ordinary body). `eligibility.ts`'s `estimateBodySlots` gives a star's own slot `asteroid: 0`
+unconditionally now (was `1` if ringed) and the new ring body `{space: 1, ground: 0, asteroid: 1}`.
+
+**The belt's slot is an ordinary orbital slot that additionally qualifies for Asteroid_Base, NOT an
+Asteroid_Base-exclusive slot** (user-corrected 2026-07-27, right after the first version of this fix
+shipped: any kind of orbital facility can go there, same as any other ring-eligible body) — so
+`solve.ts` needed NO changes at all for this part; the pre-existing
+`Asteroid_Base <= 0 when slots.asteroid === 0` rule (unaffected by this fix) already covers it
+correctly for both a star's belt body and a ringed planet's own slot alike, and a port built on the
+belt body still correctly gets the "Has rings" Extraction economy override via the belt body's own
+self-referencing `rings: [ring]` (see below) feeding `economyOverrides.ts`'s `hasRings()` — not that
+this specifically matters for Asteroid_Base itself, whose economy is unconditionally fixed to
+Extraction regardless of body (`data/buildings.ts`'s `PORT_FIXED_ECONOMY`), but it matters for any
+OTHER port type someone chooses to build on the belt's slot instead.
+
+**Deliberately star-only, not planets/moons** — a planet's or moon's own ring is different (user
+explicitly clarified this after reviewing the first version of this fix, which had generalized to
+every ringed body): it keeps making that planet's/moon's OWN orbital slot(s) asteroid-eligible
+directly, unchanged from this app's original (pre-2026-07-27) behavior, since a planet's ring sits
+at the planet rather than being its own separate far-away location. A ringed planet's own slot can
+therefore still host either an ordinary building or an Asteroid_Base (the pre-existing
+approximation, `eligibility.ts`'s own doc comment) — only a STAR's belt gets the new
+dedicated-body-only-Asteroid_Base treatment.
+
+The ring body's own `rings` field self-references its own ring (`rings: [ring]`), so
+`economyOverrides.ts`'s `hasRings()` still fires for a port built there (an Asteroid_Base built in a
+belt should still get the "Has rings" Extraction bonus) — the star's own `rings` field is left
+untouched, so a port built directly on the star still gets that bonus too, independently.
+
+**Best-effort, not exact** (flagged in the "Explicitly unverified/best-effort constants" section
+above too): the real game can show multiple numbered "Cluster N" locations per named belt (visible
+in the same screenshot), which Journal/Spansh scan data has no way to count — this models exactly
+one slot per named belt, same as every other slot count in this app (editable in the UI, never
+locked in).
+
 **One caveat that's semantic, not a code gap**: Spansh's signal/genus data is crowdsourced (whoever
 last scanned that body in Spansh's own database), not necessarily *this player's own* scan — usually
 accurate, but "known" here means "known to Spansh," not "known to you in-game." Surfaced as a short
@@ -262,8 +315,18 @@ also revisable:
 - `GROUND_SLOT_RADIUS_THRESHOLDS` (and the rest of the heuristic) in `src/journal/eligibility.ts` —
   how scanned body data maps to buildable slot counts. The ground-slot half is now sourced from
   community research (CMDR Nyatto, Flynnvali, and others — see also the Raven Colonial tool for the
-  most current version); the orbital-slot half still has no known per-body formula. Still pre-filled
-  into editable UI fields (with a "Reset slots to guess" button to reapply it), never locked in.
+  most current version); the orbital-slot half's own base count (flat 1 per star/planet) still has
+  no known per-body formula — community reports describe it as scaling with overall system body
+  count, but no formula was found. Still pre-filled into editable UI fields (with a "Reset slots to
+  guess" button to reapply it), never locked in. Asteroid eligibility is now partially confirmed
+  (2026-07-27, user-confirmed in-game, STAR belts only): a star's belt is its own separate,
+  always-asteroid-eligible body (`kind: "ring"`, synthesized by `journal/parser.ts`'s
+  `withRingBodies` — see the "Spansh import" section's "Second, deeper fix" note above for the full
+  design), never the star's own slot; a ringed PLANET's own slot keeps the original, still-unconfirmed
+  eligibility behavior unchanged (this app's pre-2026-07-27 default, deliberately not generalized to
+  match the star case per explicit user scope correction). The real game can show multiple numbered
+  "Cluster N" locations per named belt, uncountable from scan data — this models one slot per named
+  belt, a best-effort floor like every other slot count here.
 - `FACILITY_ECONOMY_GUESS` in `src/data/buildings.ts` — maps Hub/Settlement/Installation buildings
   to Update 3 economy types. The official body-attribute override table is verbatim-sourced (see
   below), but no official per-building economy mapping was ever published; several buildings are

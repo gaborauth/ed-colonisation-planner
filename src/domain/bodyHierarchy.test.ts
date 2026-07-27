@@ -89,4 +89,59 @@ describe("buildBodyHierarchy", () => {
     expect(root.children[0].label).toBe("Totally Different Name");
     expect(root.children[0].body?.bodyId).toBe(1);
   });
+
+  // 2026-07-27: a star's belt (`journal/parser.ts`'s `withRingBodies`, `kind: "ring"`) has a
+  // multi-token name ("A Belt") that would otherwise create two spurious extra nesting levels if
+  // walked token-by-token like an ordinary body — it must attach as ONE leaf directly under its
+  // real parent instead.
+  it("attaches a star's belt as a single leaf directly under the star, not nested per name-token", () => {
+    const starSystem = "Sys";
+    const star: JournalBody = { bodyName: "Sys", bodyId: 0, kind: "star", landable: false, parents: [], rings: [], raw: {} };
+    const belt: JournalBody = {
+      bodyName: "Sys A Belt",
+      bodyId: 1_000_000,
+      kind: "ring",
+      landable: false,
+      parents: [{ type: "Star", bodyId: 0 }],
+      rings: [],
+      raw: {},
+    };
+    const root = buildBodyHierarchy(starSystem, [star, belt]);
+
+    expect(root.body?.bodyId).toBe(0);
+    expect(root.children).toHaveLength(1);
+    expect(root.children[0].label).toBe("A Belt");
+    expect(root.children[0].body?.bodyId).toBe(1_000_000);
+    expect(root.children[0].children).toHaveLength(0);
+  });
+
+  it("attaches a planet's ring as a single leaf directly under the planet", () => {
+    const starSystem = "Sys";
+    const star: JournalBody = { bodyName: "Sys", bodyId: 0, kind: "star", landable: false, parents: [], rings: [], raw: {} };
+    const planet: JournalBody = {
+      bodyName: "Sys 1",
+      bodyId: 1,
+      kind: "planet",
+      landable: false,
+      parents: [{ type: "Star", bodyId: 0 }],
+      rings: [],
+      raw: {},
+    };
+    const ring: JournalBody = {
+      bodyName: "Sys 1 A Ring",
+      bodyId: 1_000_100,
+      kind: "ring",
+      landable: false,
+      parents: [{ type: "Planet", bodyId: 1 }],
+      rings: [],
+      raw: {},
+    };
+    const root = buildBodyHierarchy(starSystem, [star, planet, ring]);
+
+    const planetNode = root.children[0];
+    expect(planetNode.label).toBe("1");
+    expect(planetNode.children).toHaveLength(1);
+    expect(planetNode.children[0].label).toBe("A Ring");
+    expect(planetNode.children[0].body?.bodyId).toBe(1_000_100);
+  });
 });

@@ -40,7 +40,10 @@ export interface PresentFacilitySlot {
 export interface JournalBody {
   bodyName: string;
   bodyId: number;
-  kind: "star" | "planet";
+  /** `"ring"` is a synthetic body — a named ring/belt on a real star/planet, synthesized by
+   * `withRingBodies` below into its own separate `JournalBody` (never present in raw Journal/Spansh
+   * data itself) — see that function's doc comment for why. */
+  kind: "star" | "planet" | "ring";
   starType?: string;
   planetClass?: string;
   landable: boolean;
@@ -209,6 +212,64 @@ export function parseParents(parents: Record<string, number>[] | undefined): Jou
   });
 }
 
+const RING_BODY_ID_OFFSET = 1_000_000;
+
+/** Deterministic synthetic bodyId for a body's Nth ring/belt — offset well above any real Frontier
+ * bodyId (small sequential integers per system) so it can never collide, and derived from the
+ * parent's own bodyId + ring index so it stays stable across re-imports (needed for
+ * `JournalImportPanel`'s `mergeBySystemAddress`, which preserves a user's manually-edited slots by
+ * matching `bodyId`). */
+function ringBodyId(parentBodyId: number, ringIndex: number): number {
+  return RING_BODY_ID_OFFSET + parentBodyId * 100 + ringIndex;
+}
+
+/** A STAR's own asteroid belt is, in-game, its own separate constructible location with its own
+ * dedicated orbital slot — NOT extra capacity on the star's own slot(s) (user-confirmed in-game via
+ * a real screenshot, 2026-07-27: "Swoilz CD-E c1-1 A Belt Cluster 1 Slot 0" is a distinct point in
+ * the system map). An Asteroid_Base can be built there, but so can any ordinary building — it's an
+ * asteroid-eligible orbital slot like any other, not Asteroid_Base-exclusive (user-corrected
+ * 2026-07-27, right after an earlier version of this fix wrongly restricted it in `solve.ts`, since
+ * reverted — see that file's own comment). The star's OWN slot(s), unlike the belt, are never
+ * themselves asteroid-eligible. Synthesizes one extra `JournalBody` (kind `"ring"`) per named belt
+ * on every scanned STAR only — appended after the real bodies, so it shows up as its own row in
+ * `JournalImportPanel`'s table and its own node in `domain/bodyHierarchy.ts`'s tree.
+ *
+ * **Deliberately star-only, not planets/moons** (user-clarified 2026-07-27, correcting this
+ * function's own first version): a planet's or moon's own ring keeps making that body's OWN orbital
+ * slot(s) asteroid-eligible instead, unchanged from this app's original (pre-2026-07-27) behavior —
+ * see `eligibility.ts`'s `estimateBodySlots`. Only a star's belt is far enough from the star itself
+ * to be its own separate location; a planet's ring sits at the planet.
+ *
+ * `rings: [ring]` (self-referencing) so `economyOverrides.ts`'s `hasRings()` still fires for a port
+ * built here — an Asteroid_Base built in a belt should still get the "Has rings" Extraction bonus,
+ * same as a port built directly on a ringed planet gets it. The star's own `rings` field is left
+ * untouched, so a port built directly on the star still gets that bonus too, independently.
+ *
+ * Best-effort, not exact: the real game can show multiple numbered "Cluster N" locations per named
+ * belt (visible in the same screenshot), which Journal/Spansh scan data has no way to count — this
+ * models exactly one slot per named belt, same as every other slot count in this app (editable in
+ * the UI, never locked in).
+ *
+ * Exported so `spansh/adapter.ts` can apply the identical synthesis to its own bodies list. */
+export function withRingBodies(bodies: JournalBody[]): JournalBody[] {
+  const ringBodies: JournalBody[] = [];
+  for (const body of bodies) {
+    if (body.kind !== "star") continue;
+    body.rings.forEach((ring, index) => {
+      ringBodies.push({
+        bodyName: ring.name,
+        bodyId: ringBodyId(body.bodyId, index),
+        kind: "ring",
+        landable: false,
+        parents: [{ type: "Star", bodyId: body.bodyId }, ...body.parents],
+        rings: [ring],
+        raw: {},
+      });
+    });
+  }
+  return ringBodies.length > 0 ? [...bodies, ...ringBodies] : bodies;
+}
+
 /** First pass over the file: collects every `FSSBodySignals` event into a `(SystemAddress, BodyID)`
  * lookup. Needed as a separate pass (rather than attaching inline while building bodies from `Scan`
  * events) because a body's `FSSBodySignals` event isn't guaranteed to appear after its `Scan` line
@@ -302,5 +363,5 @@ export function parseJournalScans(text: string): JournalSystem[] {
     }
   }
 
-  return Array.from(systems.values());
+  return Array.from(systems.values()).map((system) => ({ ...system, bodies: withRingBodies(system.bodies) }));
 }
