@@ -206,7 +206,7 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
               checked={formState.allowCriminal}
               onChange={(e) => dispatch({ type: "patch", patch: { allowCriminal: e.target.checked } })}
             />{" "}
-            Allow criminal buildings
+            Allow criminal constructions
           </label>
         </div>
       </div>

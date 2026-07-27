@@ -468,6 +468,20 @@ also revisable:
   branch per the gotcha above).
 - `@testing-library/react` cleanup is wired explicitly in `src/test-setup.ts` (no `globals: true` in
   vitest config, so RTL can't auto-detect the test framework's `afterEach`).
+- **`npx vitest run src/App.test.tsx` (run alone) occasionally fails with `[vitest-pool]: Failed to
+  start forks worker for test files ... Timeout waiting for worker to respond`, 60s wall, before any
+  test even starts.** Not a real test failure and not this file's fault — it's Vitest's own
+  hardcoded, non-configurable 60s worker-ready timeout (`START_TIMEOUT` in
+  `node_modules/vitest/dist/chunks/cli-api...js`; no `vitest.config.ts` option controls it) getting
+  tripped by how long it takes to transform/import this file's dependency graph (the whole app, plus
+  the HiGHS WASM solver's jsdom fallback path — see the gotcha above) under jsdom, which can
+  legitimately take 40–90s+ depending on how loaded the sandbox is. Confirmed 2026-07-27: switching
+  `test.pool` from the default `'forks'` to `'threads'` (cheaper to spin up than a full OS process
+  fork) made no difference — same 60s timeout, same "environment: 0ms" (never even got past worker
+  bootstrap) — so it's genuinely transform/import cost, not fork-vs-thread process overhead, and
+  isn't fixable via pool choice. When this happens, just retry the same command — it's not
+  deterministic, and reran successfully within 1–4 retries every time this was hit. See the
+  Workflow constraints section below for when to actually run this file at all.
 - UI changes should be verified in an actual browser, not just component tests — this project doesn't
   have a committed browser-driving setup yet (Playwright was installed ad hoc, `--no-save`, during
   development sessions and isn't a project dependency). If you need to do this again and it's not a
@@ -784,3 +798,9 @@ worked examples.
   file accordingly.
 - **Skip embedded browser test runs** - run the embedded browser tests in the end of the sessions,
   skip them in the conversations and fine tunings of the plan.
+- **Same treatment for `App.test.tsx`** (2026-07-27, user request: its worker-start flakiness — see
+  "Testing conventions" above — "really slows down the flow"): don't run it after every small edit
+  during iteration/fine-tuning; a `tsc -b` pass plus the narrower test file(s) actually touched by
+  the change is enough signal in the moment. Run it once, same as the browser tests, near the end of
+  the session as part of final verification — and if it hits the worker-timeout flake there, just
+  retry the same command rather than treating it as a regression to investigate.
