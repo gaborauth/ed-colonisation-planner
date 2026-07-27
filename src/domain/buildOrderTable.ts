@@ -71,6 +71,9 @@ export interface BuildOrderPointDelta {
 export interface BuildOrderRow {
   nr: number;
   state: BuildOrderRowState;
+  /** The primary/claim station's own row — flagged so the UI can call it out distinctly (it's
+   * always the very first thing built, exempt from its own port-escalation cost). */
+  isPrimary?: boolean;
   bodyId?: number;
   bodyName?: string;
   slotLabel?: string;
@@ -108,14 +111,18 @@ interface PresentInstance {
  * grouped by building name into a queue in canonical body/slot order (`sortDeterministic`, the same
  * tie-break `presentFacilities.ts`'s cost-seeding functions use) — consumed one instance at a time
  * as `computeValidatedBuiltOrder`'s name sequence is replayed, so each Built row gets a real,
- * specific body/slot/nickname/variant instead of just a building name. */
+ * specific body/slot/nickname/variant instead of just a building name. Excludes the primary
+ * station's own synced entry (`PresentFacilitySlot.primary`) — it gets its own dedicated Built row
+ * from `computeBuildOrderTable`'s `formState.firstStationBuilding` branch instead (using the flat
+ * fields directly, real source of truth), so leaving it in this queue would risk a later real
+ * instance of the SAME building type popping the primary's own slot/nickname by mistake. */
 function presentInstanceQueues(formState: PlannerFormState): Map<string, PresentInstance[]> {
   const flat: (PresentInstance & { building: string })[] = [];
   for (const body of formState.bodies) {
     (["space", "ground"] as const).forEach((kind) => {
       const count = body.slots?.[kind] ?? 0;
       normalizeFacilitySlots(body.presentFacilities?.[kind], count).forEach((slot, index) => {
-        if (slot) flat.push({ bodyId: body.bodyId, kind, index, nickname: slot.customName, variant: slot.variant, building: slot.building });
+        if (slot && !slot.primary) flat.push({ bodyId: body.bodyId, kind, index, nickname: slot.customName, variant: slot.variant, building: slot.building });
       });
     });
   }
@@ -131,13 +138,18 @@ function presentInstanceQueues(formState: PlannerFormState): Map<string, Present
  * present facility, hard and demolishable alike — a fresh, disposable `SystemState` just to derive
  * this name sequence (the real per-row replay happens separately in `computeBuildOrderTable`, on
  * its own live state, so its running totals can be captured step by step). `firstStationBuilding` is
- * included so the scratch feasibility check has the same starting budget the real replay will (the
- * primary generates real T2/T3 other present facilities may depend on) — its own entry is then
- * sliced off since the caller injects the primary as its own separate synthetic row (same slice-off
- * pattern `computeBuildOrderTable`'s aggregate-mode branch below uses too). */
+ * passed to `computeFeasibleOrder` so the scratch feasibility check seeds the primary itself (via
+ * `SystemState.addFirstStation`'s own cost exemption) with the same starting budget the real replay
+ * will have — its own entry in the returned order is then sliced off since the caller injects the
+ * primary as its own separate synthetic row (same slice-off pattern `computeBuildOrderTable`'s
+ * aggregate-mode branch below uses too). `presentBuildOrderHint`'s `excludePrimary: true` keeps the
+ * primary's own real, synced `presentFacilities` entry (`PresentFacilitySlot.primary`) OUT of
+ * `names`/`ports` here — without it, that entry would double up with the `firstStationBuilding`
+ * seed above; for an escalating-cost port type like Coriolis (unlike a flat-cost Outpost), the
+ * extra unaccounted-for port pushes `computeFeasibleOrder`'s scratch run negative. */
 function computeValidatedBuiltOrder(formState: PlannerFormState): string[] {
   const bodies = formState.bodies.map((b) => ({ bodyId: b.bodyId, space: b.presentFacilities?.space ?? [], ground: b.presentFacilities?.ground ?? [] }));
-  const names = presentBuildOrderHint(bodies);
+  const names = presentBuildOrderHint(bodies, { excludePrimary: true });
   const facilities: Record<string, number> = {};
   const ports: string[] = [];
   for (const name of names) {
@@ -270,6 +282,7 @@ export function computeBuildOrderTable(formState: PlannerFormState, result: Solv
       rows.push({
         nr,
         state: rowState,
+        ...(isPrimary ? { isPrimary: true } : {}),
         ...(loc ? describe(loc.bodyId, loc.kind, loc.index) : {}),
         building,
         nickname,
@@ -310,7 +323,14 @@ export function computeBuildOrderTable(formState: PlannerFormState, result: Solv
     }
 
     if (formState.firstStationBuilding) {
-      pushAdd("built", formState.firstStationBuilding, true, undefined, formState.firstStationCustomName, formState.firstStationVariant);
+      // The primary always occupies Orbital 1 (space index 0) on its assigned body — same
+      // convention as `PresentFacilitySlot.primary`'s synced entry — so Body/Slot can be shown
+      // here too, not just left blank, whenever a body is actually assigned.
+      const primaryLoc =
+        formState.firstStationBodyId !== undefined
+          ? { bodyId: formState.firstStationBodyId, kind: "space" as const, index: 0 }
+          : undefined;
+      pushAdd("built", formState.firstStationBuilding, true, primaryLoc, formState.firstStationCustomName, formState.firstStationVariant);
     }
 
     if (hasBodies) {

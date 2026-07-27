@@ -35,6 +35,19 @@ export interface PresentFacilitySlot {
   /** Purely cosmetic user-typed nickname for this specific facility (e.g. "Jacob's hydroponics").
    * Never affects stats/costs/solver behavior, only display. */
   customName?: string;
+  /** True for exactly one synthetic entry: the primary/claim station's own copy of
+   * `PlannerFormState.firstStationBuilding`/`firstStationBodyId`/`firstStationVariant`/
+   * `firstStationCustomName`, kept at that body's Orbital 1 slot. Those flat fields are the actual
+   * source of truth; this entry mirrors them (`domain/presentFacilities.ts`'s
+   * `applyPrimaryReservation`/`syncPrimaryIntoBodies`, applied by `state/plannerState.ts`'s reducer
+   * after every action, and independently by `solve.ts` for callers that don't go through that
+   * reducer) so the primary participates in ordinary capacity/count/display computations (the
+   * Constructions table, build order table, etc.) without each needing its own separate
+   * bookkeeping for it. Always `demolishable: false`, and excluded from
+   * `computeHardNonPortSeed`/`computePresentPortsSeed`'s T2/T3 point accounting — the primary's own
+   * point contribution and cost exemption are handled entirely by `deriveCurrentPoints`/`solve.ts`'s
+   * own separate logic, so counting it again here would double- or triple-count it. */
+  primary?: boolean;
 }
 
 export interface JournalBody {

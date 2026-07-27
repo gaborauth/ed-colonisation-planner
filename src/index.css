@@ -878,6 +878,15 @@ select.toolbar-summary-system {
   background: var(--success-dim);
 }
 
+/* The primary/claim station's own row — layered on top of its state's own tint (always "built"
+ * in practice) via a left accent border, since a second flat background would just fight the
+ * existing state coloring instead of standing out. Its Nr. cell reuses `.primary-badge`'s own ★,
+ * the same marker SystemConfigPanel.tsx already uses for the primary elsewhere in the app. */
+.build-order-row-primary {
+  background: var(--cyan-dim);
+  box-shadow: inset 3px 0 0 var(--cyan);
+}
+
 .build-order-state-built {
   color: var(--text);
 }

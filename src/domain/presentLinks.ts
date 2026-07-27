@@ -9,11 +9,6 @@ import { computeSystemLinks, type SystemLinksResult } from "./links";
 import { presentBuildOrderHint, toBuildingPlacements, type PresentFacilitiesBody } from "./presentFacilities";
 import type { JournalBody } from "../journal/parser";
 
-export interface FirstStationPlacement {
-  building: string;
-  bodyId: number;
-}
-
 function toPresentFacilitiesBodies(bodies: JournalBody[]): PresentFacilitiesBody[] {
   return bodies.map((b) => ({
     bodyId: b.bodyId,
@@ -22,16 +17,12 @@ function toPresentFacilitiesBodies(bodies: JournalBody[]): PresentFacilitiesBody
   }));
 }
 
-/** Link topology for what's actually built today. `firstStation` (optional — pass it once it's
- * both picked and assigned to a body) is folded in as its own `count: 1` placement, mirroring
- * solve.ts's `placements.push({ building: firstStation, bodyId: input.firstStationBodyId, count: 1 })`
- * for the solved case — the primary station isn't itself an entry in any body's `presentFacilities`
- * (see journal/parser.ts's `JournalBody.presentFacilities` doc comment), so without this it would
- * silently drop out of the link graph entirely. */
-export function computePresentSystemLinks(bodies: JournalBody[], firstStation?: FirstStationPlacement): SystemLinksResult {
+/** Link topology for what's actually built today. The primary station folds in via its own real,
+ * synced `presentFacilities` entry (`PresentFacilitySlot.primary` — see that field's doc comment),
+ * which `toBuildingPlacements` already includes — no separate parameter needed here. */
+export function computePresentSystemLinks(bodies: JournalBody[]): SystemLinksResult {
   const presentBodies = toPresentFacilitiesBodies(bodies);
   const placements = toBuildingPlacements(presentBodies);
-  if (firstStation) placements.push({ building: firstStation.building, bodyId: firstStation.bodyId, count: 1 });
   const buildOrderHint = presentBuildOrderHint(presentBodies);
   return computeSystemLinks(bodies, placements, buildOrderHint);
 }
@@ -52,12 +43,10 @@ export interface StrongLinkedInstance {
  * instances get matched up doesn't affect correctness, only which nickname lands on which output
  * row (irrelevant, since all `count` instances are equally "linked").
  *
- * Known limitation: if the primary/claim station itself is a *non-dominant* port on a body that
- * also has a higher-(or equal-)tier port (rare — the claim station is normally the first thing
- * built in a system, so it usually wins tier/build-order ties per `links.ts`'s dominance rule), its
- * strong link to the dominant port won't resolve to a nickname here, since it's never an entry in
- * any body's `presentFacilities` (tracked separately — see `computePresentSystemLinks`). Not
- * special-cased; same spirit as `links.ts`'s own documented port-placement-fidelity approximations. */
+ * The primary/claim station resolves correctly here too, even as a non-dominant port on a body
+ * with a higher-tier port: since it's a real, nicknamed `presentFacilities` entry like any other
+ * (`PresentFacilitySlot.primary`), this function's existing generic matching handles it with no
+ * special-casing needed. */
 export function strongLinkedInstances(
   linksResult: SystemLinksResult,
   body: JournalBody,

@@ -21,6 +21,7 @@ import { INITIAL_FORM_STATE, type PlannerFormState } from "../state/plannerState
 import { computeBuildOrderTable } from "./buildOrderTable";
 import { computeSolvedPlacements } from "./solvedPlacement";
 import { getOrderingFromResult } from "./ordering";
+import { syncPrimaryIntoBodies } from "./presentFacilities";
 import { toPlanResult } from "../state/toPlanResult";
 
 const SYSTEM_PATH = path.join(process.cwd(), "jsons", "swoilz-aw-c-d52.json");
@@ -49,6 +50,13 @@ describe("computeBuildOrderTable", () => {
 
     // Nr. is a gapless 1..N sequence.
     expect(rows.map((r) => r.nr)).toEqual(rows.map((_, i) => i + 1));
+
+    // The primary station's own row (always first) is flagged and shows its real body/slot, not "—".
+    expect(rows[0].isPrimary).toBe(true);
+    expect(rows[0].building).toBe(system.firstStationBuilding);
+    expect(rows[0].bodyId).toBe(system.firstStationBodyId);
+    expect(rows[0].slotLabel).toBe("Orbital 1");
+    expect(rows.slice(1).every((r) => !r.isPrimary)).toBe(true);
 
     // Row count matches present + demolish + planned counts from the same underlying data.
     const order = getOrderingFromResult(toPlanResult(formState, result), true, false);
@@ -81,6 +89,53 @@ describe("computeBuildOrderTable", () => {
     const lastRow = rows[rows.length - 1];
     expect(lastRow.t2Total).toBeGreaterThanOrEqual(result.finalT2Points);
     expect(lastRow.t3Total).toBeGreaterThanOrEqual(result.finalT3Points);
+  }, 30000);
+
+  // Exercises a real interaction that only surfaces with an ESCALATING-cost primary like Coriolis
+  // (never with a flat-cost Outpost): once the primary has its own real, synced `presentFacilities`
+  // entry (`PresentFacilitySlot.primary`) — which the real app's `plannerReducer` always applies,
+  // unlike this file's other tests, which bypass it by assigning `formState.bodies` directly —
+  // `computeValidatedBuiltOrder` must not pick that entry up as an extra, un-exempted port on top of
+  // the separate `firstStationBuilding` seed already given to `computeFeasibleOrder`; doing so would
+  // double-charge the escalating port's cost and throw off every subsequent real port's sequence
+  // position (`presentBuildOrderHint`'s `excludePrimary` option is what prevents this).
+  it("doesn't throw when the primary station's own synced presentFacilities entry is present (real app path via plannerReducer)", async () => {
+    const system: JournalSystem = JSON.parse(readFileSync(SYSTEM_PATH, "utf-8"));
+    const reconciledBodies = syncPrimaryIntoBodies(
+      system.bodies,
+      system.firstStationBodyId,
+      system.firstStationBuilding,
+      system.firstStationVariant,
+      system.firstStationCustomName,
+    );
+    // Confirms the fixture's primary really is an escalating-cost port (Coriolis), not a flat-cost
+    // one (Outpost) — the distinction this test is specifically about.
+    expect(system.firstStationBuilding).toBe("Coriolis");
+    const primaryBody = reconciledBodies.find((b) => b.bodyId === system.firstStationBodyId)!;
+    expect(primaryBody.presentFacilities?.space[0]).toMatchObject({ building: "Coriolis", primary: true });
+
+    const formState: PlannerFormState = {
+      ...INITIAL_FORM_STATE,
+      bodies: reconciledBodies,
+      starSystem: system.starSystem,
+      systemAddress: system.systemAddress,
+      systemConfigured: true,
+      firstStationBuilding: system.firstStationBuilding ?? "",
+      firstStationBodyId: system.firstStationBodyId,
+      firstStationVariant: system.firstStationVariant,
+      firstStationCustomName: system.firstStationCustomName,
+    };
+
+    const result = await solve(buildSolverInput(formState));
+    expect(result.status).toBe("optimal");
+
+    const { rows, error } = computeBuildOrderTable(formState, result);
+    expect(error).toBeNull();
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.t2Total).toBeGreaterThanOrEqual(0);
+      expect(row.t3Total).toBeGreaterThanOrEqual(0);
+    }
   }, 30000);
 
   it("falls back to Built + Planned rows with no Demolish section in aggregate mode (no body layout)", async () => {

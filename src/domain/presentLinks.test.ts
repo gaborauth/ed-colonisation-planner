@@ -59,12 +59,15 @@ describe("computePresentSystemLinks / strongLinkedInstances", () => {
     expect(strongLinkedInstances(linksResult, body, "Refinery_Hub")).toEqual([]);
   });
 
-  it("folds the primary station in as its body's dominant port, receiving strong links from present facilities there", () => {
+  it("folds the primary station in as its body's dominant port (via its own synced presentFacilities entry), receiving strong links from present facilities there", () => {
     const body = makeBody(1, {
       planetClass: "Rocky body",
-      presentFacilities: { space: [], ground: [{ building: "Small_Agricultural_Settlement", demolishable: false, customName: "Farm" }] },
+      presentFacilities: {
+        space: [{ building: "Coriolis", demolishable: false, primary: true }],
+        ground: [{ building: "Small_Agricultural_Settlement", demolishable: false, customName: "Farm" }],
+      },
     });
-    const linksResult = computePresentSystemLinks([body], { building: "Coriolis", bodyId: 1 });
+    const linksResult = computePresentSystemLinks([body]);
     expect(strongLinkedInstances(linksResult, body, "Coriolis")).toEqual([{ building: "Small_Agricultural_Settlement", nickname: "Farm" }]);
   });
 

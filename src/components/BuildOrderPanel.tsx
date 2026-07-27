@@ -51,14 +51,19 @@ function FacilityCell({ row }: { row: BuildOrderRow }) {
 /** Full per-row build-order ledger — see `domain/buildOrderTable.ts`'s header comment for how the
  * Built/Demolish/Planned rows and their T2/T3 running totals are computed (deliberately via
  * `ordering.ts`'s per-tier-correct, never-negative-guaranteeing math, not `solve.ts`'s own more
- * conservative new-port formula — so the last row's T2/T3 Σ can legitimately be higher than the
- * Total row's numbers below it). Every physical facility instance (already built, marked for
- * demolition, or newly planned) gets one numbered row, colored by state; the Total row at the
- * bottom shows the solver's own authoritative final numbers (`result.scores`/`finalT2Points`/
- * `finalT3Points`), not a naive sum of the rows above it — see the caption below the table for why
- * those can legitimately differ. */
+ * conservative new-port formula). Every physical facility instance (already built, marked for
+ * demolition, or newly planned) gets one numbered row, colored by state; the primary/claim
+ * station's own row is additionally marked with `.primary-badge`'s own ★ (the same marker
+ * `SystemConfigPanel.tsx` uses for the primary elsewhere) and a distinct background, since it's
+ * always the very first row but otherwise easy to miss. The Total row's T2/T3 Σ mirrors the last
+ * row's own running total directly rather than `result.finalT2Points`/`finalT3Points` (the
+ * solver's own separate, more conservative estimate), so the table never shows two disagreeing
+ * "final" T2/T3 numbers; the score columns still come from `result.scores` (weighted with the
+ * first-station bonus/subsequent-facility reduction/economy synergy — not something this table's
+ * own row-by-row replay reproduces). */
 export function BuildOrderPanel({ formState, result }: BuildOrderPanelProps) {
   const { rows, error } = useMemo(() => computeBuildOrderTable(formState, result), [formState, result]);
+  const lastRow = rows.length > 0 ? rows[rows.length - 1] : null;
 
   return (
     <section className="panel">
@@ -93,8 +98,19 @@ export function BuildOrderPanel({ formState, result }: BuildOrderPanelProps) {
               </thead>
               <tbody>
                 {rows.map((row) => (
-                  <tr key={row.nr} className={ROW_CLASSES[row.state]}>
-                    <td>{row.nr}</td>
+                  <tr
+                    key={row.nr}
+                    className={row.isPrimary ? `${ROW_CLASSES[row.state]} build-order-row-primary` : ROW_CLASSES[row.state]}
+                  >
+                    <td>
+                      {row.nr}
+                      {row.isPrimary && (
+                        <span className="primary-badge" aria-hidden="true" title="Primary/claim station">
+                          {" "}
+                          ★
+                        </span>
+                      )}
+                    </td>
                     <td className={STATE_CLASSES[row.state]}>{STATE_LABELS[row.state]}</td>
                     <td>{row.bodyName ?? "—"}</td>
                     <td>{row.slotLabel ?? "—"}</td>
@@ -123,18 +139,16 @@ export function BuildOrderPanel({ formState, result }: BuildOrderPanelProps) {
                   </td>
                   <td />
                   <td />
-                  <td>{result.finalT2Points}</td>
-                  <td>{result.finalT3Points}</td>
+                  <td>{lastRow?.t2Total ?? 0}</td>
+                  <td>{lastRow?.t3Total ?? 0}</td>
                 </tr>
               </tfoot>
             </table>
           </div>
           <p className="panel-hint">
-            The Total row shows the solver's own final numbers (including the first-station bonus, subsequent-facility
-            reduction, and economy synergy) — it isn't a plain sum of the "Generated points" column above, which shows
-            each row's raw, unweighted contribution. The T2/T3 Σ columns above use a different (deliberately more
-            accurate, always-executable) cost model than the solver's own new-port estimate, so they can end up
-            slightly higher than the Total row's T2/T3 figures — never lower.
+            The Total row's T2/T3 Σ mirrors the last row above it. The other Total figures come from the solver's own
+            final scores (including the first-station bonus, subsequent-facility reduction, and economy synergy) — not
+            a plain sum of the "Generated points" column, which shows each row's raw, unweighted contribution.
           </p>
         </>
       )}

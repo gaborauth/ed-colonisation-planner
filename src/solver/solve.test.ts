@@ -297,6 +297,39 @@ describe("solve with per-body placement (input.bodies)", () => {
     expect(result.placements).toContainEqual({ building: "Commercial_Outpost", bodyId: 1, count: 2 });
   }, 20000);
 
+  // A body's Orbital 1 slot can carry a stale, manually-entered facility from before that body was
+  // ever assigned as the primary station — `domain/presentFacilities.ts`'s `applyPrimaryReservation`
+  // overwrites that slot with the primary's own real, synced entry regardless of whatever the
+  // caller's `presentFacilities` said was there, so it's never counted as occupied alongside the
+  // primary's own reservation (`solve.ts` never trusted caller data hygiene for the primary's
+  // identity either, matching how `firstStationBuilding` itself is always taken as given).
+  it("doesn't double-count a stale presentFacilities entry left in the primary station's own Orbital-1 slot", async () => {
+    const result = await solve(
+      baseInput({
+        firstStationBuilding: "Coriolis",
+        firstStationBodyId: 1,
+        bodies: [
+          {
+            bodyId: 1,
+            slots: { space: 2, ground: 0, asteroid: 0 },
+            presentFacilities: {
+              space: [{ building: "Commercial_Outpost", demolishable: false }, null],
+              ground: [],
+            },
+          },
+        ],
+        objective: { kind: "simple", score: "wealth" },
+        constraints: { atLeast: { Commercial_Outpost: 1 }, atMost: { Commercial_Outpost: 1 } },
+      }),
+    );
+    // Without the fix: the stale Commercial_Outpost entry occupies slot 0 (hardSpaceCount=1) AND
+    // the primary's own reservation ALSO claims a slot, leaving 0 of body 1's 2 slots for the
+    // forced Commercial_Outpost — infeasible even though only 1 slot is physically occupied.
+    expect(result.status).toBe("optimal");
+    expect(result.placements).toContainEqual({ building: "Coriolis", bodyId: 1, count: 1 });
+    expect(result.placements).toContainEqual({ building: "Commercial_Outpost", bodyId: 1, count: 1 });
+  }, 20000);
+
   it("is infeasible when the primary station's body has no spare orbital slot for it", async () => {
     // Body 1's single orbital slot is already fully claimed by a forced Commercial_Outpost, leaving
     // none for the Coriolis primary's own reservation.

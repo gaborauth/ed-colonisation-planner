@@ -80,7 +80,7 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
   // it's visible without scrolling. Only meaningful once a body layout is applied, same gate as
   // `canSaveOrExport` above.
   const slotUsageBodies = toSlotUsageBodies(formState.bodies);
-  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots, formState.firstStationBodyId);
+  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots);
   const points = deriveCurrentPoints(slotUsageBodies, formState.firstStationBuilding);
 
   // Every saved system regardless of source (Journal upload or Spansh) — read fresh on every

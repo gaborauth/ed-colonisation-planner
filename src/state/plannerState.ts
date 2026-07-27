@@ -1,5 +1,5 @@
 import { ALL_SCORES, type Score } from "../data/buildings";
-import { normalizeFacilitySlots, type PresentFacilitySlot } from "../domain/presentFacilities";
+import { normalizeFacilitySlots, syncPrimaryIntoBodies, type PresentFacilitySlot } from "../domain/presentFacilities";
 import type { JournalBody } from "../journal/parser";
 import type { Direction, SlotAvailability, SolverResult } from "../solver/solve";
 
@@ -113,7 +113,7 @@ function withMapEntry(
   return next;
 }
 
-export function plannerReducer(state: PlannerFormState, action: PlannerAction): PlannerFormState {
+function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFormState {
   switch (action.type) {
     case "patch":
       return { ...state, ...action.patch };
@@ -172,6 +172,35 @@ export function plannerReducer(state: PlannerFormState, action: PlannerAction): 
     case "reset":
       return INITIAL_FORM_STATE;
   }
+}
+
+/** Keeps the primary station's assigned body's Orbital-1 slot synced to a real, flagged
+ * `presentFacilities` entry (see `PresentFacilitySlot.primary`'s doc comment /
+ * `domain/presentFacilities.ts`'s `syncPrimaryIntoBodies`) — run after EVERY action, not just the
+ * ones that touch `firstStationBuilding`/`firstStationBodyId`/`firstStationVariant`/
+ * `firstStationCustomName` or `bodies` directly, so the invariant holds regardless of which action
+ * path changed them: a `"patch"` from either dropdown, `"load"`ing a saved system that has no
+ * synced entry at all (an older export, or one authored by hand — reconciled automatically the
+ * moment it loads, no separate migration step needed), or any future action type. This matters
+ * because a real facility can be manually entered in a body's Orbital 1 slot before that body is
+ * ever assigned as the primary — the System facilities panel only stops *rendering* that slot once
+ * a primary is assigned, it doesn't clear the data behind it — so without this reconciliation, that
+ * stale entry would sit alongside the primary's own reservation and get double-counted. Aggregate
+ * mode (`bodies` empty) has nothing to reconcile onto. */
+function reconcilePrimarySlot(state: PlannerFormState): PlannerFormState {
+  if (state.bodies.length === 0) return state;
+  const bodies = syncPrimaryIntoBodies(
+    state.bodies,
+    state.firstStationBodyId,
+    state.firstStationBuilding,
+    state.firstStationVariant,
+    state.firstStationCustomName,
+  );
+  return bodies === state.bodies ? state : { ...state, bodies };
+}
+
+export function plannerReducer(state: PlannerFormState, action: PlannerAction): PlannerFormState {
+  return reconcilePrimarySlot(applyAction(state, action));
 }
 
 export const ALL_SCORES_LIST: Score[] = ALL_SCORES;
