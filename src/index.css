@@ -152,22 +152,33 @@ h2 {
   transform: rotate(-90deg);
 }
 
-/* Visually secondary panels — fine-tuning/bookkeeping tools that aren't needed for a first solve
- * (System score constraints, Buildings, Saved plans), per user request: dimmer than the already-
- * muted default `.panel-toggle` color, so they recede further in the page's visual hierarchy. */
+/* Visually secondary panels — fine-tuning/bookkeeping tools that aren't needed for a first solve,
+ * per user request: dimmer than the already-muted default `.panel-toggle` color, so they recede
+ * further in the page's visual hierarchy. Only Saved plans still uses this (2026-07-27: System
+ * score constraints and Buildings moved off it — see the UPDATE note below — once they moved next
+ * to ObjectivePanel and read as a normal, full-brightness part of that flow instead). */
 .panel-toggle-muted {
   color: var(--text-faint);
 }
 
 /* "Reads as unfoldable, still technically works" (2026-07-26, user request, after two rounds of
- * clarification: NOT actually removing the click-to-expand — that would break real functionality,
- * e.g. App.test.tsx's infeasibility test needs to open "System score constraints" to set a minimum
- * security bound, and Saved plans' save/load/import/export has no other UI path — just discouraging
- * a casual user from wanting to). The JSX for these three panels renders no `.chevron` at all
- * (rather than hiding one via CSS) — a static header with no arrow reads far less like "click me"
- * than a rotating one would, even though `aria-expanded` still communicates real state to
- * screen readers/keyboard users. No hover color change either, unlike a normal `.panel-toggle`'s
- * brightening — nothing here should feel rewarding to hover. */
+ * clarification: NOT actually removing the click-to-expand — that would break real functionality;
+ * Saved plans' save/load/import/export has no other UI path — just discouraging a casual user from
+ * wanting to). The JSX for these panels renders no `.chevron` at all (rather than hiding one via
+ * CSS) — a static header with no arrow reads far less like "click me" than a rotating one would,
+ * even though `aria-expanded` still communicates real state to screen readers/keyboard users. No
+ * hover color change either, unlike a normal `.panel-toggle`'s brightening — nothing here should
+ * feel rewarding to hover.
+ * UPDATE (2026-07-26, later same day): BuildingsTable moved off this class back to the normal
+ * chevron once the user actually exercised its fields end-to-end (At least/At most — after fixing
+ * a real bug where "At most 0" was silently discarded, see plannerState.ts's `withMapEntry`) and
+ * confirmed it works — no longer "reads as unfoldable" concerns once genuinely used, hence "enable"
+ * per that request.
+ * UPDATE (2026-07-27): ConstraintsPanel ("System score constraints") no longer exists as a
+ * separate foldable pane at all — its min/max score table moved into ObjectivePanel (always
+ * visible, never folded), after a real user found the default "at least 1 security" constraint
+ * confusing sitting inside a folded-by-default pane. Only SavedPlansPanel still uses
+ * `.panel-toggle-flat` — untouched, out of scope for that request. */
 .panel-toggle-flat:hover {
   color: var(--text-faint);
 }
@@ -243,6 +254,20 @@ table {
   border-collapse: collapse;
   width: 100%;
   font-size: 13px;
+}
+
+/* BuildingsTable renders one <table> per category (Star/Ground Port, Orbital Outpost, ...) rather
+ * than one big table, so plain `table-layout: auto` (the default) sized each category's columns
+ * independently from its own building names — the Building column (and everything after it) drifted
+ * out of alignment from one category to the next. `table-layout: fixed` makes each <table>'s own
+ * <colgroup> percentages (see BuildingTableColumns in BuildingsTable.tsx) authoritative instead of
+ * content-driven, so every category's columns land at the same width. */
+.buildings-table {
+  table-layout: fixed;
+}
+
+.buildings-table td {
+  overflow-wrap: break-word;
 }
 
 th {

@@ -28,6 +28,13 @@ interface JournalImportPanelProps {
    * auto-apply) — lets App.tsx clear its stale solved result, which is keyed to the PREVIOUS
    * system's bodies and would otherwise keep showing through against the newly-applied one. */
   onSystemChanged?: () => void;
+  /** `formState.systemAddress` — read-only, purely so this panel can notice when SOMETHING ELSE
+   * changed the active system (SystemPortabilityBar's toolbar switcher dispatches straight to
+   * `formState`, bypassing this panel's own `selectedAddress`/`systems` state entirely, unlike
+   * this panel's own Apply flow). Without this, switching systems via the toolbar left this
+   * panel's body/slot table showing the PREVIOUS system (2026-07-27 user report). See the
+   * dedicated effect below. */
+  activeSystemAddress?: number | null;
 }
 
 const SLOT_KINDS = Object.keys(ALL_SLOTS) as SlotKind[];
@@ -90,7 +97,12 @@ function mergeBySystemAddress(existing: JournalSystem[], incoming: JournalSystem
   return Array.from(byAddress.values()).sort((a, b) => a.starSystem.localeCompare(b.starSystem));
 }
 
-export function JournalImportPanel({ dispatch, refreshToken, onSystemChanged }: JournalImportPanelProps) {
+export function JournalImportPanel({
+  dispatch,
+  refreshToken,
+  onSystemChanged,
+  activeSystemAddress,
+}: JournalImportPanelProps) {
   const [systems, setSystems] = useState<JournalSystem[]>(() => listSavedSystems().map(normalizeSystem));
   const [savedAddresses, setSavedAddresses] = useState<Set<number>>(
     () => new Set(listSavedSystems().map((s) => s.systemAddress)),
@@ -302,6 +314,22 @@ export function JournalImportPanel({ dispatch, refreshToken, onSystemChanged }: 
     setApplied(true);
     setJustSaved(true);
   }, [refreshToken]);
+
+  // Mirrors this panel's own `selectedAddress` to `formState.systemAddress` whenever THAT changes
+  // out from under it — i.e. the toolbar switcher case above, not this panel's own Apply (which
+  // already sets both `selectedAddress` and `formState.systemAddress` together, so they're already
+  // equal by the time this effect would run and it's a no-op). No `setJustSaved`/`setApplied` here
+  // unlike the refreshToken effect above — nothing was actually saved or applied FROM this panel,
+  // it's just catching up to a change made elsewhere.
+  useEffect(() => {
+    if (activeSystemAddress == null || activeSystemAddress === selectedAddress) return;
+    const saved = listSavedSystems().map(normalizeSystem);
+    setSystems(saved);
+    setSavedAddresses(new Set(saved.map((s) => s.systemAddress)));
+    if (saved.some((s) => s.systemAddress === activeSystemAddress)) {
+      setSelectedAddress(activeSystemAddress);
+    }
+  }, [activeSystemAddress, selectedAddress]);
 
   const totals = selected ? computeSystemSlotTotals(selected) : null;
 

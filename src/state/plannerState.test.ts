@@ -35,6 +35,19 @@ describe("plannerReducer", () => {
     expect(state.alreadyPresent).toEqual({});
   });
 
+  it("setMapEntry keeps an explicit 0 for atMost (a real 'build none' cap, unlike alreadyPresent/atLeast)", () => {
+    let state = plannerReducer(INITIAL_FORM_STATE, {
+      type: "setMapEntry",
+      map: "atMost",
+      name: "Dodecahedron",
+      value: 0,
+    });
+    expect(state.atMost).toEqual({ Dodecahedron: 0 });
+
+    state = plannerReducer(state, { type: "setMapEntry", map: "atMost", name: "Dodecahedron", value: undefined });
+    expect(state.atMost).toEqual({});
+  });
+
   it("setScoreBound sets/clears a per-score min or max independently", () => {
     let state = plannerReducer(INITIAL_FORM_STATE, {
       type: "setScoreBound",

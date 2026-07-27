@@ -34,6 +34,26 @@ function buildDisplayGroups(): { label: string; names: string[] }[] {
 
 const DISPLAY_GROUPS = buildDisplayGroups();
 
+// Shared across every category's own <table> below so their columns land at the same width no
+// matter how long that category's own building names happen to be (e.g. "Large Industrial
+// Settlement" vs. "Coriolis") — table-layout:auto (the default) sizes each <table> independently
+// from its own content, which is exactly why the columns used to drift out of alignment from one
+// category to the next (2026-07-27 user report). Paired with `.buildings-table`'s
+// `table-layout: fixed` in index.css, which makes these percentages authoritative instead of
+// advisory.
+function BuildingTableColumns() {
+  return (
+    <colgroup>
+      <col style={{ width: "34%" }} />
+      <col style={{ width: "14%" }} />
+      <col style={{ width: "13%" }} />
+      <col style={{ width: "13%" }} />
+      <col style={{ width: "12%" }} />
+      <col style={{ width: "14%" }} />
+    </colgroup>
+  );
+}
+
 function contributionTooltip(building: Building, total: number) {
   const lines = BASE_SCORES.filter((score) => building[score] !== 0).map((score) => (
     <div key={score}>
@@ -45,10 +65,13 @@ function contributionTooltip(building: Building, total: number) {
   return <>{lines}</>;
 }
 
-// Folded by default (per user request, see App.tsx) — this panel and ConstraintsPanel are
-// fine-tuning tools for later in a session, not needed for a first solve. Still genuinely
-// click-to-expand (no chevron, `panel-toggle-flat` styling — see index.css's comment there for
-// why a fully non-interactive "permanently collapsed" version was considered and rejected).
+// Folded by default (per user request, see App.tsx) — a fine-tuning tool for later in a session,
+// not needed for a first solve. Uses the normal `panel-toggle` chevron styling (2026-07-26, no
+// longer `panel-toggle-flat`/muted) — confirmed end-to-end working (At least/At most really do
+// reach the LP as constraints, see the setMapEntry/atMost=0 fix in plannerState.ts the same day)
+// and moved to sit right after ObjectivePanel (2026-07-27 user request: "they belong to the
+// Objective pane"), so it now reads as a normal, full-brightness part of the objective-setup flow
+// rather than a dim, tucked-away afterthought.
 export function BuildingsTable({ formState, dispatch, result }: BuildingsTableProps) {
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(true);
   // Once a body layout is applied, already-present counts come from the System facilities panel's
@@ -70,17 +93,21 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
       <button
         ref={buttonRef}
         type="button"
-        className="panel-toggle panel-toggle-muted panel-toggle-flat"
+        className="panel-toggle"
         aria-expanded={!collapsed}
         onClick={() => setCollapsed((c) => !c)}
       >
         <span className="panel-toggle-title">Buildings</span>
+        <span className="chevron" aria-hidden="true">
+          ▾
+        </span>
       </button>
       {!collapsed &&
         DISPLAY_GROUPS.map(({ label, names }) => (
           <div key={label} style={{ marginBottom: 12 }}>
             <div className="category-heading">{label}</div>
-            <table>
+            <table className="buildings-table">
+              <BuildingTableColumns />
               <thead>
                 <tr>
                   <th>Building</th>

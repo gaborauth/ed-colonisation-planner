@@ -99,9 +99,13 @@ function withMapEntry(
   map: Record<string, number>,
   name: string,
   value: number | undefined,
+  // "At most 0" is a real, meaningful constraint (build none of this) distinct from "unset" (no
+  // cap) — unlike `atLeast`/`alreadyPresent`, where 0 and unset behave identically, so treating
+  // them as the same storage state there is a harmless simplification, not for `atMost`.
+  deleteOnZero: boolean,
 ): Record<string, number> {
   const next = { ...map };
-  if (value === undefined || value === 0) {
+  if (value === undefined || (deleteOnZero && value === 0)) {
     delete next[name];
   } else {
     next[name] = value;
@@ -114,7 +118,10 @@ export function plannerReducer(state: PlannerFormState, action: PlannerAction): 
     case "patch":
       return { ...state, ...action.patch };
     case "setMapEntry":
-      return { ...state, [action.map]: withMapEntry(state[action.map], action.name, action.value) };
+      return {
+        ...state,
+        [action.map]: withMapEntry(state[action.map], action.name, action.value, action.map !== "atMost"),
+      };
     case "setScoreBound": {
       const next = { ...state[action.bound] };
       if (action.value === undefined) {

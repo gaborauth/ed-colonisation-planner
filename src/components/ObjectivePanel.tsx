@@ -2,6 +2,7 @@ import { useEffect, type Dispatch } from "react";
 import { ALL_SCORES, toPrintable, type Score } from "../data/buildings";
 import { setObjectivePreference } from "../persistence/objectivePreference";
 import { DEFAULT_OBJECTIVE_EXPRESSION, type PlannerAction, type PlannerFormState } from "../state/plannerState";
+import { NumberInput } from "./NumberInput";
 
 interface ObjectivePanelProps {
   formState: PlannerFormState;
@@ -208,6 +209,48 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
             Allow criminal buildings
           </label>
         </div>
+      </div>
+
+      {/* Moved here from its own foldable ConstraintsPanel (2026-07-27, user request, after a real
+       * user found the default "at least 1 security" constraint confusing when it sat inside a
+       * folded-by-default pane — easy to not realize it was set at all). Score constraints ARE
+       * part of the objective (they bound what the solver's free to pick, same as the objective
+       * expression shapes what it prefers), so this panel — always visible, never folded — is
+       * where a user should expect to find and recognize them, not a separate pane. */}
+      <div style={{ marginTop: 14 }}>
+        <div className="category-heading">Score constraints</div>
+        <table>
+          <thead>
+            <tr>
+              <th>Score</th>
+              <th>Min</th>
+              <th>Max</th>
+            </tr>
+          </thead>
+          <tbody>
+            {ALL_SCORES.map((score) => (
+              <tr key={score}>
+                <td>{toPrintable(score)}</td>
+                <td>
+                  <NumberInput
+                    allowNegative
+                    ariaLabel={`Minimum ${toPrintable(score)}`}
+                    value={formState.scoreMin[score]}
+                    onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMin", score, value })}
+                  />
+                </td>
+                <td>
+                  <NumberInput
+                    allowNegative
+                    ariaLabel={`Maximum ${toPrintable(score)}`}
+                    value={formState.scoreMax[score]}
+                    onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMax", score, value })}
+                  />
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
     </section>
   );

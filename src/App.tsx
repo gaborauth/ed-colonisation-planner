@@ -2,7 +2,6 @@ import { useReducer, useState } from "react";
 import { AboutHelpPanel } from "./components/AboutHelpPanel";
 import { BuildOrderPanel } from "./components/BuildOrderPanel";
 import { BuildingsTable } from "./components/BuildingsTable";
-import { ConstraintsPanel } from "./components/ConstraintsPanel";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { JournalImportPanel } from "./components/JournalImportPanel";
 import { ObjectivePanel } from "./components/ObjectivePanel";
@@ -124,7 +123,12 @@ function App() {
         />
 
         <AboutHelpPanel />
-        <JournalImportPanel dispatch={dispatch} refreshToken={journalStoreVersion} onSystemChanged={handleSystemChanged} />
+        <JournalImportPanel
+          dispatch={dispatch}
+          refreshToken={journalStoreVersion}
+          onSystemChanged={handleSystemChanged}
+          activeSystemAddress={formState.systemAddress}
+        />
         <SystemConfigPanel formState={formState} dispatch={dispatch} justSolved={resultState.result} />
         <ObjectivePanel
           formState={formState}
@@ -132,13 +136,12 @@ function App() {
           onSolve={() => void handleSolve()}
           solving={resultState.status === "solving"}
         />
+        <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
 
         {resultState.status === "solving" && <div className="status-banner loading">Running the solver…</div>}
         {resultState.status === "error" && <div className="status-banner">{resultState.message}</div>}
 
         <SolvedSystemPanel formState={formState} result={resultState.result} />
-        <ConstraintsPanel formState={formState} dispatch={dispatch} />
-        <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
 
         {resultState.status === "done" && resultState.result && (
           <BuildOrderPanel formState={formState} result={resultState.result} />

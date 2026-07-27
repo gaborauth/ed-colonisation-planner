@@ -4,7 +4,7 @@ import { getStoredPanelCollapsed, setStoredPanelCollapsed } from "../persistence
 
 const PANEL_ID = "about-help";
 
-// Unfolded by default (unlike ConstraintsPanel/BuildingsTable/SavedPlansPanel) — this is a
+// Unfolded by default (unlike BuildingsTable/SavedPlansPanel) — this is a
 // first-time explainer meant to actually be seen on first load, not fine-tuning tools tucked away
 // for later. Uses the normal `panel-toggle` chevron styling (not `panel-toggle-flat`) since this
 // one really is meant to invite folding away once read. Collapsed state is remembered across
@@ -44,12 +44,14 @@ export function AboutHelpPanel() {
           </p>
 
           <p>
-            <strong>Your system data never leaves your device.</strong> Everything — the solver, your
-            saved plans, your saved journal-imported systems — runs and stays entirely in your
-            browser. There's no account and no server it talks to. That means you can freely explore
-            and plan a system here <em>before</em> deciding whether to hand its data over to a
-            journal-uploading tool like EDDN, Spansh, or Inara — nothing you enter or import here is
-            ever sent anywhere.
+            <strong>Your system data mostly stays on your device.</strong> The solver, your saved
+            plans, and your saved journal-imported systems all run and stay entirely in your
+            browser — no account, and nothing of yours sent to a server we run. The one exception:
+            the "Spansh" import tab queries Spansh's own public system database (through a small
+            proxy) when you search for and load a system that way — that's the one path here where a
+            system lookup leaves your browser. Journal-file import and everything else never sends
+            anything anywhere, so you can freely explore and plan a system here <em>before</em>{" "}
+            deciding whether to hand its data over to a journal-uploading tool like EDDN or Inara.
           </p>
 
           <p>
@@ -68,15 +70,16 @@ export function AboutHelpPanel() {
             enough — open the Full Spectrum Scanner (throttle down to 0% in supercruise) and
             individually FSS-scan every body in the system first; the more bodies scanned this way,
             the better the slot-count guess below will be. Then upload your Journal file below (or
-            click "Live Demo" in the toolbar above to try a real example system with no upload at
-            all). Journal files live in your Saved Games folder, named by date/time, e.g.{" "}
+            search for the system by name on the "Spansh" tab instead, or click "Live Demo" in the
+            toolbar above to try a real example system with no upload at all). Journal files live in
+            your Saved Games folder, named by date/time, e.g.{" "}
             <code style={{ overflowWrap: "anywhere" }}>
               {"C:\\Users\\<you>\\Saved Games\\Frontier Developments\\Elite Dangerous\\Journal.2026-07-26T081047.01.log"}
             </code>{" "}
             — pick the most recent one from your current play session. From there, mark what's
-            already built in the "System facilities" panel, choose an objective, then hit "Solve for
-            a system." The "Solved system" panel shows what to build, and the "Build order" panel
-            below it lays the whole plan out as one numbered, step-by-step table.
+            already built in the "Actual facilities in the system" panel, choose an objective, then
+            hit "Solve for a system." The "Solved system" panel shows what to build, and the "Build
+            order" panel below it lays the whole plan out as one numbered, step-by-step table.
           </p>
 
           <p style={{ marginBottom: 0 }}>
