@@ -103,19 +103,23 @@ export function JournalImportPanel({
   onSystemChanged,
   activeSystemAddress,
 }: JournalImportPanelProps) {
-  const [systems, setSystems] = useState<JournalSystem[]>(() => listSavedSystems().map(normalizeSystem));
-  const [savedAddresses, setSavedAddresses] = useState<Set<number>>(
-    () => new Set(listSavedSystems().map((s) => s.systemAddress)),
-  );
-  const [selectedAddress, setSelectedAddress] = useState<number | null>(() => {
-    const saved = listSavedSystems();
-    const lastUsed = getLastUsedSystemAddress();
-    if (lastUsed !== null && saved.some((s) => s.systemAddress === lastUsed)) return lastUsed;
-    return saved[0]?.systemAddress ?? null;
-  });
+  // Purely backing data for the shared body/slot table below and `mergeBySystemAddress`'s
+  // slot-preservation lookup — no longer seeded from `listSavedSystems()` at mount. It's
+  // repopulated automatically by the `activeSystemAddress`-sync effect further down the moment a
+  // real system becomes active (including the mount-time restore, which now lives in
+  // SystemPortabilityBar — see that component). Switching to / browsing already-saved systems is
+  // exclusively SystemPortabilityBar's toolbar switcher's job now, not this panel's.
+  const [systems, setSystems] = useState<JournalSystem[]>([]);
+  // Addresses parsed from the MOST RECENT Journal file upload — drives the Journal tab's own
+  // candidate picker (`pickedAddress` below). `null` when nothing's been freshly uploaded this
+  // session; distinct from `selectedAddress`, which is whatever's actually loaded into the shared
+  // table — picking a candidate here doesn't touch the table until "Load" is clicked, mirroring
+  // the Spansh tab's search -> pick -> Load pattern.
+  const [pendingAddresses, setPendingAddresses] = useState<number[] | null>(null);
+  const [pickedAddress, setPickedAddress] = useState<number | null>(null);
+  const [selectedAddress, setSelectedAddress] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [applied, setApplied] = useState(false);
-  const [justSaved, setJustSaved] = useState(false);
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(false);
 
   const [activeTab, setActiveTab] = useState<ImportTab>("journal");
@@ -154,7 +158,6 @@ export function JournalImportPanel({
       setSystems((prev) => mergeBySystemAddress(prev, [system]));
       setSelectedAddress(system.systemAddress);
       setApplied(false);
-      setJustSaved(false);
     } catch (e) {
       setSpanshError((e as Error).message);
     } finally {
@@ -163,8 +166,6 @@ export function JournalImportPanel({
   }
 
   async function handleFile(file: File): Promise<void> {
-    setApplied(false);
-    setJustSaved(false);
     try {
       const text = await file.text();
       const parsed = parseJournalScans(text);
@@ -173,11 +174,21 @@ export function JournalImportPanel({
         return;
       }
       setSystems((prev) => mergeBySystemAddress(prev, parsed));
-      setSelectedAddress(parsed[0].systemAddress);
+      setPendingAddresses(parsed.map((s) => s.systemAddress));
+      setPickedAddress(parsed[0].systemAddress);
       setError(null);
     } catch (e) {
       setError((e as Error).message);
     }
+  }
+
+  // Brings the currently-picked Journal-tab candidate into the shared table — mirrors
+  // `handleSpanshLoad`'s pick-then-Load pattern, just synchronous (the data's already local, no
+  // fetch needed).
+  function handleJournalLoad(): void {
+    if (pickedAddress == null) return;
+    setSelectedAddress(pickedAddress);
+    setApplied(false);
   }
 
   const selected = systems.find((s) => s.systemAddress === selectedAddress) ?? null;
@@ -197,7 +208,6 @@ export function JournalImportPanel({
       ),
     );
     setApplied(false);
-    setJustSaved(false);
   }
 
   // Pre-filled from the Journal's FSSBodySignals event when present (see journal/parser.ts), but
@@ -213,7 +223,6 @@ export function JournalImportPanel({
       ),
     );
     setApplied(false);
-    setJustSaved(false);
   }
 
   function resetToGuess(): void {
@@ -226,14 +235,12 @@ export function JournalImportPanel({
       ),
     );
     setApplied(false);
-    setJustSaved(false);
   }
 
   // Also pushes the full per-body list (not just the summed totals) — this is what switches the
   // solver from aggregate mode into per-body placement mode (see plannerState.ts/solve.ts) — and
   // unlocks "Actual facilities in the system," which starts locked/greyed until configured one way
   // or another.
-  // Shared by the "Apply" button and the mount-time auto-apply effect below.
   function applySystem(system: JournalSystem): void {
     dispatch({
       type: "patch",
@@ -255,10 +262,17 @@ export function JournalImportPanel({
     setApplied(true);
     setSelectedAddress(system.systemAddress);
     saveSystem(system);
-    setSavedAddresses((prev) => new Set(prev).add(system.systemAddress));
-    setJustSaved(true);
     setLastUsedSystemAddress(system.systemAddress);
     setCollapsed(true);
+    // Clear each tab's own in-progress pick/search state — not `systems`/`selectedAddress`, which
+    // just got applied and should stay — so reopening the panel later starts clean instead of
+    // showing a stale candidate left over from before this Apply.
+    setPendingAddresses(null);
+    setPickedAddress(null);
+    setSpanshQuery("");
+    setSpanshCandidates([]);
+    setSpanshSelected(null);
+    setSpanshError(null);
     onSystemChanged?.();
   }
 
@@ -271,27 +285,6 @@ export function JournalImportPanel({
       document.getElementById("system-panel")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
     });
   }
-
-  // On first load, silently re-apply whichever system was last used, as long as it has bodies —
-  // "Actual facilities in the system" should already look "applied" (filled in, Journal panel
-  // folded) without the user needing to click "Apply" again every session. Used to also require a
-  // saved primary station (leaving a system with none "incomplete, nothing useful to auto-apply"),
-  // but that created a real, user-reported inconsistency: this panel's own `systems`/
-  // `selectedAddress` state (below) already defaults to the same last-used system regardless of
-  // primary-station status, so the panel visually looked "loaded" while the rest of the app
-  // (`formState`, the toolbar system switcher, "Actual facilities in the system") stayed blank —
-  // two different parts of the UI disagreeing about whether a system was active. Not having a
-  // primary station yet is a perfectly normal, valid intermediate state elsewhere in the app
-  // (e.g. right after a brand-new system's first-ever Apply, before one's been chosen) — only
-  // actually solving requires one — so there's nothing unsafe about auto-restoring here too.
-  useEffect(() => {
-    const lastUsedAddress = getLastUsedSystemAddress();
-    if (lastUsedAddress === null) return;
-    const system = listSavedSystems().map(normalizeSystem).find((s) => s.systemAddress === lastUsedAddress);
-    if (!system || system.bodies.length === 0) return;
-    applySystem(system);
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally mount-only
-  }, []);
 
   // Re-reads the saved-systems store whenever `refreshToken` changes (see the prop's doc comment)
   // — SystemPortabilityBar's Save/Import write straight to localStorage, bypassing this panel's own
@@ -306,21 +299,26 @@ export function JournalImportPanel({
     }
     const saved = listSavedSystems().map(normalizeSystem);
     setSystems(saved);
-    setSavedAddresses(new Set(saved.map((s) => s.systemAddress)));
     const lastUsedAddress = getLastUsedSystemAddress();
     if (lastUsedAddress !== null && saved.some((s) => s.systemAddress === lastUsedAddress)) {
       setSelectedAddress(lastUsedAddress);
+      setApplied(true);
+    } else {
+      // Nothing meaningful left to point at — e.g. SystemPortabilityBar's Delete button just
+      // removed the currently-active system (which also clears the last-used pointer, see
+      // journalSystems.ts's `deleteSystem`) — don't leave this panel showing a stale "applied"
+      // system that no longer exists in storage.
+      setSelectedAddress(null);
+      setApplied(false);
     }
-    setApplied(true);
-    setJustSaved(true);
   }, [refreshToken]);
 
   // Mirrors this panel's own `selectedAddress` to `formState.systemAddress` whenever THAT changes
   // out from under it — i.e. the toolbar switcher case above, not this panel's own Apply (which
   // already sets both `selectedAddress` and `formState.systemAddress` together, so they're already
-  // equal by the time this effect would run and it's a no-op). No `setJustSaved`/`setApplied` here
-  // unlike the refreshToken effect above — nothing was actually saved or applied FROM this panel,
-  // it's just catching up to a change made elsewhere.
+  // equal by the time this effect would run and it's a no-op). No `setApplied` here unlike the
+  // refreshToken effect above — nothing was actually saved or applied FROM this panel, it's just
+  // catching up to a change made elsewhere.
   //
   // Real bug found via user report (2026-07-27): once a system had ever been applied,
   // `activeSystemAddress` (formState.systemAddress) stayed fixed at that address while the Spansh
@@ -344,7 +342,6 @@ export function JournalImportPanel({
     if (activeSystemAddress === selectedAddress) return;
     const saved = listSavedSystems().map(normalizeSystem);
     setSystems(saved);
-    setSavedAddresses(new Set(saved.map((s) => s.systemAddress)));
     if (saved.some((s) => s.systemAddress === activeSystemAddress)) {
       setSelectedAddress(activeSystemAddress);
     }
@@ -412,48 +409,48 @@ export function JournalImportPanel({
                 scan data. Fields below are pre-filled with a <strong>best-effort, unverified</strong> guess;
                 check your in-game System Map and correct each body's numbers as needed.
               </p>
-              <input
-                type="file"
-                accept=".log,.jsonl,text/plain"
-                aria-label="Journal file"
-                onChange={(e) => {
-                  const file = e.target.files?.[0];
-                  if (file) void handleFile(file);
-                  e.target.value = "";
-                }}
-              />
-
-              {systems.length > 0 && (
-                <div className="row-grid" style={{ marginTop: 10 }}>
-                  <div className="field">
-                    <label htmlFor="journal-system">System</label>
-                    <select
-                      id="journal-system"
-                      value={selectedAddress ?? ""}
-                      onChange={(e) => {
-                        setSelectedAddress(Number(e.target.value));
-                        setApplied(false);
-                        setJustSaved(false);
-                      }}
+              <div className="row-grid" style={{ marginTop: 10 }}>
+                <input
+                  type="file"
+                  accept=".log,.jsonl,text/plain"
+                  aria-label="Journal file"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void handleFile(file);
+                    e.target.value = "";
+                  }}
+                />
+                {pendingAddresses !== null && pendingAddresses.length > 0 && (
+                  <>
+                    <div className="field">
+                      <label htmlFor="journal-system">System</label>
+                      <select
+                        id="journal-system"
+                        value={pickedAddress ?? ""}
+                        onChange={(e) => setPickedAddress(Number(e.target.value))}
+                      >
+                        {pendingAddresses.map((address) => {
+                          const candidate = systems.find((s) => s.systemAddress === address);
+                          if (!candidate) return null;
+                          return (
+                            <option key={address} value={address}>
+                              {candidate.starSystem} ({candidate.bodies.length} bodies scanned)
+                            </option>
+                          );
+                        })}
+                      </select>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleJournalLoad}
+                      disabled={pickedAddress == null}
+                      style={{ marginLeft: "auto" }}
                     >
-                      {systems.map((s) => (
-                        <option key={s.systemAddress} value={s.systemAddress}>
-                          {s.starSystem} ({s.bodies.length} bodies scanned)
-                          {savedAddresses.has(s.systemAddress) ? " — saved" : ""}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                  {justSaved && (
-                    <span style={{ color: "var(--success)" }}>
-                      Saved — will still be here after a reload, no re-upload needed
-                    </span>
-                  )}
-                  <button type="button" onClick={resetToGuess} disabled={!selected} style={{ marginLeft: "auto" }}>
-                    Reset slots to guess
-                  </button>
-                </div>
-              )}
+                      Load
+                    </button>
+                  </>
+                )}
+              </div>
             </div>
           )}
 
@@ -608,6 +605,9 @@ export function JournalImportPanel({
                     Total: {totals.space} orbital ({totals.asteroid} asteroid-eligible) / {totals.ground}{" "}
                     ground
                   </span>
+                  <button type="button" onClick={resetToGuess} style={{ marginLeft: "auto" }}>
+                    Reset slots to guess
+                  </button>
                   <button type="button" onClick={apply}>
                     Apply slots and body layout to Actual facilities in the system
                   </button>
