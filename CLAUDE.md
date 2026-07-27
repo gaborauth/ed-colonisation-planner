@@ -205,6 +205,43 @@ npx oxlint       # lint
 
 Deploys to GitHub Pages on push to `main` via `.github/workflows/deploy.yml` (build → test → deploy).
 
+## Branching and releases
+
+Branch flow: feature branches → `development` → `main`. Versioning is fully automated via
+[semantic-release](https://semantic-release.gitbook.io/) (`.releaserc.json`,
+`.github/workflows/release.yml`), driven by Conventional Commits (`feat:`, `fix:`, `chore:`, etc. —
+already this repo's commit convention pre-dating this setup) via the `conventionalcommits` preset.
+
+- **Push to `main`**: a real release — computes the next semver bump from commit history,
+  regenerates `CHANGELOG.md`, bumps `package.json`'s `version`, commits both back
+  (`chore(release): x.y.z [skip ci]`), tags, and publishes a GitHub Release with generated notes.
+  `npmPublish` is disabled (`@semantic-release/npm` only bumps the local `version` field — this
+  package is `private` and never goes to the npm registry).
+- **Push to `development`**: dry-run only (`npx semantic-release --dry-run`) — logs what version
+  *would* be released and validates commit messages, but never tags, commits, or publishes anything.
+  Configured in `.releaserc.json` as a `prerelease` branch so the dry-run's simulated version
+  (`x.y.z-development.N`) is meaningful, but the workflow only ever invokes `--dry-run` on this
+  branch, so that prerelease config is never actually exercised for a real publish.
+- First release (no prior tag) lands as `v1.0.0` — semantic-release's own default for an
+  unreleased repo, regardless of the first-release commits' types.
+
+**Known open risk, not yet verified**: `main` is branch-protected (PRs required to merge into it —
+see `TASKS.md`'s recurring "branch-protected `main`" notes). The `@semantic-release/git` step needs
+to push a commit directly to `main` after a merge lands; if branch protection rejects a direct push
+from the default `GITHUB_TOKEN` (a very likely outcome — the pushing identity is the
+`github-actions[bot]` app, which typically has no bypass even when the human owner is an admin with
+"include administrators" unchecked), the release workflow's `Release` step will fail at the git-push
+stage. The workflow reads `secrets.RELEASE_TOKEN` first, falling back to `secrets.GITHUB_TOKEN`, so
+the fix (if this happens) is a fine-grained PAT belonging to an account with bypass rights, saved as
+the `RELEASE_TOKEN` repo secret — or add a branch-protection bypass entry for `github-actions[bot]`
+instead. Flagged here rather than silently assumed to work, since this can only actually be
+confirmed by watching a real run in Actions (not reproducible in this sandboxed dev environment).
+
+Dependency updates: Dependabot (`.github/dependabot.yml`) watches both `npm` and `github-actions`
+ecosystems weekly, opening PRs against `development` (not `main` directly) with a `chore` commit
+prefix — `chore:` doesn't trigger a semantic-release version bump on its own, keeping routine
+dependency bumps out of the changelog unless a human recharacterizes one as a real `fix`/`feat`.
+
 ## Explicitly unverified/best-effort constants — don't "fix" these without new evidence
 
 Deliberately isolated as named constants, flagged in code comments and in the UI, so they're easy

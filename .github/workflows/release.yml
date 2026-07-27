@@ -1,0 +1,52 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - main
+      - development
+
+concurrency:
+  group: release-${{ github.ref_name }}
+  cancel-in-progress: false
+
+permissions:
+  contents: write
+  issues: write
+  pull-requests: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+      # main: a real release — bumps the version, writes CHANGELOG.md, tags, pushes, publishes a
+      # GitHub release. Needs push access to a branch-protected `main`, so prefer a RELEASE_TOKEN PAT
+      # (repo secret) with bypass rights if the default GITHUB_TOKEN gets rejected by branch
+      # protection; falls back to GITHUB_TOKEN if no such secret is set.
+      - name: Release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      # development: preview only — computes and logs what version would be released, validates
+      # commit messages against the conventionalcommits preset, never tags/publishes/commits
+      # anything (semantic-release's own --dry-run guarantee).
+      - name: Release dry run
+        if: github.ref == 'refs/heads/development'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release --dry-run
