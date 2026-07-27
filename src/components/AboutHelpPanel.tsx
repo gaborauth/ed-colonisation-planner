@@ -82,13 +82,34 @@ export function AboutHelpPanel() {
             order" panel below it lays the whole plan out as one numbered, step-by-step table.
           </p>
 
-          <p style={{ marginBottom: 0 }}>
-            This is a free, open-source project — the full source is on{" "}
-            <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">
-              GitHub
+          <p style={{ display: "flex", alignItems: "flex-start", gap: 12, marginBottom: 0 }}>
+            <span>
+              This is a free, open-source project — the full source is on{" "}
+              <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">
+                GitHub
+              </a>
+              . Found a bug, have a feature idea, or just want to say what does or doesn't work for
+              you? Feedback is very welcome — open an issue on the GitHub repo above. And if this
+              tool saved you some time or Credits, you can{" "}
+              <a href="https://buymeacoffee.com/gabor.auth" target="_blank" rel="noreferrer">
+                buy me a coffee
+              </a>{" "}
+              — entirely optional, appreciated either way.
+            </span>
+            <a
+              href="https://buymeacoffee.com/gabor.auth"
+              target="_blank"
+              rel="noreferrer"
+              style={{ flexShrink: 0 }}
+            >
+              <img
+                src={`${import.meta.env.BASE_URL}images/bmc_qr.png`}
+                alt="Buy me a coffee QR code"
+                width={96}
+                height={96}
+                style={{ display: "block" }}
+              />
             </a>
-            . Found a bug, have a feature idea, or just want to say what does or doesn't work for
-            you? Feedback is very welcome — open an issue on the GitHub repo above.
           </p>
         </div>
       )}
