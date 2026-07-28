@@ -1,0 +1,532 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Tutorials — EDCPS</title>
+    <style>
+      :root {
+        --bg: #0a0e14;
+        --bg-panel: #121824;
+        --bg-inset: #0d1219;
+        --border: #2a3444;
+        --border-bright: #3d4a60;
+        --accent: #ff9e1b;
+        --accent-text: #ffb64d;
+        --text: #e7e6e2;
+        --text-dim: #8b93a1;
+        --text-faint: #5b6577;
+        --font-body: system-ui, "Segoe UI", sans-serif;
+        --font-mono: ui-monospace, "Cascadia Code", "SFMono-Regular", Consolas, monospace;
+      }
+      * {
+        box-sizing: border-box;
+      }
+      body {
+        margin: 0;
+        padding: 32px 20px 80px;
+        background: var(--bg);
+        color: var(--text);
+        font-family: var(--font-body);
+        line-height: 1.55;
+      }
+      main {
+        max-width: 760px;
+        margin: 0 auto;
+      }
+      h1 {
+        font-size: 1.5rem;
+        margin: 0 0 4px;
+      }
+      .subtitle {
+        color: var(--text-dim);
+        margin: 0 0 32px;
+        font-size: 0.95rem;
+      }
+      .subtitle a {
+        color: var(--accent-text);
+      }
+      nav.toc {
+        background: var(--bg-panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 14px 20px;
+        margin-bottom: 28px;
+        font-size: 0.9rem;
+      }
+      nav.toc p {
+        margin: 0 0 8px;
+        color: var(--text-dim);
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+        font-size: 0.75rem;
+      }
+      nav.toc ol {
+        margin: 0;
+        padding-left: 1.2em;
+      }
+      nav.toc li {
+        margin-bottom: 4px;
+      }
+      h2 {
+        font-size: 1.05rem;
+        margin: 0 0 8px;
+        padding-top: 8px;
+        border-top: 1px solid var(--border);
+        scroll-margin-top: 20px;
+      }
+      section {
+        margin-bottom: 28px;
+        background: var(--bg-panel);
+        border: 1px solid var(--border);
+        border-radius: 4px;
+        padding: 16px 20px;
+      }
+      section:target {
+        border-color: var(--accent);
+      }
+      p {
+        margin: 0 0 10px;
+      }
+      p:last-child {
+        margin-bottom: 0;
+      }
+      ol,
+      ul {
+        margin: 0 0 10px;
+        padding-left: 1.4em;
+      }
+      li {
+        margin-bottom: 6px;
+      }
+      code {
+        font-family: var(--font-mono);
+        background: var(--bg-inset);
+        border: 1px solid var(--border-bright);
+        border-radius: 2px;
+        padding: 1px 5px;
+        font-size: 0.9em;
+      }
+      .tldr {
+        display: block;
+        background: var(--bg-inset);
+        border: 1px solid var(--border-bright);
+        border-radius: 4px;
+        padding: 8px 12px;
+        margin: 0 0 12px;
+        font-size: 0.92rem;
+      }
+      .tldr strong {
+        color: var(--accent-text);
+      }
+      .note {
+        border-left: 3px solid var(--accent);
+        padding-left: 12px;
+        margin: 12px 0 0;
+        color: var(--text-dim);
+        font-size: 0.92rem;
+      }
+      .note strong {
+        color: var(--accent-text);
+      }
+      .prereq {
+        border-left: 3px solid var(--border-bright);
+        padding-left: 12px;
+        margin: 0 0 12px;
+        color: var(--text-dim);
+        font-size: 0.92rem;
+      }
+      footer {
+        margin-top: 40px;
+        color: var(--text-faint);
+        font-size: 0.85rem;
+      }
+      footer a {
+        color: var(--text-dim);
+      }
+      a {
+        color: var(--accent);
+      }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Tutorials</h1>
+      <p class="subtitle">
+        Eight worked examples for turning a real planning goal into actual clicks in EDCPS — panel names and
+        button/field labels below match the live app exactly. See also the project's
+        <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">README</a>
+        and <a href="known-issues.html">Known issues</a>.
+      </p>
+
+      <section id="before-you-start">
+        <h2>Before you start (same two things, every time)</h2>
+        <ol>
+          <li>
+            <strong>Primary station — always required.</strong> In <em>Actual facilities in the system</em>, pick
+            a body/building for the <strong>Primary station</strong> field. <strong>Solve for a system</strong>
+            in the Objective panel stays disabled until this is set, no matter which tutorial below you're
+            following.
+          </li>
+          <li>
+            <strong>Real per-body import — only required for some tutorials</strong> (each one below says whether
+            it needs this; the rest work fine with the flat aggregate slot counts instead). Unlocks per-body
+            features like <strong>Economy preferences</strong> and per-slot placement:
+            <ol>
+              <li>Open <strong>Import system</strong>.</li>
+              <li>
+                <strong>Journal file tab</strong>: if you've personally scanned the system's bodies in-game,
+                upload your Journal log (on Windows:
+                <code>%USERPROFILE%\Saved Games\Frontier Developments\Elite Dangerous</code>). Parses real
+                FSS/Scan events straight out of it.
+              </li>
+              <li>
+                <strong>Spansh tab</strong>: if you haven't scanned it yet (or want a head start), type the
+                system name into the search box — a real autocomplete against Spansh's public system database —
+                then hit Load. Pulls known body data from Spansh's crowdsourced dump. Heads-up shown right in the
+                tab: "known" here means known to Spansh's database, not necessarily scanned by <em>you</em>.
+              </li>
+              <li>
+                Either way, review the body/slot table — it pre-fills orbital/ground slot-count guesses per body
+                (a best-effort community heuristic, not an exact formula) with a "Reset slots to guess" button per
+                row if you've edited it and want to revert.
+              </li>
+              <li>
+                Click <strong>Apply</strong> — populates <em>Actual facilities in the system</em> with a real
+                per-body layout instead of flat aggregate slot counts. Then set your Primary station there (step 1
+                above) and you're ready for the Objective panel.
+              </li>
+            </ol>
+          </li>
+        </ol>
+        <p class="note">
+          <strong>Note:</strong> Journal- and Spansh-sourced data for the same system merge by real body ID —
+          scanning more of the system later and re-importing adds detail rather than starting over.
+        </p>
+      </section>
+
+      <nav class="toc">
+        <p>On this page</p>
+        <ol>
+          <li><a href="#force-a-port">Force a specific port into your plan while keeping cost minimal</a></li>
+          <li><a href="#security-floor-ratio">Cap Security for a criminal/anarchy system while nudging Wealth:Tech toward 2:1</a></li>
+          <li><a href="#economy-in-out">Want one economy, forbid two others</a></li>
+          <li><a href="#demolish-replace">Demolish a bad early build and let the solver fix it</a></li>
+          <li><a href="#max-tech">Chasing max Tech Level for unlocks</a></li>
+          <li><a href="#link-stacking">Stacking strong links to inflate one economy on your main port</a></li>
+          <li><a href="#cmm-worked-example">Worked example: a Civilian Planetary Outpost + orbital Coriolis</a></li>
+          <li><a href="#haul-cost-cap">Cap total haul cost while hitting minimum Tech/Wealth/Security targets</a></li>
+        </ol>
+      </nav>
+
+      <section id="force-a-port">
+        <h2>1. Force a specific port into your plan (e.g. a Dodecahedron) while keeping cost minimal</h2>
+        <span class="tldr">
+          <strong>TL;DR:</strong> the <strong>Min</strong> column in <em>Ports &amp; Facilities numbers</em> is a
+          hard "build at least N of this" constraint. Combine it with minimizing <strong>Construction cost</strong>
+          as your objective.
+        </span>
+        <ol>
+          <li>
+            Do the <a href="#before-you-start">common setup</a> above — for this one the per-body import is
+            optional, a flat aggregate plan works fine; only the Primary station pick actually gates Solve.
+          </li>
+          <li>
+            Open the <strong>Objective</strong> panel. Leave the mode on "Maximize a single score", and pick
+            <strong>construction cost</strong> from the dropdown (shown all-lowercase there). The app auto-inverts
+            direction for this one stat — picking it <em>minimizes</em> total commodities hauled instead of
+            maximizing it (there's a hint under the dropdown reminding you of this).
+          </li>
+          <li>
+            Expand <strong>Ports &amp; Facilities numbers</strong> (folded by default). Find the
+            <strong>Dodecahedron</strong> row. Set <strong>Min = 1</strong>. If you want exactly one and no more,
+            also set <strong>Max = 1</strong>.
+          </li>
+          <li>Click <strong>Solve for a system</strong>.</li>
+          <li>
+            Check <strong>Solved system</strong> / <strong>Build order</strong> — you'll get exactly one
+            Dodecahedron, with every other pick chosen to keep total commodity cost down. Don't be surprised if
+            the plan also includes a few cheap Hubs/Settlements you never asked for: a Dodecahedron spends T3
+            points on an escalating curve, so the solver has to bank enough T3 first — those extra picks are the
+            <em>cheapest available</em> way to earn that T3, not a mistake or a cost-minimization miss.
+          </li>
+        </ol>
+        <p class="note">
+          <strong>Notes:</strong> Min/Max here is a genuine hard constraint solved by the MILP — if your
+          slots/points can't actually support the pick (no eligible body, not enough T3 points bankable), you'll
+          get an infeasible result, not a silently-ignored one. There's no separate "must build" toggle anywhere
+          else in the UI — this Min field on the Ports table <em>is</em> the mechanism. Also: "Construction cost"
+          means real hauled commodities (a Dodecahedron is ~236k units) — a <em>different</em> number from T2/T3
+          points, which are a separate escalating currency you spend to afford bigger ports.
+        </p>
+      </section>
+
+      <section id="security-floor-ratio">
+        <h2>2. Cap Security at -50 (criminal/anarchy system) while nudging Wealth:Tech toward 2:1</h2>
+        <span class="tldr">
+          <strong>TL;DR:</strong> Score constraints table's Security row → <strong>Max = -50</strong> (a ceiling,
+          not a floor — this forces security to stay deep in anarchy territory instead of merely permitting it).
+          Objective mode → "Complex score" → pick the built-in "Wealth &amp; tech, 2:1 ratio" preset.
+        </span>
+        <ol>
+          <li>Do the <a href="#before-you-start">common setup</a> above — the per-body import isn't needed here.</li>
+          <li>
+            Open <strong>Objective</strong> → <strong>Score constraints</strong> table (below the Simple/Complex
+            radio buttons). Find the <strong>Security</strong> row. <strong>First clear (or lower) its Min
+            field</strong> — the app ships with a default Min = 1 on Security (a floor that keeps NPCs from
+            interdicting your haulers once security goes negative), and a leftover Min = 1 alongside Max = -50 is
+            a self-contradictory range that reports infeasible. Then set <strong>Max = -50</strong>.
+          </li>
+          <li>Switch the objective mode radio to <strong>"Complex score"</strong>.</li>
+          <li>
+            From the <strong>Presets</strong> dropdown, choose <strong>"Wealth &amp; tech, 2:1 ratio"</strong>.
+            Under the hood this applies <code>2×Wealth + Tech − |Wealth − 2×Tech|</code> — pushes both up while
+            pulling them toward a 2:1 relationship.
+          </li>
+          <li>Click <strong>Solve</strong>.</li>
+        </ol>
+        <p class="note">
+          <strong>Caveats:</strong> Max here is a genuine hard ceiling the MILP must satisfy — the solver will
+          actively pick security-lowering buildings (or avoid security-boosting ones) until it's at or below -50,
+          not just "allow" a low value. "Allow criminal constructions" (further down the Objective panel) defaults
+          to <strong>on</strong>, so Pirate Base/Criminal Outpost are already eligible builds for a scenario like
+          this — only relevant if you'd previously switched it off. There's also no hard "exactly 2:1" constraint
+          control in the UI — Score constraints are absolute Min/Max floors/caps only, not ratios between two
+          stats. The preset is a soft pull, not a lock; if you need it closer to exact, solve once, check the real
+          Wealth/Tech numbers in <strong>Solved system</strong>, then manually tighten Score constraints' Min/Max
+          on one of the two stats and re-solve.
+        </p>
+      </section>
+
+      <section id="economy-in-out">
+        <h2>3. "I want Agriculture, but not Refinery or Extraction"</h2>
+        <p class="prereq">
+          <strong>Prereq:</strong> do the <a href="#before-you-start">common setup</a> above, including the
+          per-body import this time — <strong>Economy preferences</strong> stays greyed out without it. Not
+          available for a from-scratch aggregate plan.
+        </p>
+        <ol>
+          <li><strong>Objective</strong> panel → expand <strong>Economy preferences</strong> (collapsed by default).</li>
+          <li>
+            It's a grid: rows = Agriculture / Extraction / HighTech / Industrial / Refinery / Tourism / Military /
+            Terraforming / Colony, columns = <strong>Must / Want / Dunno / Don't want / Forbid</strong>.
+            <ul>
+              <li>Agriculture row → <strong>Want</strong> (or <strong>Must</strong> if it's non-negotiable)</li>
+              <li>Refinery row → <strong>Forbid</strong></li>
+              <li>Extraction row → <strong>Forbid</strong></li>
+            </ul>
+          </li>
+          <li>Solve.</li>
+        </ol>
+        <p class="note">
+          <strong>Caveats:</strong> Forbid is a hard exclusion — it zeroes out every (building, body) combo
+          carrying that economy. Generic ports stack multiple economies from the body they're built on (e.g. any
+          port on an Earth-like world always carries Agriculture <em>and</em> High Tech <em>and</em> Military
+          <em>and</em> Tourism together, non-selectably) — Forbidding one can rule out more building options on a
+          body than you expect. Want/Don't want are soft — they only actually bias the solve because the app's
+          default objective expression includes that term; if you changed presets in tutorial 2, this stops
+          mattering. Extraction gets added to a body's economy set just from having rings or geological signals —
+          Forbidding it can knock out otherwise-great ringed/geo bodies for other purposes too, so check which
+          bodies the solver avoided in the results.
+        </p>
+      </section>
+
+      <section id="demolish-replace">
+        <h2>4. Demolish a bad early build and let the solver fix it</h2>
+        <span class="tldr">
+          <strong>TL;DR:</strong> <em>Actual facilities in the system</em> lets you flag an already-built facility
+          <strong>demolishable</strong>; the solver can then remove + replace it if that scores better.
+        </span>
+        <ol>
+          <li>In <strong>Actual facilities in the system</strong>, find the body/slot with the building you regret.</li>
+          <li>
+            Tick its <strong>Demolishable</strong> checkbox (only offered for a genuinely present facility, not an
+            empty slot).
+          </li>
+          <li>
+            <strong>Objective</strong> → Solve. The solver can now remove that facility (refunding its points and
+            freeing the slot) if replacing it scores better — or leave it if it's still the best option.
+          </li>
+          <li>
+            Check <strong>Build order</strong> — a genuine remove-and-replace shows as separate Demolish and
+            Planned rows. If the solver ends up rebuilding the exact same building type in that slot, EDCPS
+            recognizes that as pointless churn and shows it as unchanged ("present") rather than a wasteful
+            demolish-then-rebuild pair.
+          </li>
+        </ol>
+        <p class="note">
+          <strong>Caveats:</strong> only a narrow slice of the real mechanic is modeled — no weekly-maintenance-tick
+          timing, no mission-loss simulation, and the primary station plus the 5 escalating-cost port types
+          (Coriolis, Asteroid Base, Orbis/Ocellus, Dodecahedron, Planetary Port) can never be marked demolishable
+          here. In-game, demolition refunds points/slots on the next maintenance tick — this tool models the refund
+          as instant.
+        </p>
+      </section>
+
+      <section id="max-tech">
+        <h2>5. Chasing max Tech Level for unlocks</h2>
+        <span class="tldr">
+          <strong>TL;DR:</strong> "Maximize a single score" → tech level. Add Score constraint floors on
+          anything you don't want collapsing as a side effect.
+        </span>
+        <ol>
+          <li>
+            <strong>Objective</strong> → "Maximize a single score" → pick <strong>tech level</strong> from the
+            dropdown (shown all-lowercase there — the Score constraints table below spells the same stat
+            "Tech level").
+          </li>
+          <li>
+            If you don't want something else tanking while you chase Tech (e.g. Security going deeply negative),
+            add a <strong>Min</strong> floor for it in <strong>Score constraints</strong>.
+          </li>
+          <li>Solve.</li>
+          <li>
+            Check <strong>Solved system</strong>/<strong>Build order</strong> for which High-Tech-economy
+            buildings got picked. Bodies with an ammonia world, Earth-like world, geological signals, or organics
+            push Tech Level higher via the Colony economy override table — doing the per-body import (see
+            <a href="#before-you-start">Before you start</a>) and setting High Tech to <strong>Want</strong> in
+            Economy preferences (tutorial 3) reinforces this on top of the raw score maximization.
+          </li>
+        </ol>
+        <p class="note">
+          <strong>Caveat:</strong> "Maximize a single score" only optimizes that one stat — others aren't held
+          constant, just not directly targeted. Always check Solved system afterward for side effects, and add
+          Score constraints Min/Max if one is unacceptable.
+        </p>
+      </section>
+
+      <section id="link-stacking">
+        <h2>6. Stacking strong links to inflate one economy on your main port</h2>
+        <p>
+          Quick mechanic refresher: a <strong>strong link</strong> forms between a port and any facility on/around
+          the <em>same body</em> (40–120% contribution depending on tier). A <strong>weak link</strong> forms
+          between a port and facilities on a <em>different</em> body in the system — but it's a flat 5% regardless
+          of tier. So: to meaningfully boost one economy's share on your main port, build supporting facilities of
+          that same economy on the same body, not scattered around the system.
+        </p>
+        <ol>
+          <li>Decide the target economy for your primary port (Military, High Tech, Extraction, whatever).</li>
+          <li>
+            With a per-body layout imported (see <a href="#before-you-start">Before you start</a>), fill your
+            primary station's other slots — space and ground, on the same body — with Settlements/Hubs of that
+            matching economy.
+          </li>
+          <li>
+            Check the body's own attributes against the boost/decrease table: e.g. volcanism boosts an Extraction
+            strong link there; an icy body decreases Agriculture; a tidally-locked planet decreases Agriculture
+            too. Pick your body accordingly if you have options.
+          </li>
+          <li>
+            In <strong>Economy preferences</strong>, set that economy to <strong>Want</strong> (or
+            <strong>Must</strong>) so the solver actually leans toward building matching facilities there instead
+            of elsewhere.
+          </li>
+          <li>
+            Solve, then hover the <strong>"i" info icon</strong> on your primary port in
+            <strong>Solved system</strong> — the Economy ratios / Market links breakdown shows exactly how much
+            each linked facility contributed, body by body.
+          </li>
+        </ol>
+        <p class="note">
+          <strong>Caveat:</strong> the solver's own objective term (<code>economy_synergy</code>) is an
+          approximation of this — it can't solve the exact link graph inside the same optimization that's deciding
+          the placements (that'd be circular). Always confirm the real number via the "i" info hover on Solved
+          system, not just the objective score.
+        </p>
+      </section>
+
+      <section id="cmm-worked-example">
+        <h2>7. Worked example: a Civilian Planetary Outpost + orbital Coriolis for a CMM-economy body</h2>
+        <ol>
+          <li>
+            Pick (or import, see <a href="#before-you-start">Before you start</a>) a <strong>Rocky</strong> or
+            <strong>Rocky Ice</strong> body. Bonus if it also has rings and/or geological signals — both add more
+            of the metals/mining economies for free.
+          </li>
+          <li>
+            Build a <strong>Civilian Planetary Outpost</strong> on that body's ground slot. This one is itself a
+            <em>port</em> (not a supporting facility), and it's not on EDCPS's fixed-economy list, so it takes the
+            body's own Colony economy override directly: Rocky alone → <strong>Refinery</strong>; Rocky Ice →
+            <strong>Industrial + Refinery</strong>; add rings → also <strong>Extraction</strong>; add geological
+            signals → also <strong>Extraction + Industrial</strong>. No separate Hub/Settlement needed — the
+            outpost <em>is</em> the economy source here.
+          </li>
+          <li>
+            Build (or plan) a <strong>Coriolis</strong> in that same body's orbital slot. Two ports on the same
+            body strong-link to each other — the ground port's economy set passes upward to the Coriolis, so it
+            ends up carrying the same Extraction/Industrial/Refinery mix, not just the Coriolis's own generic
+            Colony economy.
+          </li>
+          <li>
+            In <strong>Economy preferences</strong>, set Extraction / Industrial / Refinery to <strong>Want</strong>
+            (needs the per-body import from <a href="#before-you-start">Before you start</a>), then Solve.
+          </li>
+          <li>
+            Verify via the Coriolis's <strong>"i" info icon</strong> in Solved system: Economy ratios should show
+            a real strong-link contribution from the Civilian Planetary Outpost, forwarded from the ground port —
+            distinct from a flat 5% weak link you'd get if the two were on different bodies instead.
+          </li>
+        </ol>
+        <p class="note">
+          <strong>Caveats:</strong> Colony-economy stacking is automatic and not selectable — every generic port on
+          that body gets the same override set from the body's own attributes, so you can't opt out of Extraction
+          on a ringed Rocky body even if you only wanted Refinery. Also, whichever of the two ports is higher-tier
+          becomes the "dominant" one for tie-break purposes (a Coriolis outranks a Tier-1 Planetary Outpost) — that
+          only affects EDCPS's own display tie-break, not which economies actually reach the Coriolis.
+        </p>
+      </section>
+
+      <section id="haul-cost-cap">
+        <h2>8. Cap total haul cost at 250,000t while hitting minimum Tech/Wealth/Security targets</h2>
+        <span class="tldr">
+          <strong>TL;DR:</strong> four rows in the <strong>Score constraints</strong> table — Construction cost
+          Max = 250000, Tech level Min = 100, Wealth Min = 150, Security Min = 20. All four are hard bounds, no
+          per-body import needed.
+        </span>
+        <ol>
+          <li>Do the <a href="#before-you-start">common setup</a> above — the per-body import isn't needed here.</li>
+          <li>
+            Open <strong>Objective</strong> → <strong>Score constraints</strong> table (below the Simple/Complex
+            radio buttons).
+          </li>
+          <li>
+            <strong>Construction cost</strong> row → <strong>Max = 250000</strong>. This caps the TOTAL commodities
+            hauled across every new building in the plan combined, not per building — a single Dodecahedron alone
+            is already ~236k, so a tight cap like this usually means several cheaper Ports/Hubs/Settlements instead
+            of one huge one.
+          </li>
+          <li><strong>Tech level</strong> row → <strong>Min = 100</strong>.</li>
+          <li><strong>Wealth</strong> row → <strong>Min = 150</strong>.</li>
+          <li><strong>Security</strong> row → <strong>Min = 20</strong>.</li>
+          <li>
+            Pick an objective for anything left over: these four bounds are all pass/fail, so the solver has no
+            preference among multiple layouts that satisfy them unless you also give it something to actually
+            maximize/minimize — e.g. leave "Maximize a single score" on <strong>construction cost</strong> (see
+            tutorial 1) to squeeze the haul total down further within the 250,000t cap, or switch to "Complex
+            score" → Default preset for a more balanced pick.
+          </li>
+          <li>Click <strong>Solve for a system</strong>.</li>
+          <li>
+            Check <strong>Solved system</strong> — Tech level, Wealth, and Security should each be at or above
+            your requested minimum, and the total Construction cost at or below 250,000.
+          </li>
+        </ol>
+        <p class="note">
+          <strong>Caveats:</strong> all four bounds are hard constraints solved together — if they're jointly
+          unreachable (e.g. 250,000t genuinely isn't enough commodities to reach Tech 100 + Wealth 150 + Security
+          20 at once), the solver reports infeasible rather than getting as close as possible; there's no
+          soft/partial-credit mode for Score constraints Min/Max. Tech level/Wealth/Security here track the same
+          in-game Development/Economy panel numbers you'd see in-system (net of the Dodec Update's
+          first-station-bonus/subsequent-facility-reduction weighting this app already applies); Construction cost
+          itself isn't a stat the game displays anywhere — it's this app's own running total of commodities
+          hauled for the plan.
+        </p>
+      </section>
+
+      <footer>
+        Found something that doesn't match what you see in the app? Open an issue on the project's
+        <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">GitHub repo</a>.
+      </footer>
+    </main>
+  </body>
+</html>
