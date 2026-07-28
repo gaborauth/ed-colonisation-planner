@@ -1353,7 +1353,7 @@
       },
       "slots": {
         "space": 0,
-        "ground": 0,
+        "ground": 1,
         "asteroid": 0
       }
     },
@@ -1472,7 +1472,7 @@
       },
       "slots": {
         "space": 2,
-        "ground": 2,
+        "ground": 1,
         "asteroid": 0
       }
     },
@@ -2076,6 +2076,18 @@
         "space": 3,
         "ground": 0,
         "asteroid": 1
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Coriolis",
+            "demolishable": false,
+            "variant": "Quad Truss",
+            "customName": "Froude City",
+            "primary": true
+          }
+        ],
+        "ground": []
       }
     },
     {
