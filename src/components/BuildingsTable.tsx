@@ -125,8 +125,8 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
                 <tr>
                   <th>Construction</th>
                   <th>Already present</th>
-                  <th>At least</th>
-                  <th>At most</th>
+                  <th>Min</th>
+                  <th>Max</th>
                   <th>Built</th>
                   <th>Total</th>
                 </tr>
@@ -154,14 +154,14 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
                       </td>
                       <td>
                         <NumberInput
-                          ariaLabel={`${toPrintable(name)} at least`}
+                          ariaLabel={`Minimum ${toPrintable(name)}`}
                           value={formState.atLeast[name]}
                           onChange={(value) => dispatch({ type: "setMapEntry", map: "atLeast", name, value })}
                         />
                       </td>
                       <td>
                         <NumberInput
-                          ariaLabel={`${toPrintable(name)} at most`}
+                          ariaLabel={`Maximum ${toPrintable(name)}`}
                           value={formState.atMost[name]}
                           onChange={(value) => dispatch({ type: "setMapEntry", map: "atMost", name, value })}
                         />
