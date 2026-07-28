@@ -1,3 +1,13 @@
+## [1.3.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.2.0...v1.3.0) (2026-07-28)
+
+### Features
+
+* import slots and facilities from a Raven Colonial ([1df6f5d](https://github.com/gaborauth/ed-colonisation-planner/commit/1df6f5dbd8042823b4b19ea244a3ee7ab9fe0d7a))
+
+### Bug Fixes
+
+* ignore not completed facilities from Raven Colonial import ([0868137](https://github.com/gaborauth/ed-colonisation-planner/commit/08681372335791d46dab7e74c28af0c7e170fb7b))
+
 ## [1.2.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.1.0...v1.2.0) (2026-07-28)
 
 ### Features
