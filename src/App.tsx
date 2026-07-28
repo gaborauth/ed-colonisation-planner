@@ -8,6 +8,7 @@ import { JournalImportPanel } from "./components/JournalImportPanel";
 import { ObjectivePanel } from "./components/ObjectivePanel";
 import { SavedPlansPanel } from "./components/SavedPlansPanel";
 import { SolvedSystemPanel } from "./components/SolvedSystemPanel";
+import { SolverStatusDialog } from "./components/SolverStatusDialog";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
 import { SystemPortabilityBar } from "./components/SystemPortabilityBar";
 import { normalizeBlockedSlots, normalizeFacilitySlots } from "./domain/presentFacilities";
@@ -153,8 +154,11 @@ function App() {
         />
         <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
 
-        {resultState.status === "solving" && <div className="status-banner loading">Running the solver…</div>}
-        {resultState.status === "error" && <div className="status-banner">{resultState.message}</div>}
+        <SolverStatusDialog
+          status={resultState.status}
+          message={resultState.message}
+          onDismiss={() => setResultState(INITIAL_RESULT_STATE)}
+        />
 
         <SolvedSystemPanel formState={formState} result={resultState.result} />
 

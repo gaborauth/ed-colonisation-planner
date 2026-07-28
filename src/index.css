@@ -569,6 +569,71 @@ select.toolbar-summary-system {
   color: var(--text-dim);
 }
 
+/* Blocking modal for the solve's "solving"/"error" states — see SolverStatusDialog.tsx. Above the
+ * cookie consent banner's z-index (100), since a solve can legitimately run before that banner's
+ * choice is made. */
+.solver-status-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 20, 0.7);
+  padding: 16px;
+}
+
+.solver-status-dialog {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 3px;
+  padding: 20px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.solver-status-dialog-message {
+  margin: 0;
+}
+
+.solver-status-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+/* A real, clearly-animated indeterminate bar under the "Running the solver…" text — the text's own
+ * `.status-banner.loading` sweep (a faint background tint behind the text) reads too subtle on its
+ * own as proof the page hasn't frozen (2026-07-28 user feedback after trying the new dialog in a
+ * real browser); this is a separate, unmissable bar rather than a replacement for that sweep, so
+ * `.status-banner.loading` stays shared/unchanged for its other user (JournalImportPanel's
+ * "Searching Spansh…" indicator). */
+.solver-progress-bar {
+  margin-top: 14px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-inset);
+  overflow: hidden;
+}
+
+.solver-progress-bar-fill {
+  height: 100%;
+  width: 40%;
+  border-radius: 3px;
+  background: var(--cyan);
+  animation: solver-progress-bar-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes solver-progress-bar-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
+}
+
 .category-heading {
   font-family: var(--font-display);
   letter-spacing: 0.08em;
