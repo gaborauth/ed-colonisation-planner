@@ -1,9 +1,8 @@
 // The CURRENT (not-yet-solved) system's score totals — "what does this system actually add up to
-// right now," for the "Actual facilities in the system" panel's summary (moved there from the
-// standalone Result panel, 2026-07-26, at the user's request: "I want to see the actual sum of
-// values of the system"). Mirrors solve.ts's own systemScores computation (same
-// FIRST_STATION_BONUS/SUBSEQUENT_FACILITY_REDUCTION reweighting — a real, always-applicable Dodec
-// Update game rule, not something specific to the solver's own optimization), but as a plain-number
+// right now," for the "Actual facilities in the system" panel's summary. Mirrors solve.ts's own
+// systemScores computation (same FIRST_STATION_BONUS/SUBSEQUENT_FACILITY_REDUCTION reweighting — a
+// real, always-applicable Dodec Update game rule, not something specific to the solver's own
+// optimization), but as a plain-number
 // sum over already-present facilities instead of an LP expression over decision variables — there's
 // nothing to optimize for a fixed, already-built system, so no MILP is needed here at all.
 //

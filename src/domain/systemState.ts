@@ -70,11 +70,10 @@ export class SystemState {
     // is also used for NEW construction going forward, where `canBuild`'s per-step non-negativity
     // gate must keep working exactly as before (see ordering.ts's computeFeasibleOrder) — only the
     // "seed my starting state from already-present/historical data" entry point gets this floor.
-    // Real bug this fixes: `getOrderingFromResult`'s solution-side `computeFeasibleOrder` pass
-    // (used by every real caller — see ordering.test.ts's dedicated regression test) could throw
-    // "Could not finish ordering" under extreme demolition purely because this starting seed was
-    // negative before a single new building was even attempted, with no amount of reordering able
-    // to recover from a deficit that exists before the search loop starts.
+    // This flooring is what keeps `getOrderingFromResult`'s solution-side `computeFeasibleOrder`
+    // pass from throwing "Could not finish ordering" under extreme demolition: a negative starting
+    // seed, before a single new building is even attempted, is a deficit no amount of reordering can
+    // recover from once the search loop starts — so the seed itself must never carry one in.
     if (this.T2points < 0) this.T2points = 0;
     if (this.T3points < 0) this.T3points = 0;
     return this;
@@ -167,17 +166,16 @@ export class SystemState {
   }
 
   /** Tier-2-cost ports (Coriolis, Asteroid_Base) and Tier-3-cost ports (Orbis_or_Ocellus,
-   * Dodecahedron, Planetary_Port) each escalate along their OWN sequence, exactly like
+   * Dodecahedron, Planetary_Port) each escalate along their OWN, INDEPENDENT sequence, exactly like
    * `presentFacilities.ts`'s already-verified `computePresentPortsSeed` (t2Index/t3Index) — real-
    * game-confirmed there: a T2-cost port built before a T3-cost port doesn't push the T3-cost
-   * port's price past its own first-of-type rate. An earlier version of this method used one
-   * shared `this.ports.length` counter for both, which over-escalates whichever tier's port is
-   * built after a port of the OTHER tier — real bug (not just an approximation mismatch), caught
-   * via a real system with both an already-present Coriolis and Orbis_or_Ocellus: the shared
-   * counter charged a subsequent new Dodecahedron as if it were the *4th* Tier-3-cost port
-   * (getT3PortCost(3), counting the unrelated Coriolis too) instead of the actual 3rd
-   * (getT3PortCost(2)), which was enough to make `computeFeasibleOrder` (ordering.ts) wrongly
-   * throw "Could not finish ordering" for a plan solve.ts had already confirmed was T2/T3-feasible. */
+   * port's price past its own first-of-type rate. This method must therefore count same-tier
+   * predecessors only (filtering `this.ports` by `T2points === "port"` / `T3points === "port"`
+   * separately below) rather than sharing one counter across both tiers — a shared counter would
+   * over-escalate whichever tier's port is built after a port of the OTHER tier (e.g. charging a
+   * new Dodecahedron as if it were the *4th* Tier-3-cost port because an unrelated Coriolis also
+   * incremented the same counter), which can make `computeFeasibleOrder` (ordering.ts) wrongly
+   * throw "Could not finish ordering" for a plan that's actually T2/T3-feasible. */
   private constructionPoints(building: Building, nb: number): [number, number] {
     let T2: number;
     if (building.T2points === "port") {

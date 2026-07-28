@@ -8,8 +8,8 @@ const PANEL_ID = "about-help";
 // first-time explainer meant to actually be seen on first load, not fine-tuning tools tucked away
 // for later. Uses the normal `panel-toggle` chevron styling (not `panel-toggle-flat`) since this
 // one really is meant to invite folding away once read. Collapsed state is remembered across
-// sessions via persistence/panelCollapse.ts (2026-07-26 user request) — once a user folds it, it
-// stays folded next time instead of re-explaining itself every session.
+// sessions via persistence/panelCollapse.ts — once a user folds it, it stays folded next time
+// instead of re-explaining itself every session.
 export function AboutHelpPanel() {
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(
     getStoredPanelCollapsed(PANEL_ID) ?? false,

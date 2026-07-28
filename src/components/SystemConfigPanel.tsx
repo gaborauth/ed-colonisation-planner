@@ -222,9 +222,9 @@ function BodySlotLeaves({
   // iterating its slots (space before ground, index ascending, primary first within space — the
   // exact order this function renders in) — only the FIRST physical slot of a given port building
   // type is the real dominant/receiving instance; see FacilityInfo.tsx's `isDominantInstance` doc
-  // comment for why every later occurrence of the same building name at this body must not show
-  // the same aggregate "receives links" content (real bug: a body with 2 identical port instances
-  // used to show BOTH as fully linked).
+  // comment for why every later occurrence of the same building name at this body must not show the
+  // same aggregate "receives links" content (a body with 2 identical port instances can only ever
+  // have ONE of them actually receiving strong/weak links in the real mechanic, never both).
   const seenCount = new Map<string, number>();
   function takeInstanceRank(name: string): boolean {
     const rank = seenCount.get(name) ?? 0;
@@ -515,9 +515,8 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
   const slotUsageBodies = toSlotUsageBodies(formState.bodies);
   const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots);
 
-  // "The actual sum of values of the system" (moved in from the old standalone Result panel,
-  // 2026-07-26) — the CURRENT, already-built system's totals, computed directly (no MILP: nothing
-  // to optimize for a fixed layout) via domain/currentSystemScores.ts. Falls back to the flat
+  // The CURRENT, already-built system's totals, computed directly (no MILP: nothing to optimize for
+  // a fixed layout) via domain/currentSystemScores.ts. Falls back to the flat
   // `alreadyPresent` map in aggregate mode, same source BuildingsTable.tsx already uses there —
   // this panel's own tree only exists in per-body mode.
   // `excludePrimary`: `computeCurrentSystemScores` already adds the primary's own contribution

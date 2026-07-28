@@ -250,15 +250,14 @@ export function computeHardNonPortSeed(hard: PresentFacilityRef[]): PresentSeed 
  * in deterministic build-order (see `sortDeterministic`) through the escalating cost curve
  * (`getT2PortCost`/`getT3PortCost`). Returns a properly-signed net contribution — the escalating
  * cost SUBTRACTS (a port is a cost, same sign convention as a non-port T2-tier building's negative
- * `T2points`/`T3points`), while a fixed generation (e.g. Coriolis's T3points=1) still ADDS. This
- * used to add the escalating cost instead of subtracting it — a serious bug (present ports were
- * silently *inflating* the available T2/T3 budget instead of consuming it) caught by comparing
- * against a real in-game system's already-built balance (see this function's tests). Tier-2-cost
- * ports (Coriolis, Asteroid_Base) and Tier-3-cost ports (Orbis_or_Ocellus, Dodecahedron,
+ * `T2points`/`T3points`), while a fixed generation (e.g. Coriolis's T3points=1) still ADDS — this
+ * seeds the T2/T3 starting balance to account for the cost already spent on present ports, not to
+ * treat them as a source of free points. Tier-2-cost ports (Coriolis, Asteroid_Base) and Tier-3-cost
+ * ports (Orbis_or_Ocellus, Dodecahedron,
  * Planetary_Port) each escalate along their OWN sequence — `t2Index`/`t3Index` below track them
- * separately rather than sharing one counter (also confirmed against that same real system: a
- * T2-cost port built before a T3-cost port didn't push the T3-cost port past its own
- * first-of-type price). Pass the `hard` list from `splitPresentFacilities` (ports are always
+ * separately rather than sharing one counter: a T2-cost port built before a T3-cost port must not
+ * push the T3-cost port's price past its own first-of-type rate. Pass the `hard` list from
+ * `splitPresentFacilities` (ports are always
  * hard). Skips the primary station's own synced entry (`ref.primary`) entirely — not just its
  * cost, its escalation-sequence POSITION too (it never increments `t2Index`/`t3Index`), since the
  * primary is exempt from its own port-escalation cost and was never counted toward this sequence
@@ -352,8 +351,7 @@ function slotsEqual(a: PresentFacilitySlot | null, b: PresentFacilitySlot): bool
  * `syncPrimaryIntoBodies` below, by that reducer (so `formState.bodies` itself stays correct for
  * every OTHER consumer too — the Constructions table, build order table, etc.). Returns the input
  * array unchanged (same reference) if nothing needed reconciling, so callers that care about
- * reference identity across unrelated updates (e.g. `plannerState.test.ts`'s "untouched fields keep
- * identity" convention) aren't disrupted needlessly. */
+ * reference identity across unrelated updates aren't disrupted needlessly. */
 export function applyPrimaryReservation<T extends PresentFacilitiesBody>(
   bodies: T[],
   firstStationBodyId: number | undefined,

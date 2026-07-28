@@ -26,10 +26,9 @@ interface ObjectivePreset {
 // Ported from colonisationplanner.py's preset_advanced_objectives, minus "maximize security ^
 // standard of living" (ln(n) + ln(ln(e))): nested function calls aren't supported by objective.ts's
 // LP linearizer (a function's argument must itself be a linear expression of score letters).
-// Each preset now carries a separate short `name` (the dropdown option text) and a longer
-// `description` (shown as a hint below the dropdown for whichever one is currently active) —
-// 2026-07-26, user request — rather than cramming both into one long option string, which reads
-// poorly in a native <select>.
+// Each preset carries a separate short `name` (the dropdown option text) and a longer `description`
+// (shown as a hint below the dropdown for whichever one is currently active) rather than cramming
+// both into one long option string, which reads poorly in a native <select>.
 const PRESETS: ObjectivePreset[] = [
   {
     name: "Default preset",
@@ -62,11 +61,10 @@ const PRESETS: ObjectivePreset[] = [
   },
 ];
 
-// Hidden for now (2026-07-26, user request: "hide the expression, we will put back later") — the
-// raw formula-editing textarea reads as too technical/confusing for most users; the Presets
-// dropdown above it is the only way to change `customExpression` while this is off. The underlying
-// state/behavior is completely untouched — flip this back to `true` to restore the editor, nothing
-// else needs to change.
+// Hidden for now — the raw formula-editing textarea reads as too technical/confusing for most
+// users; the Presets dropdown above it is the only way to change `customExpression` while this is
+// off. Kept as a flag rather than removed, since the underlying state/behavior is completely
+// untouched — flip this back to `true` to restore the editor, nothing else needs to change.
 const SHOW_EXPRESSION_EDITOR = false;
 
 // Score/EconomyType names are snake_case (`toPrintable` just swaps underscores for spaces, e.g.
@@ -79,15 +77,15 @@ function capitalize(text: string): string {
 }
 
 // Short "what does this mean" line shown below the "Maximize a single score" dropdown for whichever
-// score is currently picked — 2026-07-26, user request, same idea as the Presets' descriptions
-// above; also shown per-row in the Score constraints table (see below). Every ALL_SCORES entry
-// needs one (including the derived/compound ones): missing an entry would silently show a blank
-// hint rather than erroring, so this is written as a full Record, not Partial, to make an omission a
-// compile error instead. Capped at 8 words each (2026-07-28 user request) — the longer nuance these
-// used to carry (e.g. "not a real in-game stat" for the two derived scores) is now conveyed instead
-// by the Score constraints table's own divider (see ALL_SCORES.map below) separating real system
-// stats from construction_cost/system_score_beta/economy_synergy/economy_preference, rather than by
-// spelling it out in every one of those rows' own text.
+// score is currently picked, same idea as the Presets' descriptions above; also shown per-row in the
+// Score constraints table (see below). Every ALL_SCORES entry needs one (including the
+// derived/compound ones): missing an entry would silently show a blank hint rather than erroring, so
+// this is written as a full Record, not Partial, to make an omission a compile error instead. Capped
+// at 8 words each — the longer nuance these used to carry (e.g. "not a real in-game stat" for the
+// two derived scores) is conveyed instead by the Score constraints table's own divider (see
+// ALL_SCORES.map below) separating real system stats from
+// construction_cost/system_score_beta/economy_synergy/economy_preference, rather than by spelling
+// it out in every one of those rows' own text.
 const SCORE_DESCRIPTIONS: Record<Score, string> = {
   initial_population_increase: "How much starting population increases from this.",
   max_population_increase: "Maximum sustainable population increase for the system.",
@@ -102,7 +100,8 @@ const SCORE_DESCRIPTIONS: Record<Score, string> = {
   economy_preference: "Your economy preference choices, turned into a score.",
 };
 
-// Order matches the backlog's own stated wording — Must / Want / Dunno / Don't want / Forbid.
+// Ordered from most to least favorable (Must / Want / Dunno / Don't want / Forbid), matching how
+// strongly each option biases the solver toward or away from an economy.
 const ECONOMY_PREFERENCE_OPTIONS: { value: EconomyPreference | ""; label: string }[] = [
   { value: "must", label: "Must" },
   { value: "want", label: "Want" },
@@ -113,22 +112,20 @@ const ECONOMY_PREFERENCE_OPTIONS: { value: EconomyPreference | ""; label: string
 
 export function ObjectivePanel({ formState, dispatch, onSolve, solving }: ObjectivePanelProps) {
   // Which preset (if any) matches the CURRENT customExpression — drives the select's `value` for
-  // real (not a hardcoded "always blank" trick, which was the bug: the dropdown visibly snapped
-  // back to "Default preset" on every selection because its value never actually reflected what was
+  // real (not a hardcoded "always blank" trick, which would make the dropdown visibly snap back to
+  // "Default preset" on every selection, since its value would never actually reflect what was
   // picked). Falls back to a synthetic "custom" entry when nothing matches (e.g. an old saved plan
   // written while the now-hidden expression editor was in use) so the select always has a valid,
   // non-crashing value to show.
   const selectedPreset = PRESETS.find((p) => p.expression === formState.customExpression);
 
-  // Score constraints / Economy preferences are individually foldable (2026-07-27 user request),
-  // unlike the always-visible single table this used to be. Score constraints defaults to EXPANDED
-  // (`?? false`, same as AboutHelpPanel), not collapsed: the original reason it moved out of a
-  // foldable ConstraintsPanel in the first place was a real user missing the default "at least 1
-  // security" constraint while it sat folded away. Economy preferences defaults to COLLAPSED
-  // instead (`?? true`, 2026-07-28 user request) — it's a fine-tuning control most solves don't
-  // need to touch, unlike Score constraints' own always-relevant default bound. Each panel's own
-  // choice is then remembered across sessions via persistence/panelCollapse.ts either way, same as
-  // AboutHelpPanel.
+  // Score constraints / Economy preferences are individually foldable. Score constraints defaults
+  // to EXPANDED (`?? false`, same as AboutHelpPanel), not collapsed: a constraint sitting folded
+  // away too easily hides the default "at least 1 security" constraint from view. Economy
+  // preferences defaults to COLLAPSED instead (`?? true`) — it's a fine-tuning control most solves
+  // don't need to touch, unlike Score constraints' own always-relevant default bound. Each panel's
+  // own choice is then remembered across sessions via persistence/panelCollapse.ts either way, same
+  // as AboutHelpPanel.
   const scoreConstraints = useScrollAnchoredCollapse<HTMLButtonElement>(
     getStoredPanelCollapsed(SCORE_CONSTRAINTS_PANEL_ID) ?? false,
   );
@@ -142,9 +139,9 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
     setStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID, economyPreferencesCollapse.collapsed);
   }, [economyPreferencesCollapse.collapsed]);
 
-  // Remembers the objective selection across sessions (2026-07-26 user request) — App.tsx's
-  // `useReducer` lazy initializer (`applyStoredObjectivePreference`) restores it on the NEXT load;
-  // this effect is the write side, firing whenever any of the four fields actually change.
+  // Remembers the objective selection across sessions — App.tsx's `useReducer` lazy initializer
+  // (`applyStoredObjectivePreference`) restores it on the NEXT load; this effect is the write side,
+  // firing whenever any of the four fields actually change.
   useEffect(() => {
     setObjectivePreference({
       objectiveMode: formState.objectiveMode,
@@ -266,12 +263,11 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
         </div>
       </div>
 
-      {/* Individually foldable (2026-07-27 user request) — was briefly always-visible-never-folded
-       * (see the collapse-hook setup above for why that changed and what stayed the same: default
-       * EXPANDED, not folded-by-default, so the "at least 1 security" default constraint stays
-       * discoverable). Score constraints ARE part of the objective (they bound what the solver's
-       * free to pick, same as the objective expression shapes what it prefers), so this still lives
-       * directly in this panel, not a separate one. */}
+      {/* Individually foldable, defaulting to EXPANDED (not folded) so the "at least 1 security"
+       * default constraint stays discoverable — see the collapse-hook setup above. Score
+       * constraints ARE part of the objective (they bound what the solver's free to pick, same as
+       * the objective expression shapes what it prefers), so this still lives directly in this
+       * panel, not a separate one. */}
       <div style={{ marginTop: 14 }}>
         <button
           ref={scoreConstraints.buttonRef}
@@ -324,10 +320,10 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
                 // below — construction_cost is a genuine in-game number but a transient, inverted
                 // one (minimized, not maximized, and never itself shown in the system's own stats
                 // panel), and system_score_beta/economy_synergy/economy_preference are this app's
-                // own compound/solver-side numbers, not real per-building stats (2026-07-28 user
-                // request/clarification — deliberately placed after development_level, not before
-                // construction_cost, since the user judged construction_cost itself as belonging
-                // with the "not a real system stat" group below, not the real stats above it).
+                // own compound/solver-side numbers, not real per-building stats. The divider goes
+                // after development_level, not before construction_cost, since construction_cost
+                // itself belongs with the "not a real system stat" group below, not the real stats
+                // above it.
                 return score === "development_level"
                   ? [row, <tr key={`${score}-divider`} aria-hidden="true"><td colSpan={3}><hr className="score-constraints-divider" /></td></tr>]
                   : [row];
@@ -337,16 +333,16 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
         )}
       </div>
 
-      {/* Per-EconomyType Must/Want/Dunno/Don't want/Forbid steering (TASKS.md backlog item 3,
-       * 2026-07-27) — same foldable placement as Score constraints above, right after it, since
-       * it's conceptually the same kind of control (bounding/steering what the solver picks).
-       * Requires a per-body layout: `facilityBaseEconomies` needs a real body's attributes to
-       * resolve a generic port's economy set (see solve.ts's SolverInput.economyPreferences doc
-       * comment) — aggregate-mode-only users get a disabled section with an explanation instead of
-       * a silently-inert control (still foldable either way, so the explanation itself can be
-       * tucked away once read). Preference picked via a radio-button grid (one column per option),
-       * not a per-row dropdown (2026-07-27 user request — reads better across this panel's full
-       * width than a narrow select per row). */}
+      {/* Per-EconomyType Must/Want/Dunno/Don't want/Forbid steering — lets the user steer WHICH
+       * economies the solver favors or avoids, on top of the aggregate score-based objective above.
+       * Same foldable placement as Score constraints above, right after it, since it's conceptually
+       * the same kind of control (bounding/steering what the solver picks). Requires a per-body
+       * layout: `facilityBaseEconomies` needs a real body's attributes to resolve a generic port's
+       * economy set (see solve.ts's SolverInput.economyPreferences doc comment) — aggregate-mode-only
+       * users get a disabled section with an explanation instead of a silently-inert control (still
+       * foldable either way, so the explanation itself can be tucked away once read). Preference
+       * picked via a radio-button grid (one column per option), not a per-row dropdown, since that
+       * reads better across this panel's full width than a narrow select per row. */}
       <div style={{ marginTop: 14 }}>
         <button
           ref={economyPreferencesCollapse.buttonRef}

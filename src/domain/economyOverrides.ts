@@ -105,9 +105,9 @@ export function systemHasNeutronStar(bodies: JournalBody[]): boolean {
 /** Walks a body's parent chain to determine "tidally locked to its star" (a planet directly) or
  * "a moon tidally locked to its planet, where the planet chain up to the star is also tidally
  * locked" (transitively) — the source table's two separate Agriculture-decrease bullets collapse
- * into one recursive check. Real-game-verified (user report): the decrease requires the WHOLE chain
- * up to the star to be tidally locked — one un-locked link anywhere breaks it, confirming the
- * official wording is meant literally, not just "this body is tidally locked to *something*".
+ * into one recursive check. Real-game-verified: the decrease requires the WHOLE chain up to the
+ * star to be tidally locked — one un-locked link anywhere breaks it, so the official wording is
+ * meant literally, not just "this body is tidally locked to *something*".
  *
  * Scans `body.parents` (not just its first entry) before giving up, to skip past a `"Null"`
  * entry — a binary-pair barycenter (two planets, or a planet and its parent star, orbiting their
@@ -157,13 +157,12 @@ export function hasGeologicals(body: JournalBody): boolean | null {
 /** `Volcanism` is a plain string field on every planet's `Scan` event (kept verbatim in
  * `body.raw`), independent of `Landable` — unlike `hasOrganics`/`hasGeologicals` (which read
  * DSS/FSS-derived *signal counts* that really are landable-gated per the community research sheet),
- * this is direct Scan data reported regardless of whether the body can be landed on. A previous
- * version of this function incorrectly returned `false` for any unlandable body, over-generalizing
- * that same landable-gating from `hasGeologicals` — real counterexample confirmed by the user: two
- * `Landable: false` bodies (a High Metal Content world and an Icy world in their own system) both
- * report real non-empty `Volcanism` text ("major rocky magma volcanism", "water geysers
- * volcanism"). `null` only when the field itself is genuinely absent (e.g. a star's Scan event, or
- * an older export predating `raw` capture), never inferred from landability. */
+ * this is direct Scan data reported regardless of whether the body can be landed on: an unlandable
+ * body (e.g. a High Metal Content world or an Icy world) can still report real non-empty
+ * `Volcanism` text ("major rocky magma volcanism", "water geysers volcanism"), so this must NOT
+ * apply the same landable-gating `hasGeologicals` does. `null` only when the field itself is
+ * genuinely absent (e.g. a star's Scan event, or an older export predating `raw` capture), never
+ * inferred from landability. */
 export function hasVolcanism(body: JournalBody): boolean | null {
   const volcanism = body.raw.Volcanism;
   return typeof volcanism === "string" ? volcanism.length > 0 : null;
@@ -296,9 +295,9 @@ export interface BoostDecreaseResult {
 const BOOST_DECREASE_DELTA = 0.4;
 
 /** The official patch notes (and `EconomicEffects.ods`'s "Strong Link Modifiers" sheet) both list a
- * Terraformable body as an Agriculture strong-link boost condition — but real-game testing
- * (user-confirmed against actual builds) found it has no observable effect on Agriculture's value at
- * all, suspected to be a Frontier bug rather than a documentation error. Deliberately excluded from
+ * Terraformable body as an Agriculture strong-link boost condition — but real-game testing against
+ * actual builds found it has no observable effect on Agriculture's value at all, suspected to be a
+ * Frontier bug rather than a documentation error. Deliberately excluded from
  * every boost/decrease computation in this file (`computeBoostDecrease`,
  * `computeColonyEconomyBreakdown`, `computeStrongLinkBreakdown`) so displayed values match what the
  * game actually does, not what the patch notes say it should — trivial to re-enable (search this
@@ -537,10 +536,10 @@ export interface EconomyBreakdown {
  * economy is 1 in that respect" — first matching rule, in the same order
  * `computeBodyEconomyOverrides` checks them, wins), then the same `±BOOST_DECREASE_DELTA`-per-
  * condition boost/decrease lines `computeBoostDecrease` already applies to that same economy.
- * Labels are short/compact (`Body type: X`, `Body has: X`, `Buff:`/`Debuff: X`), matching the
- * `EconomicEffects.ods`-style wording the user asked for — verified against three of their own
- * worked real-game examples (Extraction/Industrial/Refinery), the rest extrapolated consistently
- * by me for conditions they didn't happen to show; easy to relabel if any read wrong in practice. */
+ * Labels are short/compact (`Body type: X`, `Body has: X`, `Buff:`/`Debuff: X`), matching
+ * `EconomicEffects.ods`-style wording — verified against real-game worked examples for
+ * Extraction/Industrial/Refinery, with the rest extrapolated consistently for conditions those
+ * examples didn't happen to show; easy to relabel if any read wrong in practice. */
 export function computeColonyEconomyBreakdown(body: JournalBody, allBodies: JournalBody[]): EconomyBreakdown[] {
   const allBodiesById = new Map(allBodies.map((b) => [b.bodyId, b]));
   const baseReason = new Map<EconomyType, string>();

@@ -101,7 +101,7 @@ export function computeFeasibleOrder(
       // old head-only check could throw "Could not finish ordering" even when the solver had
       // already confirmed a feasible solution exists, because a LATER port in the queue (e.g. a
       // Coriolis, which also grants a flat T3 point) was affordable and would have funded the
-      // stuck head port, but was never even considered. See ordering.test.ts's dedicated repro.
+      // stuck head port, but was never even considered.
       if (buildFirstFromList(remainingPorts)) continue;
       targetTier = (getTier(remainingPorts[0]) - 1) as 1 | 2;
     } else {

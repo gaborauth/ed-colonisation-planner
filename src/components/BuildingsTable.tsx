@@ -7,15 +7,14 @@ import type { SolverResult } from "../solver/solve";
 import { NumberInput } from "./NumberInput";
 import { Tooltip } from "./Tooltip";
 
-// Column header says "Construction" (2026-07-27, user request) — the umbrella term Frontier's own
-// patch notes use ("All constructions are divided into two types... Ports and Supporting
-// Facilities"), picked specifically because "Facilities" is already the OFFICIAL, narrower term for
-// the non-port half of this table (see `isPortRole`/`PORT_ROLE_BUILDINGS` in data/buildings.ts) —
-// calling the whole table (ports included) "Facilities" would misuse that term. The panel's own
-// title moved on from that same umbrella word to "Ports & Facilities numbers" (2026-07-28, user
-// request) — naming both halves explicitly rather than reusing the single umbrella term sidesteps
-// the same "Facilities" ambiguity concern, since it isn't relying on "Facilities" alone to cover
-// ports too. Deliberately UI-copy-only either way: `Building`/`ALL_BUILDINGS`/`data/buildings.ts`
+// Column header says "Construction" — the umbrella term Frontier's own patch notes use ("All
+// constructions are divided into two types... Ports and Supporting Facilities"), picked
+// specifically because "Facilities" is already the OFFICIAL, narrower term for the non-port half of
+// this table (see `isPortRole`/`PORT_ROLE_BUILDINGS` in data/buildings.ts) — calling the whole table
+// (ports included) "Facilities" would misuse that term. The panel's own title instead names both
+// halves explicitly ("Ports & Facilities numbers") rather than reusing the single umbrella term,
+// sidestepping the same "Facilities" ambiguity concern since it isn't relying on "Facilities" alone
+// to cover ports too. Deliberately UI-copy-only either way: `Building`/`ALL_BUILDINGS`/`data/buildings.ts`
 // and every other internal identifier are untouched, including the `building` field name inside
 // already-exported/saved JSON (`PresentFacilitySlot.building`, `firstStationBuilding`,
 // `SolverResult.placements[].building`) — renaming those would break every already-saved plan and
@@ -50,10 +49,9 @@ const DISPLAY_GROUPS = buildDisplayGroups();
 // Shared across every category's own <table> below so their columns land at the same width no
 // matter how long that category's own building names happen to be (e.g. "Large Industrial
 // Settlement" vs. "Coriolis") — table-layout:auto (the default) sizes each <table> independently
-// from its own content, which is exactly why the columns used to drift out of alignment from one
-// category to the next (2026-07-27 user report). Paired with `.buildings-table`'s
-// `table-layout: fixed` in index.css, which makes these percentages authoritative instead of
-// advisory.
+// from its own content, which would otherwise let columns drift out of alignment from one category
+// to the next. Paired with `.buildings-table`'s `table-layout: fixed` in index.css, which makes
+// these percentages authoritative instead of advisory.
 function BuildingTableColumns() {
   return (
     <colgroup>
@@ -78,13 +76,11 @@ function contributionTooltip(building: Building, total: number) {
   return <>{lines}</>;
 }
 
-// Folded by default (per user request, see App.tsx) — a fine-tuning tool for later in a session,
-// not needed for a first solve. Uses the normal `panel-toggle` chevron styling (2026-07-26, no
-// longer `panel-toggle-flat`/muted) — confirmed end-to-end working (At least/At most really do
-// reach the LP as constraints, see the setMapEntry/atMost=0 fix in plannerState.ts the same day)
-// and moved to sit right after ObjectivePanel (2026-07-27 user request: "they belong to the
-// Objective pane"), so it now reads as a normal, full-brightness part of the objective-setup flow
-// rather than a dim, tucked-away afterthought.
+// Folded by default — a fine-tuning tool for later in a session, not needed for a first solve. Uses
+// the normal `panel-toggle` chevron styling (not `panel-toggle-flat`/muted), since At least/At most
+// really do reach the LP as constraints (see `setMapEntry`/`atMost` handling in plannerState.ts) and
+// this panel sits right after ObjectivePanel, reading as a normal, full-brightness part of the
+// objective-setup flow rather than a dim, tucked-away afterthought.
 export function BuildingsTable({ formState, dispatch, result }: BuildingsTableProps) {
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(true);
   // Once a body layout is applied, already-present counts come from the System facilities panel's

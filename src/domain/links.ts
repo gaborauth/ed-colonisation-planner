@@ -160,8 +160,10 @@ function pickDominant(names: string[], buildOrderHint: string[]): string | null 
 /** Pure post-solve computation. `placements` should include the first station (folded in by the
  * caller as a `count: 1` entry) if it's meant to participate in links — this function doesn't
  * special-case it. `buildOrderHint` (typically `SolverResult.portOrder`) is used only as an
- * approximate same-tier tie-break signal (see the header comment on port placement fidelity in
- * the project plan) — it isn't exact per-body build order. */
+ * approximate same-tier tie-break signal — the solver doesn't thread body assignment through the
+ * port build-sequence index (that would need a `5 port types × slots × N bodies` variable blow-up
+ * with heavy MILP symmetry), so this is a display-only approximation, not exact per-body build
+ * order. */
 export function computeSystemLinks(bodies: JournalBody[], placements: BuildingPlacement[], buildOrderHint: string[]): SystemLinksResult {
   const bodiesById = new Map(bodies.map((b) => [b.bodyId, b]));
   const ports: PortSummary[] = [];
@@ -215,17 +217,16 @@ export function computeSystemLinks(bodies: JournalBody[], placements: BuildingPl
     // A body can physically have MULTIPLE instances of the exact same port building type (e.g. two
     // Commercial_Outposts on one body with 2 orbital slots — nothing in solve.ts's per-body slot
     // capacity constraint forbids it, and it's a real scenario the solver produces, not just a
-    // present-facilities edge case: real bug found 2026-07-26 via a user report against a real
-    // solved plan, `Commercial_Outpost` x2 and `Dodecahedron` x2 each on one body). `portNames`
-    // above already collapses those into a single name for the tie-break/dominance computation
-    // below (which only cares about DISTINCT building types), but the true per-name instance COUNT
-    // is still needed: only ONE physical instance of a port can ever be dominant/receiving in the
-    // real game, so every OTHER instance — including extra instances of the SAME winning building
-    // type — must itself behave as its own independent strong-link GIVER into the one true
-    // dominant, exactly like a different, losing port type already does. Without this, the old code
-    // silently treated "count > 1 of the identical port name" as if it were one logical port that
-    // several physical UI slots could equally claim to be — see `facilityEconomyRatios`/
-    // `facilityMarketLinks`'s `isDominantInstance` parameter for the matching per-slot display fix.
+    // present-facilities edge case). `portNames` above already collapses those into a single name
+    // for the tie-break/dominance computation below (which only cares about DISTINCT building
+    // types), but the true per-name instance COUNT is still needed: only ONE physical instance of a
+    // port can ever be dominant/receiving in the real game, so every OTHER instance — including
+    // extra instances of the SAME winning building type — must itself behave as its own independent
+    // strong-link GIVER into the one true dominant, exactly like a different, losing port type
+    // already does. Treating "count > 1 of the identical port name" as if it were one logical port
+    // that several physical UI slots could equally claim to be would silently under-count these
+    // givers — see `facilityEconomyRatios`/`facilityMarketLinks`'s `isDominantInstance` parameter
+    // for the matching per-slot display handling.
     const portCounts = new Map<string, number>();
     for (const p of bodyPlacements) {
       if (!isPortRole(p.building)) continue;
@@ -333,9 +334,10 @@ export function computeSystemLinks(bodies: JournalBody[], placements: BuildingPl
      * total instance count (`portCounts`), not a flat "1 per distinct name": a losing (non-
      * dominant) port type with 2 physical instances contributes 2 givers, and the WINNING
      * (dominant) type's own extra instances beyond the one dominant instance itself contribute as
-     * self-siblings too — see `portCounts`'s doc comment above for why this matters (the real bug
-     * this fixes: a body with 2 identical-type ports used to show BOTH as fully "receiving" in the
-     * UI, since the whole name collapsed to one nominal giver instead of (instance count) of them). */
+     * self-siblings too — see `portCounts`'s doc comment above for why this matters. Only one
+     * physical instance per body can ever actually be dominant/receiving; every other instance,
+     * including extra copies of the winning type, must show up as its own giver rather than the
+     * whole name collapsing into a single nominal giver. */
     function addNonDominantSamePortLinks(names: string[], dominantName: string, toPort: string): void {
       for (const name of names) {
         const count = portCounts.get(name) ?? 1;

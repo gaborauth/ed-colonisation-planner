@@ -1,9 +1,9 @@
 /** GDPR-style cookie consent bar — see analytics/gtag.ts's header comment for why this app treats
  * "no choice yet" and "declined" identically (zero requests to Google) rather than the more common
  * "load analytics with consent-mode-denied by default" pattern. Shown once, on first visit, until
- * a choice is made. The consent state itself (and the "Cookie settings" reopen link, now in
- * Footer.tsx's row alongside version/GitHub/BMC — 2026-07-27 user request) lives in App.tsx, since
- * both this dialog and the footer's link need to see and change the same choice/open state. */
+ * a choice is made. The consent state itself (and the "Cookie settings" reopen link, in Footer.tsx's
+ * row alongside version/GitHub/BMC) lives in App.tsx, since both this dialog and the footer's link
+ * need to see and change the same choice/open state. */
 export function CookieConsentBanner({
   open,
   onAccept,

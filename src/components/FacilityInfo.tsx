@@ -1,9 +1,8 @@
 // The "i" info icons shared by SystemConfigPanel.tsx's "Actual facilities in the system" tree and
 // SolvedSystemPanel.tsx's read-only "Solved system" tree — both trees show the same kind of thing
 // (a body/slot in a per-body hierarchy) and both want the same economy/links/stats hover, just fed
-// a different `SystemLinksResult` (present-facilities-only vs. a solved plan's placements). Split
-// out of SystemConfigPanel.tsx (2026-07-26) rather than duplicated, once SolvedSystemPanel needed
-// the exact same hover content.
+// a different `SystemLinksResult` (present-facilities-only vs. a solved plan's placements). Kept as
+// a single shared module rather than duplicated, since both panels need the exact same hover content.
 
 import { Fragment, type ReactNode } from "react";
 import { ALL_BUILDINGS, BASE_SCORES, isPortRole, toPrintable } from "../data/buildings";
@@ -40,13 +39,13 @@ import { Tooltip } from "./Tooltip";
  * `computeSystemLinks` hasn't recorded yet, not an expected steady-state path.
  *
  * `isDominantInstance` (default `true`, so every existing single-instance call site is unaffected):
- * a body can have MULTIPLE physical instances of the exact same port building type (real bug found
- * 2026-07-26 via a user report — see `links.ts`'s `portCounts` doc comment), but `linksResult.ports`
- * still only carries ONE aggregate `PortSummary` per (body, building name) — real-game-accurate for
- * only ONE of those physical instances (the dominant one that actually receives local strong/weak
- * links); every OTHER instance of the identical type must NOT show that same aggregate content as
- * if it, too, were independently receiving everything (that's exactly the reported bug: two
- * identical-type slots both showing "receives strong links," when only one physically can). Callers
+ * a body can have MULTIPLE physical instances of the exact same port building type (see `links.ts`'s
+ * `portCounts` doc comment), but `linksResult.ports` still only carries ONE aggregate `PortSummary`
+ * per (body, building name) — real-game-accurate for only ONE of those physical instances (the
+ * dominant one that actually receives local strong/weak links); every OTHER instance of the
+ * identical type must NOT show that same aggregate content as if it, too, were independently
+ * receiving everything (two identical-type slots both showing "receives strong links," when only
+ * one physically can, would misrepresent the actual link topology). Callers
  * that render one info hover per physical slot (`SystemConfigPanel.tsx`/`SolvedSystemPanel.tsx`)
  * are responsible for tracking, per body, which physical slot is the FIRST occurrence of a given
  * building name — only that one passes `true`; every later occurrence of the same name at the same

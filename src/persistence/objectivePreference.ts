@@ -1,10 +1,10 @@
 // Remembers the "Objective" panel's own selection (mode + whichever score/expression/direction go
 // with it) across sessions — same localStorage-backed "stateless (no backend), not state-free"
 // spirit as plans.ts/consent.ts, but auto-persisted on every change instead of behind an explicit
-// Save button, since there's no natural "save" action for a form field a user just wants remembered
-// (2026-07-26 user request). Deliberately its own small store rather than folded into a general
-// "remember all form state" feature — the rest of PlannerFormState (system layout, constraints,
-// etc.) is scoped to one system/session and SHOULDN'T silently carry over to the next.
+// Save button, since there's no natural "save" action for a form field a user just wants remembered.
+// Deliberately its own small store rather than folded into a general "remember all form state"
+// feature — the rest of PlannerFormState (system layout, constraints, etc.) is scoped to one
+// system/session and SHOULDN'T silently carry over to the next.
 
 import type { Score } from "../data/buildings";
 import type { Direction } from "../solver/solve";

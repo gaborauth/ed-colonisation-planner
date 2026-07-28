@@ -65,9 +65,9 @@ function timestampForFilename(date: Date): string {
 
 /** Save/Export/Import for a single system's full configuration — raw journal scan data, per-body
  * slots, and manually-marked already-built facilities. "Save" persists it to the same store
- * JournalImportPanel writes to (this used to be SystemConfigPanel's own "Save" button — moved
- * here so it's reachable from the sticky top bar without scrolling). Export/Import serialize that
- * same shape to/from a standalone JSON file, so an imported file slots into the store and the
+ * JournalImportPanel writes to; living in this sticky top bar keeps it reachable without scrolling.
+ * Export/Import serialize that same shape to/from a standalone JSON file, so an imported file slots
+ * into the store and the
  * System facilities panel exactly like an applied journal upload does (see
  * JournalImportPanel.applySystem). All three act on whichever system is currently applied to the
  * System facilities panel (`formState`), not JournalImportPanel's own dropdown selection — those
@@ -123,13 +123,13 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
 
   // On first load, silently re-apply whichever system was last used, as long as it has bodies —
   // "Actual facilities in the system" should already look "applied" without the user needing to
-  // pick it again every session. Moved here from JournalImportPanel (2026-07-27) once that panel's
-  // own Journal-tab dropdown stopped browsing already-saved systems at all — switching to /
-  // restoring a known system is now exclusively this toolbar's job, so the mount-time restore
-  // belongs here too, reusing `switchToSavedSystem` above rather than re-implementing the same
-  // dispatch/persistence shape a second time. Guarded on `formState.systemAddress` rather than
-  // running unconditionally, so it never clobbers a system that's already active by the time this
-  // mounts (e.g. in a future scenario where `formState` starts pre-filled).
+  // pick it again every session. Switching to / restoring a known system is exclusively this
+  // toolbar's job (JournalImportPanel's own Journal-tab dropdown no longer browses already-saved
+  // systems at all), so the mount-time restore belongs here too, reusing `switchToSavedSystem` above
+  // rather than re-implementing the same dispatch/persistence shape a second time. Guarded on
+  // `formState.systemAddress` rather than running unconditionally, so it never clobbers a system
+  // that's already active by the time this mounts (e.g. in a future scenario where `formState`
+  // starts pre-filled).
   useEffect(() => {
     if (formState.systemAddress !== null) return;
     const lastUsedAddress = getLastUsedSystemAddress();

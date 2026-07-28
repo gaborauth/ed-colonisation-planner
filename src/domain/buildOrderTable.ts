@@ -11,9 +11,7 @@
 // its per-k feasibility constraints test an AGGREGATE condition ("if every non-port contribution is
 // available up front, does paying for k+1 ports in some order keep you non-negative"), not a real
 // step-by-step SEQUENCE — replaying that formula in build order can dip the running total negative
-// even when a real, executable order exists (real bug found 2026-07-27, reproduced with
-// `jsons/swoilz-aw-c-d52.json`: the table showed a below-zero T2 mid-sequence even though a valid,
-// always-non-negative build order was available). `computeFeasibleOrder`'s per-tier math is what
+// even when a real, executable order exists. `computeFeasibleOrder`'s per-tier math is what
 // actually GUARANTEES a build order is executable (it only ever inserts a building once `canBuild`
 // says the current balance affords it) — matching `BuildOrderPanel`/`SolvedSystemPanel`'s existing
 // precedent of treating `ordering.ts`'s own computed order as authoritative for display, never
@@ -24,28 +22,24 @@
 //
 // A demolished present facility is real, physically-standing-today infrastructure — it must show up
 // as a real Built row (contributing its full stat/T2/T3, same as any other present facility) BEFORE
-// its own Demolish row subtracts that same contribution back out (real bug fixed 2026-07-26/27, user
-// report: marking present facilities demolishable made them vanish from Built entirely instead of
-// appearing there first, undercounting the Built total and driving the running T2 negative — a build
-// order that dips below 0 is one a player literally cannot execute, since you always have whatever
-// your currently-standing facilities already generated banked before you tear anything down). Built
-// rows are sourced from EVERY present facility (`formState.bodies`' own `presentFacilities`, hard AND
-// demolishable alike), sequenced via its own `computeFeasibleOrder` pass so THIS section is also
-// guaranteed non-negative on its own.
+// its own Demolish row subtracts that same contribution back out — a build order that dips below 0
+// is one a player literally cannot execute, since you always have whatever your currently-standing
+// facilities already generated banked before you tear anything down. Built rows are sourced from
+// EVERY present facility (`formState.bodies`' own `presentFacilities`, hard AND demolishable alike),
+// sequenced via its own `computeFeasibleOrder` pass so THIS section is also guaranteed non-negative
+// on its own.
 //
 // Demolish and Planned rows are NOT simply "all demolishes, then all planned builds" — that naive
 // fixed order can force the running total negative when demolishing several point-generating
 // facilities before building anything to replace them, even though demolition itself is never
 // blocked by insufficient points in the real game (points are *refunded* on demolition, per
 // CLAUDE.md's demolition-mechanics notes — the deficit is purely an artifact of this table's own
-// display order, not something a real player would be forced into). Real bug found via user
-// testing 2026-07-27: marking every Medium Agricultural Settlement demolishable showed several
-// consecutive Demolish rows with an honest `-1` Delta each but a Total that had already hit its
-// floor — an earlier version of this file clamped the Total at 0 to hide this, which just made
-// Delta and Total disagree instead of fixing anything. Fixed by `scheduleDemolishAndPlanned`
-// (below): it interleaves Demolish and Planned rows, deferring any demolish that would currently
-// go negative until a Planned row has grown the balance back up, using `SystemState.canDemolish`/
-// `removeBuilding` (the demolish-side counterparts to `canBuild`/`addBuilding`).
+// display order, not something a real player would be forced into: clamping the running Total at 0
+// to hide a negative dip would just make the per-row Delta and the Total disagree instead of fixing
+// anything). Handled by `scheduleDemolishAndPlanned` (below): it interleaves Demolish and Planned
+// rows, deferring any demolish that would currently go negative until a Planned row has grown the
+// balance back up, using `SystemState.canDemolish`/`removeBuilding` (the demolish-side counterparts
+// to `canBuild`/`addBuilding`).
 //
 // `domain/solvedPlacement.ts`'s `computeSolvedPlacements` is still reused for the Planned section's
 // body/slot seating (which empty slot each new unit lands in) and its own already-validated
@@ -182,9 +176,9 @@ interface DemolishItem {
  * reused here; the actual T2/T3 cost is recomputed by the caller's own `SystemState` replay.
  * Deliberately NOT sourcing `demolished` from raw `result.demolished` separately (an earlier version
  * of this function did) — `computeSolvedPlacements` reclassifies a same-building demolish+rebuild
- * pair to `"present"` (see `solvedPlacement.ts`'s header comment, 2026-07-28 user report), and
- * deriving both lists from its ONE output is what guarantees this table can never show an orphaned
- * Demolish row with no matching rebuild (or vice versa) for a pair the tree already cancelled. */
+ * pair to `"present"` (see `solvedPlacement.ts`'s header comment), and deriving both lists from its
+ * ONE output is what guarantees this table can never show an orphaned Demolish row with no matching
+ * rebuild (or vice versa) for a pair the tree already cancelled. */
 function collectPlannedAndDemolishItems(
   formState: PlannerFormState,
   result: SolverResult,
@@ -215,8 +209,7 @@ function collectPlannedAndDemolishItems(
 /** Chooses a real, executable interleaving of Demolish and Planned rows instead of the naive "all
  * demolishes, then all planned builds" order — demolishing several point-generating facilities
  * before building anything to replace them can force the running T2/T3 total negative even though
- * a real player could simply build a replacement first (see this file's header comment; found via
- * real user testing 2026-07-27 marking every Medium Agricultural Settlement demolishable). At each
+ * a real player could simply build a replacement first (see this file's header comment). At each
  * step, prefers any remaining demolish that's currently safe (`replay.canDemolish` — won't take T2
  * or T3 negative); only once NONE are currently safe does it reach for a Planned candidate that's
  * both affordable (`replay.canBuild`) and not waiting on a same-slot demolish that hasn't happened

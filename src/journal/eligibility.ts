@@ -20,15 +20,15 @@
 //    in that case — see JournalImportPanel's "Geo signals" checkbox to correct it manually).
 //  - Asteroid eligibility: an Asteroid_Base is built on an ordinary orbital slot (see
 //    `buildings.ts`'s `Asteroid_Base` row — its `slot` is "space"), not a separate slot pool — EXCEPT
-//    for a STAR's own belt, which (user-confirmed in-game via a real screenshot, 2026-07-27) is its
+//    for a STAR's own belt, which (confirmed in-game) is its
 //    own separate, dedicated constructible location, far from the star itself, modeled as its own
 //    synthetic `JournalBody` with `kind: "ring"` (see `journal/parser.ts`'s `withRingBodies`, applied
 //    by both the Journal and Spansh import paths) — a star's OWN slot(s) are never themselves
 //    asteroid-eligible. A planet's or moon's own ring is different (still unconfirmed whether all
 //    ring classes support this, and whether multiple rings unlock more than one Asteroid_Base) — it
-//    keeps making that PLANET's/moon's own orbital slot(s) asteroid-eligible directly, same as this
-//    app's original (pre-2026-07-27) behavior, since a planet's ring sits at the planet rather than
-//    being its own separate far-away location. (Community reports also describe a
+//    keeps making that PLANET's/moon's own orbital slot(s) asteroid-eligible directly — deliberately
+//    NOT generalized to match the star's dedicated-body treatment above, since a planet's ring sits
+//    at the planet rather than being its own separate far-away location. (Community reports also describe a
 //    since-believed-patched bug where ringed/belted bodies could gain 10+ extra "free" orbital
 //    slots — still observable in systems built before the fix, but too unreliable to bake into the
 //    default guess.)
@@ -82,7 +82,7 @@ export function estimateBodySlots(body: JournalBody): BodySlotEstimate {
     return { slots: { space: 1, ground: 0, asteroid: 1 }, reason: "+1 orbital (ring/belt), asteroid base eligible" };
   }
 
-  const space = 1; // one orbital slot per star/planet
+  const space = 1;
   const ground = groundSlotsForBody(body);
   // A star's own slot is never itself asteroid-eligible (its belts are separate "ring" bodies
   // instead — see above); a planet's/moon's own ring keeps making ITS OWN slot eligible directly.

@@ -28,9 +28,8 @@
 // (same stats/T2/T3 either way) — a pure artifact of this module's own arbitrary, deterministic
 // seating order (`takeNext`'s alphabetical-by-`ALL_BUILDINGS`-key first-fit) coincidentally pairing
 // a freed slot with a same-type unit from the new-build pool, not a deliberate solver
-// recommendation (2026-07-28 user report, reproduced with 3 consecutive demolish/rebuild-same-type
-// rows). Reclassified to plain `"present"` instead (see `buildKindSlots`'s own comment) — this is
-// deliberately a DISPLAY-layer fix, not a `SolverResult`/`solve.ts` change: `result.toBuild`/
+// recommendation. Reclassified to plain `"present"` instead (see `buildKindSlots`'s own comment) —
+// this is deliberately a DISPLAY-layer fix, not a `SolverResult`/`solve.ts` change: `result.toBuild`/
 // `result.placements`/`result.demolished` are left untouched. Known, accepted trade-off: in the
 // (fairly rare) case where a same-building collision is genuinely unavoidable given the solver's
 // own picks, `BuildingsTable.tsx`'s `toBuild`-sourced "Built" column can read 1 higher than what's
@@ -139,14 +138,11 @@ export function computeSolvedPlacements(
       }
       const newBuilding = takeNext(body.bodyId, kind);
       if (demolished && newBuilding && newBuilding.building === demolished.building) {
-        // Demolishing this exact slot only to rebuild the SAME building type there nets to zero
-        // benefit (identical stats/T2/T3 either way) but real wasted commodities in-game — an
-        // artifact of `takeNext`'s arbitrary seating order pairing a freed slot with a same-type
-        // unit from the new-build pool, not a deliberate recommendation (2026-07-28 user report).
-        // Treat it as never touched instead: same status/fields as an ordinary "present" slot,
-        // carrying forward the original nickname/variant since nothing's actually changing. The
-        // new-build unit is still consumed from the pool above (via `takeNext`, already done) so
-        // this doesn't leave a phantom "nowhere to seat this" warning.
+        // Same-building demolish+rebuild collision — see this module's header comment. Treat it as
+        // never touched instead: same status/fields as an ordinary "present" slot, carrying forward
+        // the original nickname/variant since nothing's actually changing. The new-build unit is
+        // still consumed from the pool above (via `takeNext`, already done) so this doesn't leave a
+        // phantom "nowhere to seat this" warning.
         slots.push({ status: "present", building: newBuilding.building, nickname: slot?.customName, variant: slot?.variant });
       } else if (demolished && newBuilding) {
         slots.push({

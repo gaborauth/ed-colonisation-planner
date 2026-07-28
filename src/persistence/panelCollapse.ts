@@ -1,7 +1,6 @@
 // Remembers a foldable panel's collapsed/expanded state across sessions — same localStorage-backed
 // "stateless (no backend), not state-free" spirit as consent.ts/objectivePreference.ts. Keyed by an
-// arbitrary panel id so more panels can opt in later without a new store each time (2026-07-26 user
-// request, starting with AboutHelpPanel).
+// arbitrary panel id so more panels can opt in later without a new store each time.
 
 const STORAGE_PREFIX = "edcp:panel-collapsed:";
 
