@@ -1,3 +1,10 @@
+## [1.2.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.1.0...v1.2.0) (2026-07-28)
+
+### Features
+
+* add an in app tutorials page ([bda3fee](https://github.com/gaborauth/ed-colonisation-planner/commit/bda3feef842e020137e46c777fc29230b08da494))
+* restore custom objective expression editor ([e39e676](https://github.com/gaborauth/ed-colonisation-planner/commit/e39e6764efe05a1e003c40deffa86b4e6203f0f2))
+
 ## [1.1.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.0.1...v1.1.0) (2026-07-28)
 
 ### Features
