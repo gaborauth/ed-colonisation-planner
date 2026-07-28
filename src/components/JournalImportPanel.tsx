@@ -10,6 +10,8 @@ import {
   type JournalSystem,
 } from "../journal/parser";
 import { getLastUsedSystemAddress, listSavedSystems, saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
+import { applyRavenColonialOverlay } from "../ravenColonial/adapter";
+import type { RcSystem } from "../ravenColonial/types";
 import { spanshDumpToJournalSystem } from "../spansh/adapter";
 import { fetchSpanshSystemDump, searchSystemNames } from "../spansh/api";
 import type { PlannerAction } from "../state/plannerState";
@@ -133,6 +135,15 @@ export function JournalImportPanel({
   const [spanshLoading, setSpanshLoading] = useState(false);
   const [spanshError, setSpanshError] = useState<string | null>(null);
 
+  // Overlays a Raven Colonial export's slots + built facilities onto whichever system is currently
+  // loaded (from either tab) — not itself a separate import source/tab, since Raven Colonial's own
+  // data has no per-body physical/orbital data of its own (see ravenColonial/adapter.ts's header
+  // comment); it only ever augments a system already loaded from a Journal file or Spansh.
+  const [rcLoading, setRcLoading] = useState(false);
+  const [rcError, setRcError] = useState<string | null>(null);
+  const [rcWarnings, setRcWarnings] = useState<string[]>([]);
+  const [rcImported, setRcImported] = useState(false);
+
   useEffect(() => {
     const query = spanshQuery.trim();
     if (query.length < 2) {
@@ -236,6 +247,36 @@ export function JournalImportPanel({
       ),
     );
     setApplied(false);
+  }
+
+  // Reads a user-uploaded Raven Colonial "Export backup" JSON file and overlays its slots + built
+  // facilities onto the currently loaded system, same "edit in place, don't re-apply automatically"
+  // pattern as updateBodySlot/resetToGuess above. Deliberately a file upload, not a live API call —
+  // see ravenColonial/adapter.ts's header comment for why.
+  async function handleRavenColonialFile(file: File): Promise<void> {
+    if (!selected) return;
+    setRcLoading(true);
+    setRcError(null);
+    setRcWarnings([]);
+    setRcImported(false);
+    try {
+      const text = await file.text();
+      let rc: RcSystem;
+      try {
+        rc = JSON.parse(text) as RcSystem;
+      } catch {
+        throw new Error("That doesn't look like a valid JSON file.");
+      }
+      const { system, warnings } = applyRavenColonialOverlay(selected, rc);
+      setSystems((prev) => prev.map((s) => (s.systemAddress !== selected.systemAddress ? s : system)));
+      setRcWarnings(warnings);
+      setRcImported(true);
+      setApplied(false);
+    } catch (e) {
+      setRcError((e as Error).message);
+    } finally {
+      setRcLoading(false);
+    }
   }
 
   // Also pushes the full per-body list (not just the summed totals) — this is what switches the
@@ -536,6 +577,44 @@ export function JournalImportPanel({
 
           {selected && (
             <div style={{ marginTop: 10 }}>
+              <div className="row-grid">
+                <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>
+                  Already tracking this system's construction in{" "}
+                  <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">
+                    Raven Colonial
+                  </a>
+                  ? Upload its "Export backup" JSON file to overlay its slot counts and built
+                  facilities onto the system loaded above (its own body/orbital data is untouched).
+                  Raven Colonial's slot counts are manually entered by whoever tracks the project,
+                  same as this panel's own fields — check them the same way.
+                </p>
+                <input
+                  type="file"
+                  accept=".json,application/json"
+                  aria-label="Raven Colonial export backup file"
+                  disabled={rcLoading}
+                  style={{ marginLeft: "auto" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) void handleRavenColonialFile(file);
+                    e.target.value = "";
+                  }}
+                />
+              </div>
+              {rcError && <div className="status-banner">{rcError}</div>}
+              {rcImported && !rcError && (
+                <div className="status-banner" style={{ color: "var(--success)" }}>
+                  Raven Colonial file processed successfully — check "Apply slots and body layout"
+                  below to save it.
+                </div>
+              )}
+              {rcWarnings.length > 0 && (
+                <div className="status-banner">
+                  {rcWarnings.map((w) => (
+                    <div key={w}>{w}</div>
+                  ))}
+                </div>
+              )}
               <table style={{ marginTop: 10 }}>
                 <thead>
                   <tr>
@@ -605,7 +684,12 @@ export function JournalImportPanel({
                   <button type="button" onClick={resetToGuess} style={{ marginLeft: "auto" }}>
                     Reset slots to guess
                   </button>
-                  <button type="button" onClick={apply}>
+                  <button
+                    type="button"
+                    className={!applied ? "primary" : undefined}
+                    onClick={apply}
+                    title={!applied ? "There are unapplied changes — click to save them." : undefined}
+                  >
                     Apply slots and body layout to Actual facilities in the system
                   </button>
                   {applied && (
