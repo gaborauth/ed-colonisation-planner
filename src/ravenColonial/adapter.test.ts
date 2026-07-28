@@ -16,6 +16,7 @@ import { spanshDumpToJournalSystem } from "../spansh/adapter";
 import type { SpanshDumpRecord } from "../spansh/types";
 import { INITIAL_FORM_STATE, type PlannerFormState } from "../state/plannerState";
 import { toPlanResult } from "../state/toPlanResult";
+import type { JournalBody, JournalSystem } from "../journal/parser";
 import { applyRavenColonialOverlay } from "./adapter";
 import type { RcSystem } from "./types";
 
@@ -34,6 +35,39 @@ describe("Raven Colonial overlay: swoilz-aw-c-d52", () => {
     expect(system.firstStationBodyId).toBe(22);
     expect(system.firstStationCustomName).toBe("Froude City");
     expect(system.firstStationVariant).toBe("Quad Truss");
+  });
+
+  it("skips a leading non-complete site when picking the primary station, and doesn't seat it as an ordinary facility either", () => {
+    const bodyAt = (bodyId: number): JournalBody => ({
+      bodyName: `Body ${bodyId}`,
+      bodyId,
+      kind: "star",
+      landable: false,
+      parents: [],
+      rings: [],
+      raw: {},
+    });
+    const base: JournalSystem = { starSystem: "Test", systemAddress: 1, bodies: [bodyAt(0), bodyAt(1)] };
+    const rc: RcSystem = {
+      name: "Test",
+      id64: 1,
+      bodies: [],
+      slots: { "0": [1, -1], "1": [1, -1] },
+      sites: [
+        { id: "1", name: "Not Built Yet", bodyNum: 0, buildType: "pistis", status: "planned" },
+        { id: "2", name: "Real Primary", bodyNum: 1, buildType: "quad_truss", status: "complete" },
+      ],
+    };
+
+    const { system, warnings } = applyRavenColonialOverlay(base, rc);
+
+    expect(system.firstStationCustomName).toBe("Real Primary");
+    expect(system.firstStationBodyId).toBe(1);
+    expect(system.firstStationBuilding).toBe("Coriolis");
+    // The skipped-over planned site never gets seated as an ordinary facility either — it's simply
+    // not built, not "unrecognized"/an error, so no warning either.
+    expect(system.bodies.find((b) => b.bodyId === 0)?.presentFacilities).toBeUndefined();
+    expect(warnings).toEqual([]);
   });
 
   it("matches the real committed export's facilities and slots for every body except the two RC manually mis-entered ground counts", () => {

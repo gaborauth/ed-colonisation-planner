@@ -31,11 +31,13 @@ function computeAsteroidSlot(body: JournalBody): number {
 }
 
 /** Raven Colonial's own site list has no separate "is this the primary/claim station" flag — the
- * first entry in `sites[]` is treated as this system's real primary station. Best-effort/unverified
- * beyond the one real system this was checked against — flag this in the UI/warnings if it turns
- * out wrong for a different real export. */
+ * first `"complete"` entry in `sites[]` is treated as this system's real primary station (skipping
+ * over any leading non-complete entry, same status filter every other site gets below — the
+ * primary station can't be a not-yet-built plan). Best-effort/unverified beyond the one real system
+ * this was checked against — flag this in the UI/warnings if it turns out wrong for a different
+ * real export. */
 function pickPrimarySite(sites: RcSite[]): RcSite | undefined {
-  return sites[0];
+  return sites.find((s) => s.status === "complete");
 }
 
 export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): RavenColonialOverlayResult {
@@ -59,14 +61,16 @@ export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): 
     body.slots = { space: Math.max(space, 0), ground: Math.max(ground, 0), asteroid: computeAsteroidSlot(body) };
   }
 
-  // 2. Primary station — set from sites[0] (see pickPrimarySite's doc comment) before grouping the
-  // rest, so it's never ALSO seated as an ordinary presentFacilities slot.
+  // 2. Primary station — set from pickPrimarySite's result before grouping the rest, so it's never
+  // ALSO seated as an ordinary presentFacilities slot. Excludes the found primary specifically
+  // (not just the first array entry) — a leading non-complete site is skipped over when picking
+  // the primary, and would otherwise still need filtering out of the ordinary-facility pass below.
   let firstStationBuilding = system.firstStationBuilding;
   let firstStationBodyId = system.firstStationBodyId;
   let firstStationVariant = system.firstStationVariant;
   let firstStationCustomName = system.firstStationCustomName;
   const primarySite = pickPrimarySite(rc.sites);
-  const remainingSites = primarySite ? rc.sites.slice(1) : rc.sites;
+  const remainingSites = primarySite ? rc.sites.filter((s) => s !== primarySite) : rc.sites;
   if (primarySite) {
     const def = RC_BUILD_TYPE[primarySite.buildType];
     if (!def) {
