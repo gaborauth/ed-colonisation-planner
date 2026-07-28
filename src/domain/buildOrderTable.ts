@@ -169,33 +169,47 @@ interface PlannedCandidate {
   order: number;
 }
 
-/** Planned (new-build) candidates, body/slot-seated via the already-tested `computeSolvedPlacements`
- * (same data `SolvedSystemPanel` renders) — its `newBuildOrder` (from `getOrderingFromResult`) is
- * itself a validated, never-negative-guaranteeing sequence, so only the seating/ordering is reused
- * here; the actual T2/T3 cost is recomputed by the caller's own `SystemState` replay. */
-function collectPlannedCandidates(formState: PlannerFormState, result: SolverResult): PlannedCandidate[] {
+interface DemolishItem {
+  building: string;
+  bodyId: number;
+  kind: "space" | "ground";
+  index: number;
+}
+
+/** Planned (new-build) AND Demolish items, both derived from the SAME `computeSolvedPlacements`
+ * call (same data `SolvedSystemPanel` renders) — its `newBuildOrder` (from `getOrderingFromResult`)
+ * is itself a validated, never-negative-guaranteeing sequence, so only the seating/ordering is
+ * reused here; the actual T2/T3 cost is recomputed by the caller's own `SystemState` replay.
+ * Deliberately NOT sourcing `demolished` from raw `result.demolished` separately (an earlier version
+ * of this function did) — `computeSolvedPlacements` reclassifies a same-building demolish+rebuild
+ * pair to `"present"` (see `solvedPlacement.ts`'s header comment, 2026-07-28 user report), and
+ * deriving both lists from its ONE output is what guarantees this table can never show an orphaned
+ * Demolish row with no matching rebuild (or vice versa) for a pair the tree already cancelled. */
+function collectPlannedAndDemolishItems(
+  formState: PlannerFormState,
+  result: SolverResult,
+): { planned: PlannedCandidate[]; demolished: DemolishItem[] } {
   const planResult = toPlanResult(formState, result);
   const newBuildOrder = getOrderingFromResult(planResult, true, false);
   const { byBody } = computeSolvedPlacements(formState.bodies, result, newBuildOrder);
 
   const planned: PlannedCandidate[] = [];
+  const demolished: DemolishItem[] = [];
   for (const [bodyId, slots] of byBody) {
     (["space", "ground"] as const).forEach((kind) => {
       slots[kind].forEach((slot, index) => {
         if (slot.status === "new" || slot.status === "demolished-rebuilt") {
           planned.push({ bodyId, kind, index, building: slot.building, order: slot.order });
         }
+        if (slot.status === "demolished") {
+          demolished.push({ bodyId, kind, index, building: slot.building });
+        } else if (slot.status === "demolished-rebuilt") {
+          demolished.push({ bodyId, kind, index, building: slot.demolishedBuilding });
+        }
       });
     });
   }
-  return planned.sort((a, b) => a.order - b.order);
-}
-
-interface DemolishItem {
-  building: string;
-  bodyId: number;
-  kind: "space" | "ground";
-  index: number;
+  return { planned: planned.sort((a, b) => a.order - b.order), demolished };
 }
 
 /** Chooses a real, executable interleaving of Demolish and Planned rows instead of the naive "all
@@ -210,7 +224,7 @@ interface DemolishItem {
  * physically occupied until then; see `solvedPlacement.ts`'s `SolvedSlot` — a plain `(bodyId, kind,
  * index)` match against `remainingDemolish` is sufficient to detect this without threading the
  * slot's status through, since a `"new"` candidate's location, by construction, never coincides
- * with anything in `result.demolished`).
+ * with anything in the `demolished` list `collectPlannedAndDemolishItems` derives).
  *
  * Never regresses a case that already worked: this is strictly a superset of "do the first
  * eligible item next" — since `findIndex` scans front-to-back, whenever today's given order was
@@ -341,16 +355,11 @@ export function computeBuildOrderTable(formState: PlannerFormState, result: Solv
         pushAdd("built", name, false, instance, instance?.nickname, instance?.variant);
       }
 
-      const demolishItems: DemolishItem[] = result.demolished.map((d) => ({
-        building: d.building,
-        bodyId: d.bodyId,
-        kind: d.slotKind,
-        index: d.index,
-      }));
+      const { planned, demolished } = collectPlannedAndDemolishItems(formState, result);
       scheduleDemolishAndPlanned(
         replay,
-        demolishItems,
-        collectPlannedCandidates(formState, result),
+        demolished,
+        planned,
         (d) => pushDemolish(d.building, d),
         (p) => pushAdd("planned", p.building, false, p),
       );

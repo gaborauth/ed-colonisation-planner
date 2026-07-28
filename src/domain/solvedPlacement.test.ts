@@ -90,6 +90,68 @@ describe("computeSolvedPlacements", () => {
     expect(byBody.get(3)?.ground).toEqual([{ status: "demolished", building: "Small_Military_Settlement" }]);
   });
 
+  it("treats a demolish-then-rebuild-the-SAME-building pair as untouched instead, carrying forward the original nickname/variant", () => {
+    // 2026-07-28 user report: demolishing a facility only to rebuild the identical building type
+    // there is real wasted commodities for zero net benefit — a pure artifact of this module's
+    // arbitrary seating order, not a deliberate recommendation. Should read as `"present"`, not
+    // `"demolished-rebuilt"`.
+    const bodies = [
+      body(6, "A 6", {
+        slots: { space: 0, ground: 1, asteroid: 0 },
+        presentFacilities: {
+          space: [],
+          ground: [{ building: "Small_Military_Settlement", demolishable: true, customName: "Jacob's outpost", variant: "Some variant" }],
+        },
+      }),
+    ];
+    const r = result({
+      demolished: [{ bodyId: 6, slotKind: "ground", index: 0, building: "Small_Military_Settlement" }],
+      placements: [{ building: "Small_Military_Settlement", bodyId: 6, count: 1 }],
+    });
+    const { byBody, warnings } = computeSolvedPlacements(bodies, r, ["Small_Military_Settlement"]);
+    expect(byBody.get(6)?.ground).toEqual([
+      { status: "present", building: "Small_Military_Settlement", nickname: "Jacob's outpost", variant: "Some variant" },
+    ]);
+    // The new-build unit is still consumed from the pool (via `takeNext`), so no phantom
+    // "nowhere to seat this" warning should appear.
+    expect(warnings).toEqual([]);
+  });
+
+  it("reproduces the user's real 3-in-a-row report: 3 demolished Medium Agricultural Settlements, 3 new ones needed on the same body", () => {
+    const bodies = [
+      body(7, "A 7", {
+        slots: { space: 0, ground: 3, asteroid: 0 },
+        presentFacilities: {
+          space: [],
+          ground: [
+            { building: "Medium_Agricultural_Settlement", demolishable: true },
+            { building: "Medium_Agricultural_Settlement", demolishable: true },
+            { building: "Medium_Agricultural_Settlement", demolishable: true },
+          ],
+        },
+      }),
+    ];
+    const r = result({
+      demolished: [
+        { bodyId: 7, slotKind: "ground", index: 0, building: "Medium_Agricultural_Settlement" },
+        { bodyId: 7, slotKind: "ground", index: 1, building: "Medium_Agricultural_Settlement" },
+        { bodyId: 7, slotKind: "ground", index: 2, building: "Medium_Agricultural_Settlement" },
+      ],
+      placements: [{ building: "Medium_Agricultural_Settlement", bodyId: 7, count: 3 }],
+    });
+    const { byBody, warnings } = computeSolvedPlacements(bodies, r, [
+      "Medium_Agricultural_Settlement",
+      "Medium_Agricultural_Settlement",
+      "Medium_Agricultural_Settlement",
+    ]);
+    expect(byBody.get(7)?.ground).toEqual([
+      { status: "present", building: "Medium_Agricultural_Settlement", nickname: undefined, variant: undefined },
+      { status: "present", building: "Medium_Agricultural_Settlement", nickname: undefined, variant: undefined },
+      { status: "present", building: "Medium_Agricultural_Settlement", nickname: undefined, variant: undefined },
+    ]);
+    expect(warnings).toEqual([]);
+  });
+
   it("leaves a slot with no present facility and no solved placement as empty", () => {
     const bodies = [body(4, "A 4", { slots: { space: 1, ground: 0, asteroid: 0 } })];
     const { byBody } = computeSolvedPlacements(bodies, result(), []);

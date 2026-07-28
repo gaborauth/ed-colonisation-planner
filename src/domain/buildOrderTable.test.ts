@@ -15,8 +15,9 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildSolverInput } from "../App";
-import type { JournalSystem } from "../journal/parser";
-import { solve } from "../solver/solve";
+import { ALL_SCORES, type Score } from "../data/buildings";
+import type { JournalBody, JournalSystem } from "../journal/parser";
+import { solve, type SolverResult } from "../solver/solve";
 import { INITIAL_FORM_STATE, type PlannerFormState } from "../state/plannerState";
 import { computeBuildOrderTable } from "./buildOrderTable";
 import { computeSolvedPlacements } from "./solvedPlacement";
@@ -299,4 +300,51 @@ describe("computeBuildOrderTable", () => {
     expect(firstPlannedIndex).toBeGreaterThan(-1);
     expect(firstPlannedIndex).toBeLessThan(lastDemolishIndex);
   }, 30000);
+
+  it("shows a demolish-then-rebuild-the-SAME-building pair as one plain Built row, not a Demolish+Planned pair", () => {
+    // 2026-07-28 user report: demolishing a facility only to rebuild the identical building type
+    // there is real wasted commodities for zero net benefit. Uses a hand-built SolverResult (not a
+    // real `solve()` call) since which specific slot HiGHS's tie-breaking lands a same-building
+    // collision on is an implementation detail this test shouldn't depend on — this exercises the
+    // FIX directly against a scenario known to trigger it, same as solvedPlacement.test.ts's own
+    // dedicated case for the same bug.
+    const bodies: JournalBody[] = [
+      {
+        bodyName: "A 1",
+        bodyId: 1,
+        kind: "planet",
+        landable: true,
+        parents: [],
+        rings: [],
+        raw: {},
+        slots: { space: 0, ground: 1, asteroid: 0 },
+        presentFacilities: {
+          space: [],
+          ground: [{ building: "Small_Military_Settlement", demolishable: true }],
+        },
+      },
+    ];
+    const formState: PlannerFormState = { ...INITIAL_FORM_STATE, bodies, systemConfigured: true };
+    const result: SolverResult = {
+      status: "optimal",
+      toBuild: { Small_Military_Settlement: 1 },
+      portOrder: [],
+      firstStation: null,
+      scores: Object.fromEntries(ALL_SCORES.map((s: Score) => [s, 0])) as Record<Score, number>,
+      finalT2Points: 0,
+      finalT3Points: 0,
+      slotsRemaining: { space: 0, ground: 0, asteroid: 0 },
+      objectiveValue: 0,
+      placements: [{ building: "Small_Military_Settlement", bodyId: 1, count: 1 }],
+      firstStationBodyId: null,
+      demolished: [{ bodyId: 1, slotKind: "ground", index: 0, building: "Small_Military_Settlement" }],
+    };
+
+    const { rows, error } = computeBuildOrderTable(formState, result);
+    expect(error).toBeNull();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ state: "built", building: "Small_Military_Settlement", bodyId: 1 });
+    expect(rows.some((r) => r.state === "demolish")).toBe(false);
+    expect(rows.some((r) => r.state === "planned")).toBe(false);
+  });
 });
