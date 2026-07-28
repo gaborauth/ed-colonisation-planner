@@ -1,3 +1,28 @@
+## [1.1.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.0.1...v1.1.0) (2026-07-28)
+
+### Features
+
+* delete saved systems ([968d929](https://github.com/gaborauth/ed-colonisation-planner/commit/968d929c3ff863b35985ee4d0479859ed12bfa9d))
+* delete saved systems ([fa7e3f3](https://github.com/gaborauth/ed-colonisation-planner/commit/fa7e3f31484f7bf727f01d8476234ae8eebbd2f4))
+* delete saved systems ([0929f08](https://github.com/gaborauth/ed-colonisation-planner/commit/0929f08f20d154f7902d4f6395bde864bd767e94))
+* economy preference controls ([67ddd00](https://github.com/gaborauth/ed-colonisation-planner/commit/67ddd00f0597df302a39e4d9be803ad276f67251))
+* mark a bodyslot as leave empty ([99b145c](https://github.com/gaborauth/ed-colonisation-planner/commit/99b145c2ff28b5b0f5dfe96231d40835c1ba07e5))
+
+### Bug Fixes
+
+* add modal dialog for solver progress ([323fa26](https://github.com/gaborauth/ed-colonisation-planner/commit/323fa262c00e56556e2f62566798a325ac653423))
+* add modal dialog for solver progress ([b905a4d](https://github.com/gaborauth/ed-colonisation-planner/commit/b905a4d459c76147acdc0f7a4e9ec064d489fc8f))
+* add nested-toggle title style for sub-panel headers ([6674d11](https://github.com/gaborauth/ed-colonisation-planner/commit/6674d11a3e62c2df3b147ea07ca33106d0a9e9e8))
+* capitalize and add short descriptions to Score constraints rows ([c3e9ab8](https://github.com/gaborauth/ed-colonisation-planner/commit/c3e9ab822218488cbf3b3690a52dcd6687b77006))
+* emphasize the Solved system stat block styling ([99e5667](https://github.com/gaborauth/ed-colonisation-planner/commit/99e5667e7ff72c5910cdf2479f970b83ee91dd74))
+* fix primary station slot double counted ([8fb36d8](https://github.com/gaborauth/ed-colonisation-planner/commit/8fb36d8458e024a656f07dc9e9e2de5d933e8cec))
+* import drops a stars asteroid belts ([0b6d03d](https://github.com/gaborauth/ed-colonisation-planner/commit/0b6d03d4cc50104ed98c151d6ba23b3683c486c8))
+* make the primary-station field visually prominent ([13ca5bf](https://github.com/gaborauth/ed-colonisation-planner/commit/13ca5bf7a3584e4613f7b8df1592b24202733314))
+* rename Constructions to Ports and Facilities numbers ([dd2d05d](https://github.com/gaborauth/ed-colonisation-planner/commit/dd2d05dfdfac2a3c65a906f97c42508dbccf0e59))
+* skip scheduling a demolish immediately followed by rebuilding the same building ([3ca4fdd](https://github.com/gaborauth/ed-colonisation-planner/commit/3ca4fdd03578d57a8e20573e957adb7f04c9ab95))
+* unify min-max across the Objective and Constructions panels ([845b116](https://github.com/gaborauth/ed-colonisation-planner/commit/845b116b127d08ccadb14f6458f2ea72c64897a5))
+* wider number fields and folded economy preferences ([f41e6fe](https://github.com/gaborauth/ed-colonisation-planner/commit/f41e6fed618a030e670652bdee674154bc08bf1b))
+
 ## [1.0.1](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.0.0...v1.0.1) (2026-07-27)
 
 ### Bug Fixes
