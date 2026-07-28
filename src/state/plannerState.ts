@@ -15,8 +15,21 @@ import type { Direction, EconomyPreference, SlotAvailability, SolverResult } fro
 // preference) added alongside `y` (economy_synergy) — same precedent as when `y` itself was added:
 // Want/Don't want preferences only actually bias the solve when the active objective references
 // `p`, same as economy_synergy today (see solve.ts's SolverInput.economyPreferences doc comment).
+//
+// `e` (security), `n` (standard_of_living), `y`, and `p` are deliberately kept OUTSIDE the
+// sqrt(...) wrapping the other stats get, added as plain linear terms instead — unlike
+// initial/max population increase, tech, wealth, and development (which no building's stats ever
+// push negative), several real buildings carry a negative `sec` or `sol` contribution (e.g.
+// Orbis_or_Ocellus's sec: -3, Industrial_Hub's sol: -4 in data/buildings.ts), and `y`/`p` can go
+// negative by construction (a strong-link decrease condition, or a "Don't want" economy
+// preference). `objective.ts`'s concave-function linearizer doesn't error on a negative-reaching
+// argument — `pickBreakpoints` just clamps its lowest sample to x=1 (its `domainPositive` handling)
+// and silently extrapolates that breakpoint's tangent line forever below it, so `sqrt(e)` would
+// quietly become a fixed-slope LINEAR penalty on security instead of a diminishing-returns curve
+// the instant a solved layout pushes security negative — a real, reachable case, not a hypothetical
+// edge case. Don't re-wrap `e`/`n`/`y`/`p` in sqrt/ln/pow without re-solving this.
 export const DEFAULT_OBJECTIVE_EXPRESSION =
-  "sqrt(i) + sqrt(m) + sqrt(e) + sqrt(t) + sqrt(w) + sqrt(n) + sqrt(d) + 2 * w + t - abs(w - 2 * t) + y + p";
+  "sqrt(i) + sqrt(m) + e + sqrt(t) + sqrt(w) + n + sqrt(d) + 2 * w + t - abs(w - 2 * t) + y + p";
 
 export interface PlannerFormState {
   slots: SlotAvailability;
