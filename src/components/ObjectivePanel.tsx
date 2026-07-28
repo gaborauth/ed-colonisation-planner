@@ -69,26 +69,37 @@ const PRESETS: ObjectivePreset[] = [
 // else needs to change.
 const SHOW_EXPRESSION_EDITOR = false;
 
+// Score/EconomyType names are snake_case (`toPrintable` just swaps underscores for spaces, e.g.
+// "standard_of_living" -> "standard of living") — sentence-casing just the first letter, not every
+// word, since some names carry a real lowercase conjunction ("standard OF living") that a naive
+// per-word title-case would wrongly capitalize too (same reasoning applies to building names like
+// "Orbis_or_Ocellus" elsewhere, which is why this isn't folded into `toPrintable` itself).
+function capitalize(text: string): string {
+  return text.charAt(0).toUpperCase() + text.slice(1);
+}
+
 // Short "what does this mean" line shown below the "Maximize a single score" dropdown for whichever
 // score is currently picked — 2026-07-26, user request, same idea as the Presets' descriptions
-// above. Every ALL_SCORES entry needs one (including the derived/compound ones): missing an entry
-// would silently show a blank hint rather than erroring, so this is written as a full Record, not
-// Partial, to make an omission a compile error instead.
+// above; also shown per-row in the Score constraints table (see below). Every ALL_SCORES entry
+// needs one (including the derived/compound ones): missing an entry would silently show a blank
+// hint rather than erroring, so this is written as a full Record, not Partial, to make an omission a
+// compile error instead. Capped at 8 words each (2026-07-28 user request) — the longer nuance these
+// used to carry (e.g. "not a real in-game stat" for the two derived scores) is now conveyed instead
+// by the Score constraints table's own divider (see ALL_SCORES.map below) separating real system
+// stats from construction_cost/system_score_beta/economy_synergy/economy_preference, rather than by
+// spelling it out in every one of those rows' own text.
 const SCORE_DESCRIPTIONS: Record<Score, string> = {
-  initial_population_increase: "How much the system's starting population increases from what's built here.",
-  max_population_increase: "How much the system's maximum sustainable population increases.",
-  security: "How safe the system is from crime and piracy — go negative and NPCs start interdicting you during hauling.",
-  tech_level: "The system's technology level — gates access to higher-tier station services like Shipyard/Outfitting.",
-  wealth: "The system's economic wealth — drives commodity prices and general market activity.",
-  standard_of_living: "How comfortable life is for the system's population.",
+  initial_population_increase: "How much starting population increases from this.",
+  max_population_increase: "Maximum sustainable population increase for the system.",
+  security: "How safe the system is from piracy.",
+  tech_level: "Technology level; unlocks higher-tier station services.",
+  wealth: "Economic wealth; drives commodity prices and market activity.",
+  standard_of_living: "How comfortable life is for the population.",
   development_level: "How developed/industrialized the system is overall.",
-  construction_cost:
-    "Total commodities required to build everything selected — this one is automatically minimized instead of maximized, unlike every other score here.",
-  system_score_beta: "A compound score: security + tech level + wealth + standard of living, added together.",
-  economy_synergy:
-    "How well the solver's picks fit each body's own economy — a solver-side signal, not a real in-game stat; only ever nonzero once you've actually solved with a per-body layout.",
-  economy_preference:
-    "Your own Must/Want/Don't want/Forbid economy preferences below, turned into a number — a solver-side signal, not a real in-game stat; only ever nonzero once you've set a preference and solved with a per-body layout.",
+  construction_cost: "Total commodities needed.",
+  system_score_beta: "Sum of security, tech, wealth, standard of living.",
+  economy_synergy: "Solver's estimate of building-to-body economy fit.",
+  economy_preference: "Your economy preference choices, turned into a score.",
 };
 
 // Order matches the backlog's own stated wording — Must / Want / Dunno / Don't want / Forbid.
@@ -110,12 +121,14 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
   const selectedPreset = PRESETS.find((p) => p.expression === formState.customExpression);
 
   // Score constraints / Economy preferences are individually foldable (2026-07-27 user request),
-  // unlike the always-visible single table this used to be — but default to EXPANDED (`?? false`,
-  // same as AboutHelpPanel), not collapsed: the original reason these moved out of a foldable
-  // ConstraintsPanel in the first place was a real user missing the default "at least 1 security"
-  // constraint while it sat folded away. Making it foldable again is fine as long as it isn't
-  // folded-by-default; each panel's own choice is then remembered across sessions via
-  // persistence/panelCollapse.ts, same as AboutHelpPanel.
+  // unlike the always-visible single table this used to be. Score constraints defaults to EXPANDED
+  // (`?? false`, same as AboutHelpPanel), not collapsed: the original reason it moved out of a
+  // foldable ConstraintsPanel in the first place was a real user missing the default "at least 1
+  // security" constraint while it sat folded away. Economy preferences defaults to COLLAPSED
+  // instead (`?? true`, 2026-07-28 user request) — it's a fine-tuning control most solves don't
+  // need to touch, unlike Score constraints' own always-relevant default bound. Each panel's own
+  // choice is then remembered across sessions via persistence/panelCollapse.ts either way, same as
+  // AboutHelpPanel.
   const scoreConstraints = useScrollAnchoredCollapse<HTMLButtonElement>(
     getStoredPanelCollapsed(SCORE_CONSTRAINTS_PANEL_ID) ?? false,
   );
@@ -123,7 +136,7 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
     setStoredPanelCollapsed(SCORE_CONSTRAINTS_PANEL_ID, scoreConstraints.collapsed);
   }, [scoreConstraints.collapsed]);
   const economyPreferencesCollapse = useScrollAnchoredCollapse<HTMLButtonElement>(
-    getStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID) ?? false,
+    getStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID) ?? true,
   );
   useEffect(() => {
     setStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID, economyPreferencesCollapse.collapsed);
@@ -155,6 +168,11 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
           {solving ? "Solving…" : "Solve for a system"}
         </button>
       </div>
+      {!formState.firstStationBuilding && (
+        <p className="panel-hint panel-hint-accent">
+          Pick a primary station in "Actual facilities in the system" before you can solve.
+        </p>
+      )}
       <div className="row-grid">
         <label>
           <input
@@ -258,7 +276,7 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
         <button
           ref={scoreConstraints.buttonRef}
           type="button"
-          className="panel-toggle"
+          className="panel-toggle panel-toggle-nested"
           aria-expanded={!scoreConstraints.collapsed}
           onClick={() => scoreConstraints.setCollapsed((c) => !c)}
         >
@@ -268,7 +286,7 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
           </span>
         </button>
         {!scoreConstraints.collapsed && (
-          <table>
+          <table className="score-constraints-table">
             <thead>
               <tr>
                 <th>Score</th>
@@ -277,27 +295,43 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
               </tr>
             </thead>
             <tbody>
-              {ALL_SCORES.map((score) => (
-                <tr key={score}>
-                  <td>{toPrintable(score)}</td>
-                  <td>
-                    <NumberInput
-                      allowNegative
-                      ariaLabel={`Minimum ${toPrintable(score)}`}
-                      value={formState.scoreMin[score]}
-                      onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMin", score, value })}
-                    />
-                  </td>
-                  <td>
-                    <NumberInput
-                      allowNegative
-                      ariaLabel={`Maximum ${toPrintable(score)}`}
-                      value={formState.scoreMax[score]}
-                      onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMax", score, value })}
-                    />
-                  </td>
-                </tr>
-              ))}
+              {ALL_SCORES.flatMap((score) => {
+                const row = (
+                  <tr key={score}>
+                    <td>
+                      <div>{capitalize(toPrintable(score))}</div>
+                      <div className="panel-hint">{SCORE_DESCRIPTIONS[score]}</div>
+                    </td>
+                    <td>
+                      <NumberInput
+                        allowNegative
+                        ariaLabel={`Minimum ${toPrintable(score)}`}
+                        value={formState.scoreMin[score]}
+                        onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMin", score, value })}
+                      />
+                    </td>
+                    <td>
+                      <NumberInput
+                        allowNegative
+                        ariaLabel={`Maximum ${toPrintable(score)}`}
+                        value={formState.scoreMax[score]}
+                        onChange={(value) => dispatch({ type: "setScoreBound", bound: "scoreMax", score, value })}
+                      />
+                    </td>
+                  </tr>
+                );
+                // Separates the real, persistent system stats above from construction_cost onward
+                // below — construction_cost is a genuine in-game number but a transient, inverted
+                // one (minimized, not maximized, and never itself shown in the system's own stats
+                // panel), and system_score_beta/economy_synergy/economy_preference are this app's
+                // own compound/solver-side numbers, not real per-building stats (2026-07-28 user
+                // request/clarification — deliberately placed after development_level, not before
+                // construction_cost, since the user judged construction_cost itself as belonging
+                // with the "not a real system stat" group below, not the real stats above it).
+                return score === "development_level"
+                  ? [row, <tr key={`${score}-divider`} aria-hidden="true"><td colSpan={3}><hr className="score-constraints-divider" /></td></tr>]
+                  : [row];
+              })}
             </tbody>
           </table>
         )}
@@ -317,7 +351,7 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
         <button
           ref={economyPreferencesCollapse.buttonRef}
           type="button"
-          className="panel-toggle"
+          className="panel-toggle panel-toggle-nested"
           aria-expanded={!economyPreferencesCollapse.collapsed}
           onClick={() => economyPreferencesCollapse.setCollapsed((c) => !c)}
         >

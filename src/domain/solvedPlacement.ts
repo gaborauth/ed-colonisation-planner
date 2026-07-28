@@ -21,6 +21,25 @@
 // called with `withAlreadyPresent: false` so only newly-built buildings get order numbers at all —
 // already-present facilities keep showing as "Built" (see SolvedSystemPanel.tsx), same as they do
 // in the "Actual facilities" tree.
+//
+// `buildKindSlots`'s "demolished-rebuilt" case additionally special-cases the SAME-building
+// sub-case (`newBuilding.building === demolished.building`): demolishing a slot only to rebuild the
+// identical building type there is real wasted in-game construction cost for zero net benefit
+// (same stats/T2/T3 either way) — a pure artifact of this module's own arbitrary, deterministic
+// seating order (`takeNext`'s alphabetical-by-`ALL_BUILDINGS`-key first-fit) coincidentally pairing
+// a freed slot with a same-type unit from the new-build pool, not a deliberate solver
+// recommendation (2026-07-28 user report, reproduced with 3 consecutive demolish/rebuild-same-type
+// rows). Reclassified to plain `"present"` instead (see `buildKindSlots`'s own comment) — this is
+// deliberately a DISPLAY-layer fix, not a `SolverResult`/`solve.ts` change: `result.toBuild`/
+// `result.placements`/`result.demolished` are left untouched. Known, accepted trade-off: in the
+// (fairly rare) case where a same-building collision is genuinely unavoidable given the solver's
+// own picks, `BuildingsTable.tsx`'s `toBuild`-sourced "Built" column can read 1 higher than what's
+// actually visible as newly built in this tree, and a "build #N" sequence can show a small gap (a
+// number silently absorbed by the now-hidden slot) — both purely cosmetic, not a wasted-commodity
+// recommendation anymore, and not worth the added complexity of also correcting `SolverResult`
+// itself for. `domain/buildOrderTable.ts`'s `computeBuildOrderTable` derives its own Demolish AND
+// Planned rows from this SAME function's output (not from raw `result.demolished` separately) so
+// the two panels can't disagree about which pairs got cancelled.
 
 import { ALL_BUILDINGS } from "../data/buildings";
 import { normalizeFacilitySlots } from "./presentFacilities";
@@ -119,7 +138,17 @@ export function computeSolvedPlacements(
         continue;
       }
       const newBuilding = takeNext(body.bodyId, kind);
-      if (demolished && newBuilding) {
+      if (demolished && newBuilding && newBuilding.building === demolished.building) {
+        // Demolishing this exact slot only to rebuild the SAME building type there nets to zero
+        // benefit (identical stats/T2/T3 either way) but real wasted commodities in-game — an
+        // artifact of `takeNext`'s arbitrary seating order pairing a freed slot with a same-type
+        // unit from the new-build pool, not a deliberate recommendation (2026-07-28 user report).
+        // Treat it as never touched instead: same status/fields as an ordinary "present" slot,
+        // carrying forward the original nickname/variant since nothing's actually changing. The
+        // new-build unit is still consumed from the pool above (via `takeNext`, already done) so
+        // this doesn't leave a phantom "nowhere to seat this" warning.
+        slots.push({ status: "present", building: newBuilding.building, nickname: slot?.customName, variant: slot?.variant });
+      } else if (demolished && newBuilding) {
         slots.push({
           status: "demolished-rebuilt",
           demolishedBuilding: demolished.building,

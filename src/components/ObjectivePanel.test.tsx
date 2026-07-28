@@ -3,6 +3,7 @@ import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { JournalBody } from "../journal/parser";
+import { setStoredPanelCollapsed } from "../persistence/panelCollapse";
 import { INITIAL_FORM_STATE, type PlannerFormState } from "../state/plannerState";
 import { ObjectivePanel } from "./ObjectivePanel";
 
@@ -17,9 +18,14 @@ function renderPanel(formState: PlannerFormState, dispatch = vi.fn()) {
 
 describe("ObjectivePanel's Economy preferences section", () => {
   beforeEach(() => {
-    // Fold state is persisted via persistence/panelCollapse.ts — clear so each test starts from
-    // this component's own default (expanded), not whatever a previous test left behind.
+    // Fold state is persisted via persistence/panelCollapse.ts — clear so each test starts from a
+    // clean slate, then explicitly force this section open. Economy preferences now defaults to
+    // COLLAPSED (2026-07-28 user request — see "ObjectivePanel's foldable sub-sections" below for
+    // the dedicated tests on that default itself); these tests are about the section's own radio
+    // behavior once opened, not about the fold default, so they force it open rather than clicking
+    // through the toggle in every single test.
     localStorage.clear();
+    setStoredPanelCollapsed("objective-economy-preferences", false);
   });
 
   it("is disabled (with an explanatory hint, no per-economy controls) when no per-body layout is applied", () => {
@@ -66,25 +72,75 @@ describe("ObjectivePanel's Economy preferences section", () => {
   });
 });
 
+describe("ObjectivePanel's primary station reminder", () => {
+  it("shows an accent-colored hint next to the disabled Solve button when no primary station is set", () => {
+    renderPanel(INITIAL_FORM_STATE);
+    expect(screen.getByRole("button", { name: "Solve for a system" })).toBeDisabled();
+    expect(screen.getByText(/Pick a primary station in "Actual facilities in the system"/)).toHaveClass(
+      "panel-hint-accent",
+    );
+  });
+
+  it("hides the reminder once a primary station is picked", () => {
+    renderPanel({ ...INITIAL_FORM_STATE, firstStationBuilding: "Coriolis" });
+    expect(screen.getByRole("button", { name: "Solve for a system" })).toBeEnabled();
+    expect(screen.queryByText(/Pick a primary station in "Actual facilities in the system"/)).not.toBeInTheDocument();
+  });
+});
+
+describe("ObjectivePanel's Score constraints rows", () => {
+  it("capitalizes the score name and shows a short description under it", () => {
+    renderPanel(INITIAL_FORM_STATE);
+    expect(screen.getByText("Security")).toBeInTheDocument();
+    expect(screen.queryByText("security")).not.toBeInTheDocument();
+    expect(screen.getByText("How safe the system is from piracy.")).toHaveClass("panel-hint");
+  });
+
+  it("places a divider after Development level, separating real system stats from construction_cost onward", () => {
+    renderPanel(INITIAL_FORM_STATE);
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".score-constraints-table tbody tr"));
+    const developmentIndex = rows.findIndex((r) => r.textContent?.includes("Development level"));
+    const dividerIndex = rows.findIndex((r) => r.getAttribute("aria-hidden") === "true");
+    const constructionIndex = rows.findIndex((r) => r.textContent?.includes("Construction cost"));
+    expect(dividerIndex).toBe(developmentIndex + 1);
+    expect(constructionIndex).toBe(dividerIndex + 1);
+  });
+});
+
 describe("ObjectivePanel's foldable sub-sections", () => {
   beforeEach(() => {
     localStorage.clear();
   });
 
-  it("Score constraints and Economy preferences both default to expanded", () => {
+  it("Score constraints and Economy preferences use the nested (smaller/yellow) toggle style, not a top-level one", () => {
     renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
-    expect(screen.getByRole("button", { name: /Score constraints/ })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: /Economy preferences/ })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("textbox", { name: "Minimum security" })).toBeInTheDocument();
-    expect(screen.getByRole("radio", { name: "Military: Dunno" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Score constraints/ })).toHaveClass("panel-toggle-nested");
+    expect(screen.getByRole("button", { name: /Economy preferences/ })).toHaveClass("panel-toggle-nested");
   });
 
-  it("folding Score constraints hides its table without affecting Economy preferences", async () => {
+  it("Score constraints defaults to expanded, Economy preferences defaults to collapsed", () => {
+    renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    expect(screen.getByRole("button", { name: /Score constraints/ })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /Economy preferences/ })).toHaveAttribute("aria-expanded", "false");
+    expect(screen.getByRole("textbox", { name: "Minimum security" })).toBeInTheDocument();
+    expect(screen.queryByRole("radio", { name: "Military: Dunno" })).not.toBeInTheDocument();
+  });
+
+  it("folding Score constraints hides its table without affecting Economy preferences' own (collapsed) state", async () => {
     const user = userEvent.setup();
     renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
     await user.click(screen.getByRole("button", { name: /Score constraints/ }));
     expect(screen.getByRole("button", { name: /Score constraints/ })).toHaveAttribute("aria-expanded", "false");
     expect(screen.queryByRole("textbox", { name: "Minimum security" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Economy preferences/ })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("expanding Economy preferences works independently of Score constraints", async () => {
+    const user = userEvent.setup();
+    renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    await user.click(screen.getByRole("button", { name: /Economy preferences/ }));
+    expect(screen.getByRole("button", { name: /Economy preferences/ })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("radio", { name: "Military: Dunno" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Score constraints/ })).toHaveAttribute("aria-expanded", "true");
   });
 });

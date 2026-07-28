@@ -230,6 +230,7 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
         // computed a real value for it, unlike the current-only view).
         <SystemScoresSummary
           scores={result.scores}
+          emphasized
           extraFields={[
             { label: "Orbital slots left", value: result.slotsRemaining.space, neutral: true },
             { label: "Ground slots left", value: result.slotsRemaining.ground, neutral: true },
