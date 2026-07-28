@@ -82,6 +82,25 @@ describe("ObjectivePanel's primary station reminder", () => {
   });
 });
 
+describe("ObjectivePanel's Score constraints rows", () => {
+  it("capitalizes the score name and shows a short description under it", () => {
+    renderPanel(INITIAL_FORM_STATE);
+    expect(screen.getByText("Security")).toBeInTheDocument();
+    expect(screen.queryByText("security")).not.toBeInTheDocument();
+    expect(screen.getByText("How safe the system is from piracy.")).toHaveClass("panel-hint");
+  });
+
+  it("places a divider after Development level, separating real system stats from construction_cost onward", () => {
+    renderPanel(INITIAL_FORM_STATE);
+    const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".score-constraints-table tbody tr"));
+    const developmentIndex = rows.findIndex((r) => r.textContent?.includes("Development level"));
+    const dividerIndex = rows.findIndex((r) => r.getAttribute("aria-hidden") === "true");
+    const constructionIndex = rows.findIndex((r) => r.textContent?.includes("Construction cost"));
+    expect(dividerIndex).toBe(developmentIndex + 1);
+    expect(constructionIndex).toBe(dividerIndex + 1);
+  });
+});
+
 describe("ObjectivePanel's foldable sub-sections", () => {
   beforeEach(() => {
     localStorage.clear();
