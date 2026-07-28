@@ -87,6 +87,12 @@ describe("ObjectivePanel's foldable sub-sections", () => {
     localStorage.clear();
   });
 
+  it("Score constraints and Economy preferences use the nested (smaller/yellow) toggle style, not a top-level one", () => {
+    renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    expect(screen.getByRole("button", { name: /Score constraints/ })).toHaveClass("panel-toggle-nested");
+    expect(screen.getByRole("button", { name: /Economy preferences/ })).toHaveClass("panel-toggle-nested");
+  });
+
   it("Score constraints and Economy preferences both default to expanded", () => {
     renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
     expect(screen.getByRole("button", { name: /Score constraints/ })).toHaveAttribute("aria-expanded", "true");

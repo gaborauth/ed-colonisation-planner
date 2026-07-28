@@ -263,7 +263,7 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
         <button
           ref={scoreConstraints.buttonRef}
           type="button"
-          className="panel-toggle"
+          className="panel-toggle panel-toggle-nested"
           aria-expanded={!scoreConstraints.collapsed}
           onClick={() => scoreConstraints.setCollapsed((c) => !c)}
         >
@@ -322,7 +322,7 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
         <button
           ref={economyPreferencesCollapse.buttonRef}
           type="button"
-          className="panel-toggle"
+          className="panel-toggle panel-toggle-nested"
           aria-expanded={!economyPreferencesCollapse.collapsed}
           onClick={() => economyPreferencesCollapse.setCollapsed((c) => !c)}
         >

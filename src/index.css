@@ -161,6 +161,17 @@ h2 {
   color: var(--text-faint);
 }
 
+/* A `.panel-toggle` that's a SUB-section within another panel's own header — e.g. ObjectivePanel's
+ * "Score constraints"/"Economy preferences", nested under its "Objective" `<h2>` — rather than a
+ * genuine top-level panel toggle (BuildingsTable's "Constructions", SavedPlansPanel, etc., which use
+ * `.panel-toggle-title` as their ONLY header). Those used to render at the exact same size/color as
+ * a real top-level title, reading as more important than they are (2026-07-28 user request):
+ * smaller and tinted with the same yellow used for Tier 2 badges elsewhere, instead. */
+.panel-toggle-nested {
+  font-size: 12px;
+  color: var(--tier2-yellow);
+}
+
 /* "Reads as unfoldable, still technically works" (2026-07-26, user request, after two rounds of
  * clarification: NOT actually removing the click-to-expand — that would break real functionality;
  * Saved plans' save/load/import/export has no other UI path — just discouraging a casual user from
