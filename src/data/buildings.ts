@@ -2,9 +2,12 @@
 // spreadsheet v3.4.1 (current as of Dodec Update + Trailblazers Update 3), from the sheet's "Stats"
 // tab. Costs are the sheet's "Total amount of Commodities" column, which is what construction_cost
 // has always represented here (confirmed by exact matches on unchanged values, e.g. Coriolis
-// 53,723). Link/population-driven economy mechanics (Update 3) are deliberately NOT modeled yet —
-// see the project plan: that's a separate, deferred phase. Dependency chains were cross-checked
-// against the sheet's "Prerequisites" column and needed no changes.
+// 53,723). Update 3's link/economy topology IS modeled — here (`EconomyType`, `PORT_ROLE_BUILDINGS`,
+// `getPortTier`, `FACILITY_ECONOMY_GUESS`, `PORT_FIXED_ECONOMY`) and in `domain/economyOverrides.ts`
+// and `domain/links.ts`. What's NOT modeled is real commodity supply/demand: exact tradeable
+// quantities (what's buyable/sellable, in what amount) — only the qualitative topology is
+// represented. Dependency chains were cross-checked against the sheet's "Prerequisites" column and
+// needed no changes.
 
 export type SlotType = "space" | "ground";
 
@@ -217,22 +220,23 @@ export function getT3PortCost(nbPreviousPorts: number): number {
 // development_level's subsequent-facility reduction is only -10%, not the previously-guessed -60%)
 // and add a first-station bonus the old version didn't model at all.
 // Population increase and construction cost are not listed as affected and stay full-weight.
-// Moved here from solve.ts (2026-07-26) once `domain/currentSystemScores.ts` needed the exact same
+// These are general game rules, not specific to the solver's own LP formulation — that's why they
+// live here rather than in solve.ts: `domain/currentSystemScores.ts` reuses the exact same
 // constants for a plain-number (non-MILP) reweighting of the CURRENT (not-yet-solved) system's
-// totals — this is a general game rule, not something specific to the solver's own LP formulation.
+// totals.
 export const FIRST_STATION_BONUS: Partial<Record<Score, number>> = {
-  development_level: 0.4, // +40%
-  security: 0.4, // +40%
-  standard_of_living: 0.4, // +40%
-  tech_level: 0.2, // +20%
-  wealth: 0.4, // +40%
+  development_level: 0.4,
+  security: 0.4,
+  standard_of_living: 0.4,
+  tech_level: 0.2,
+  wealth: 0.4,
 };
 export const SUBSEQUENT_FACILITY_REDUCTION: Partial<Record<Score, number>> = {
-  development_level: 0.1, // -10%
-  security: 0.1, // -10%
-  standard_of_living: 0.2, // -20%
-  tech_level: 0.25, // -25%
-  wealth: 0.25, // -25%
+  development_level: 0.1,
+  security: 0.1,
+  standard_of_living: 0.2,
+  tech_level: 0.25,
+  wealth: 0.25,
 };
 
 /** system_score_(beta), per the DaftMav "Colonization Construction" spreadsheet. */
@@ -536,12 +540,11 @@ export const FACILITY_ECONOMY_GUESS: Partial<Record<string, EconomyType[]>> = {
 // per the official patch notes' "every port's economy defaults to Colony... gets this ADDED based
 // on the body" rule — including `Civilian_Outpost`/`Commercial_Outpost` (space) and
 // `Civilian_Planetary_Outpost` (ground), despite sharing the Military/Industrial/Scientific
-// Outposts' naming convention: this was the actual bug the user found (`Civilian_Planetary_Outpost`
-// was wrongly hardcoded to fixed Colony 100% instead of the body-derived economy, confirmed
-// in-game), and the sheet confirms `Civilian`/`Commercial_Outpost` should get the same treatment,
-// not the fixed-100%-Colony one an earlier version of this table gave them (see
-// `SystemConfigPanel.tsx`'s `facilityBaseEconomies` — this table takes priority over the body-driven
-// branch only for the entries actually listed here).
+// Outposts' naming convention: the sheet confirms `Civilian`/`Commercial_Outpost` take the same
+// body-derived economy as generic ports, not a fixed 100% Colony value, despite the naming
+// similarity to the fixed-economy Military/Industrial/Scientific Outposts above (see
+// `domain/economyOverrides.ts`'s `facilityBaseEconomies` — this table takes priority over the
+// body-driven branch only for the entries actually listed here).
 //
 // `Criminal_Outpost`'s sheet economy is "Contraband" — not one of this app's `EconomyType` union
 // values at all (Contraband isn't in any of the officially-sourced Update 3 tables CLAUDE.md

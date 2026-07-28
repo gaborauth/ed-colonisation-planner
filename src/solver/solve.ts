@@ -22,7 +22,7 @@
 // An earlier version of this project deliberately kept Update 3's link/economy modeling (see
 // CLAUDE.md) entirely post-solve/display-only, on the grounds that this tool doesn't model real
 // commodity supply/demand at all, so there was no existing score for link topology to feed into.
-// User feedback (2026-07-25) overrode that: with Update 3+'s rules in place, a solve that never
+// That approach was overridden: with Update 3+'s rules in place, a solve that never
 // considers *which body* a building's economy type actually suits isn't a useful recommendation
 // engine anymore game-wise, even without a full commodity model. `economy_synergy` is the result —
 // see `economySynergyCoefficient` below for exactly what it computes. It is deliberately NOT an
@@ -46,8 +46,8 @@
 // strong-link-style boost/decrease to every candidate body regardless, which made the solver
 // actively prefer dumping facilities onto port-less bodies purely to farm a boost that could never
 // really apply there — surfacing as `domain/links.ts`'s "has N facility type(s) but no port, they
-// can't form a strong link here" warning far more often post-solve than pre-economy_synergy
-// (2026-07-25 user report). `knownPortBodyIds` below is the fix: a body only gets the full
+// can't form a strong link here" warning far more often post-solve than pre-economy_synergy.
+// `knownPortBodyIds` below is the fix: a body only gets the full
 // strong-link-style delta if it's known (before solving, not decision-dependent) to have a port —
 // already has one present, or is the primary station's assigned body. Every other body instead
 // gets a small flat, body-attribute-INdependent trickle (`WEAK_LINK_CONTRIBUTION` per economy
@@ -344,9 +344,11 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // always did and needs zero changes. Absent/empty `input.bodies` (the common case — a user who
   // only filled in aggregate slot counts, never imported per-body journal data) skips this
   // entirely: `bodyVars` stays `{}`, no new variables or constraints are added, and every branch
-  // below that reads it degrades to exactly today's behavior. See the plan's Decision 1 for why
-  // ports don't get a body dimension threaded through their `port_k` index specifically (approx.
-  // same-tier tie-break in the links layer instead of exact fidelity here).
+  // below that reads it degrades to exactly today's behavior. Ports deliberately don't get this same
+  // body dimension threaded through their `port_k` index above: doing so would multiply out to
+  // `5 port building types x maxNbPorts slots x N bodies` variables, with heavy MILP symmetry (many
+  // equivalent orderings of identical port slots across bodies) — not worth it when the links layer
+  // can instead use the solved `portOrder` as an approximate same-tier tie-break signal.
   const bodyVars: Record<string, Record<number, string>> = {};
   if (input.bodies && input.bodies.length > 0) {
     for (const name of Object.keys(ALL_BUILDINGS)) {
@@ -357,9 +359,9 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
         // system-wide `Asteroid_Base <= input.slots.asteroid` pseudo-pool entirely in this mode. A
         // ring/belt-eligible body's slot (whether a ringed planet's own slot, or a star belt's
         // dedicated synthetic `kind: "ring"` body — see `journal/parser.ts`'s `withRingBodies`)
-        // can ALSO host any ordinary building — user-confirmed 2026-07-27 that a belt cluster
-        // slot isn't Asteroid_Base-exclusive, it's an ordinary orbital slot that additionally
-        // qualifies for Asteroid_Base. No further restriction needed here beyond the existing one.
+        // can ALSO host any ordinary building — a belt cluster slot isn't Asteroid_Base-exclusive,
+        // it's an ordinary orbital slot that additionally qualifies for Asteroid_Base. No further
+        // restriction needed here beyond the existing one.
         const ub = name === "Asteroid_Base" && b.slots.asteroid === 0 ? 0 : DEFAULT_BUILDING_COUNT_CAP;
         const v = model.addVar(`${name}__body_${b.bodyId}`, "integer", 0, ub);
         bodyVars[name][b.bodyId] = v;
@@ -877,7 +879,8 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // CONSTRAINT above (which separately subtracts present/primary occupancy from each body's own
   // bound), but wrong for this REPORTED remaining-capacity figure if used bare: in per-body mode it
   // silently ignored every already-present facility and the primary station's reserved slot, so a
-  // fully-built system still reported dozens of "slots left" (real bug, 2026-07-26 user report).
+  // fully-built system still reported dozens of "slots left" — a real bug, since those slots are
+  // actually occupied and shouldn't be reported as remaining capacity.
   // Aggregate mode's own formula is intentionally left untouched below (protected by
   // solve.test.ts's `bodies: []` vs. omitted byte-identical regression test) — `presentSplit`/
   // `presentKeepVars` are always empty there anyway, so the per-body-only terms below are all 0 and

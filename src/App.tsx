@@ -114,9 +114,8 @@ function App() {
   // "Solved system"/"Build order" panels (and BuildingsTable's per-building result column) kept
   // showing the PREVIOUS system's solved placements/scores overlaid on the newly-applied one — since
   // body ids are small per-system sequential numbers, a coincidental id match could make the stale
-  // solve look like it belongs to the new system entirely (2026-07-26 user report: "the previous
-  // solved facilities are not cleared and interfere with the new system"). Passed to both
-  // components below so every system-loading path clears it, not just one.
+  // solve look like it belongs to the new system entirely. Passed to both components below so every
+  // system-loading path clears it, not just one.
   function handleSystemChanged(): void {
     setResultState(INITIAL_RESULT_STATE);
   }
@@ -129,7 +128,12 @@ function App() {
         onDecline={cookieConsent.decline}
       />
       <main>
-        <h1>Elite Dangerous Colonisation Planner & Solver</h1>
+        <div className="app-header-row">
+          <h1>Elite Dangerous Colonisation Planner & Solver</h1>
+          <a className="app-header-link" href="tutorials.html" target="_blank" rel="noreferrer">
+            Tutorials
+          </a>
+        </div>
 
         <SystemPortabilityBar
           formState={formState}

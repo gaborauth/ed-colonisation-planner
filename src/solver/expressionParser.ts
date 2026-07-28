@@ -9,9 +9,13 @@
 //   w = wealth                        n = standard_of_living
 //   d = development_level             c = construction_cost
 //
-// One addition beyond the original tool: y = economy_synergy, a body/facility-economy-aware term
-// solve.ts computes per solved layout (0 in aggregate mode) — see solve.ts's header comment and
-// CLAUDE.md's "Update 3 link/economy modeling" section.
+// Two additions beyond the original tool:
+//   y = economy_synergy, a body/facility-economy-aware term solve.ts computes per solved layout
+//       (0 in aggregate mode) — see solve.ts's header comment and CLAUDE.md's "Update 3
+//       link/economy modeling" section.
+//   p = economy_preference, the Want/Don't-want per-economy preference bias from the "Economy
+//       preferences" controls (also 0 in aggregate mode) — see CLAUDE.md's "Per-economy
+//       Must/Want/Don't want/Forbid preference controls" section.
 
 export const SCORE_LETTERS = ["i", "m", "e", "t", "w", "n", "d", "c", "y", "p"] as const;
 export type ScoreLetter = (typeof SCORE_LETTERS)[number];

@@ -1,6 +1,7 @@
 // Parses an Elite Dangerous Journal file (newline-delimited JSON) client-side and extracts the
-// per-system, per-body data needed for eligibility.ts's slot estimate. Only `Scan` events are used
-// — per the project plan, there's no construction-progress tracking here, just body/system data.
+// per-system, per-body data needed for eligibility.ts's slot estimate. Consumes `Scan` events (body
+// data) and `FSSBodySignals` events (bio/geo signal presence) — there's no construction-progress
+// tracking here, just body/system data.
 
 import type { SlotKind } from "../data/buildings";
 
@@ -71,11 +72,11 @@ export interface JournalBody {
   /** The reserve level ("PristineResources"/"MajorResources"/etc.) of this body's own ring system
    * as a whole — a real, top-level field on the body's own `Scan` event (sitting alongside `Rings`,
    * confirmed against a real journal line), *not* nested per-ring as an earlier version of this
-   * parser incorrectly assumed (that field was never actually populated — every ring in every real
-   * export checked this session had it unset). Only ever present on a body that actually has rings.
+   * parser incorrectly assumed (that field was never actually populated — in observed real
+   * exports, every ring had it unset). Only ever present on a body that actually has rings.
    * `domain/economyOverrides.ts`'s `systemResourceLevel` treats this as a system-wide fact despite
-   * living on one specific body — confirmed by the user: any ringed body's reserve level IS the
-   * system's, there's no separate system-level field for it. */
+   * living on one specific body — any ringed body's reserve level IS the system's, there's no
+   * separate system-level field for it. */
   reserveLevel?: string;
   /** Whether this body has Biological/Geological surface signals, per the Journal's
    * `FSSBodySignals` event (fired for a body once its system has been FSS ("honk") scanned — no
@@ -246,21 +247,19 @@ function ringBodyId(parentBodyId: number, ringIndex: number): number {
 }
 
 /** A STAR's own asteroid belt is, in-game, its own separate constructible location with its own
- * dedicated orbital slot — NOT extra capacity on the star's own slot(s) (user-confirmed in-game via
- * a real screenshot, 2026-07-27: "Swoilz CD-E c1-1 A Belt Cluster 1 Slot 0" is a distinct point in
- * the system map). An Asteroid_Base can be built there, but so can any ordinary building — it's an
- * asteroid-eligible orbital slot like any other, not Asteroid_Base-exclusive (user-corrected
- * 2026-07-27, right after an earlier version of this fix wrongly restricted it in `solve.ts`, since
- * reverted — see that file's own comment). The star's OWN slot(s), unlike the belt, are never
- * themselves asteroid-eligible. Synthesizes one extra `JournalBody` (kind `"ring"`) per named belt
- * on every scanned STAR only — appended after the real bodies, so it shows up as its own row in
+ * dedicated orbital slot — NOT extra capacity on the star's own slot(s); a named belt shows up as
+ * its own distinct point in the system map, physically far from the star. An Asteroid_Base can be
+ * built there, but so can any ordinary building — it's an asteroid-eligible orbital slot like any
+ * other, not Asteroid_Base-exclusive. The star's OWN slot(s), unlike the belt, are never themselves
+ * asteroid-eligible. Synthesizes one extra `JournalBody` (kind `"ring"`) per named belt on every
+ * scanned STAR only — appended after the real bodies, so it shows up as its own row in
  * `JournalImportPanel`'s table and its own node in `domain/bodyHierarchy.ts`'s tree.
  *
- * **Deliberately star-only, not planets/moons** (user-clarified 2026-07-27, correcting this
- * function's own first version): a planet's or moon's own ring keeps making that body's OWN orbital
- * slot(s) asteroid-eligible instead, unchanged from this app's original (pre-2026-07-27) behavior —
- * see `eligibility.ts`'s `estimateBodySlots`. Only a star's belt is far enough from the star itself
- * to be its own separate location; a planet's ring sits at the planet.
+ * **Deliberately star-only, not planets/moons**: a planet's or moon's own ring keeps making that
+ * body's OWN orbital slot(s) asteroid-eligible instead, unchanged from this app's original
+ * behavior — see `eligibility.ts`'s `estimateBodySlots`. This is an intentional asymmetry, not an
+ * oversight: only a star's belt is far enough from the star itself to be its own separate location;
+ * a planet's ring sits at the planet.
  *
  * `rings: [ring]` (self-referencing) so `economyOverrides.ts`'s `hasRings()` still fires for a port
  * built here — an Asteroid_Base built in a belt should still get the "Has rings" Extraction bonus,

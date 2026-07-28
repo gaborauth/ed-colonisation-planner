@@ -4,11 +4,10 @@
     "target": "es2023",
     "lib": ["ES2023", "DOM"],
     "module": "esnext",
-    // "node" added 2026-07-26 alongside src/realSystems.test.ts, the first file under src/ to use
-    // Node built-ins (node:fs/node:path, to read jsons/*.json) — @types/node was already a
-    // devDependency, just not wired into this config. Ambient types only, doesn't change what
-    // actually runs in the browser; solve.ts's own real Node-vs-browser runtime detection
-    // (`globalThis.process.versions.node`, see CLAUDE.md's gotchas) is unaffected either way.
+    // "node" needed for files under src/ that use Node built-ins (node:fs/node:path) — @types/node
+    // is already a devDependency, just needs wiring into this config. Ambient types only, doesn't
+    // change what actually runs in the browser; solve.ts's own real Node-vs-browser runtime
+    // detection (`globalThis.process.versions.node`, see CLAUDE.md's gotchas) is unaffected either way.
     "types": ["vite/client", "node"],
     "allowArbitraryExtensions": true,
     "resolveJsonModule": true,

@@ -224,10 +224,9 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
         <div className="status-banner hint">{solved.warnings.join(" ")}</div>
       )}
       {result && (
-        // The old standalone Result panel's content, moved here (2026-07-26) — same
-        // SystemScoresSummary as "Actual facilities in the system"'s current-totals view above it,
-        // but for the SOLVED plan's own totals (already includes economy_synergy, since solve.ts
-        // computed a real value for it, unlike the current-only view).
+        // Reuses the same SystemScoresSummary as "Actual facilities in the system"'s current-totals
+        // view above it, but for the SOLVED plan's own totals (already includes economy_synergy,
+        // since solve.ts computed a real value for it, unlike the current-only view).
         <SystemScoresSummary
           scores={result.scores}
           emphasized

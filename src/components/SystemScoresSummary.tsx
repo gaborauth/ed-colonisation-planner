@@ -1,9 +1,8 @@
-// The "Result" panel's content, moved into "Actual facilities in the system" (current, not-yet-
-// solved totals) and "Solved system" (a completed solve's totals) at the user's request
-// (2026-07-26: "I want to see the actual sum of values of the system... same style as the Orbital
-// slots" — a `.field`/`.row-grid` layout, not the old standalone panel's `.stat-tile` grid). One
-// shared component so both call sites render identically; they differ only in which scores/extra
-// numbers they pass in.
+// Shows the actual sum of the system's score values, in "Actual facilities in the system" (current,
+// not-yet-solved totals) and "Solved system" (a completed solve's totals), using a `.field`/
+// `.row-grid` layout matching the rest of the form (e.g. Orbital slots) rather than a standalone
+// `.stat-tile` grid. One shared component so both call sites render identically; they differ only
+// in which scores/extra numbers they pass in.
 
 import { ALL_SCORES, toPrintable, type Score } from "../data/buildings";
 
@@ -24,8 +23,8 @@ interface SystemScoresSummaryProps {
   /** Non-score numbers shown after the score fields, in order — slots remaining, T2/T3 points,
    * first station, objective value, etc.; each caller decides which apply. */
   extraFields?: SystemScoresSummaryField[];
-  /** Wraps the block in a highlighted card (2026-07-28 user request) — only `SolvedSystemPanel`
-   * opts in, since a solved plan's own totals are the actual payoff of running the solver, unlike
+  /** Wraps the block in a highlighted card — only `SolvedSystemPanel` opts in, since a solved
+   * plan's own totals are the actual payoff of running the solver, unlike
    * `SystemConfigPanel`'s pre-solve "current totals" view, which stays plain so the emphasis still
    * differentiates something instead of making every stat block look the same. */
   emphasized?: boolean;

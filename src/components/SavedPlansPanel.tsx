@@ -33,11 +33,11 @@ export function SavedPlansPanel({
   const [plans, setPlans] = useState<SavedPlan[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [importError, setImportError] = useState<string | null>(null);
-  // Folded by default, same as BuildingsTable (2026-07-26 user request) — saving/
-  // loading/importing/exporting plans is a bookkeeping tool for later in a session, not needed for
-  // a first solve. Still genuinely click-to-expand (no chevron, `panel-toggle-flat` styling — see
-  // index.css's comment there): this panel is the only UI path to save/load/import/export a plan,
-  // so a fully non-interactive "permanently collapsed" version would have removed that entirely.
+  // Folded by default, same as BuildingsTable — saving/loading/importing/exporting plans is a
+  // bookkeeping tool for later in a session, not needed for a first solve. Still genuinely
+  // click-to-expand (no chevron, `panel-toggle-flat` styling — see index.css's comment there): this
+  // panel is the only UI path to save/load/import/export a plan, so a fully non-interactive
+  // "permanently collapsed" version would have removed that entirely.
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(true);
 
   useEffect(() => {

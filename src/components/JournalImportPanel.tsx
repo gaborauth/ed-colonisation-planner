@@ -31,9 +31,8 @@ interface JournalImportPanelProps {
   /** `formState.systemAddress` — read-only, purely so this panel can notice when SOMETHING ELSE
    * changed the active system (SystemPortabilityBar's toolbar switcher dispatches straight to
    * `formState`, bypassing this panel's own `selectedAddress`/`systems` state entirely, unlike
-   * this panel's own Apply flow). Without this, switching systems via the toolbar left this
-   * panel's body/slot table showing the PREVIOUS system (2026-07-27 user report). See the
-   * dedicated effect below. */
+   * this panel's own Apply flow). Without this, switching systems via the toolbar would leave this
+   * panel's body/slot table showing the PREVIOUS system. See the dedicated effect below. */
   activeSystemAddress?: number | null;
 }
 
@@ -75,11 +74,11 @@ function mergeBySystemAddress(existing: JournalSystem[], incoming: JournalSystem
       // Same idea as slots/presentFacilities above, but the OPPOSITE precedence: unlike a slot
       // count (always a rough guess needing human judgment), a confident true/false here came from
       // real `FSSBodySignals` event data in THIS upload's journal (see journal/parser.ts) — that's
-      // more authoritative than whatever's already stored, so it should win outright, including
-      // over a stale value persisted from before a parser fix (e.g. the "combines in rare cases"
-      // multi-event-merge correction). Only fall back to the prior stored value (a manual
-      // correction, or an earlier upload's finding) when THIS upload's journal doesn't cover that
-      // body's signals at all (`undefined` — genuinely no FSSBodySignals event for it here).
+      // more authoritative than whatever's already stored, so it should win outright, even when a
+      // body's signals arrived split across multiple journal events that need merging. Only fall
+      // back to the prior stored value (a manual correction, or an earlier upload's finding) when
+      // THIS upload's journal doesn't cover that body's signals at all (`undefined` — genuinely no
+      // FSSBodySignals event for it here).
       return {
         ...withBlocked,
         hasBiologicalSignals: body.hasBiologicalSignals ?? priorBody?.hasBiologicalSignals,
@@ -134,8 +133,6 @@ export function JournalImportPanel({
   const [spanshLoading, setSpanshLoading] = useState(false);
   const [spanshError, setSpanshError] = useState<string | null>(null);
 
-  // Debounced typeahead against Spansh's name-suggestion endpoint — minimum 2 characters, ~300ms
-  // after the user stops typing, so this doesn't fire a request per keystroke.
   useEffect(() => {
     const query = spanshQuery.trim();
     if (query.length < 2) {
@@ -324,20 +321,16 @@ export function JournalImportPanel({
   // refreshToken effect above — nothing was actually saved or applied FROM this panel, it's just
   // catching up to a change made elsewhere.
   //
-  // Real bug found via user report (2026-07-27): once a system had ever been applied,
-  // `activeSystemAddress` (formState.systemAddress) stayed fixed at that address while the Spansh
-  // tab's "Load" button set `selectedAddress` to a DIFFERENT, not-yet-applied candidate for local
-  // preview — which made `activeSystemAddress !== selectedAddress` true and re-triggered this very
-  // effect (it's a dependency), which then reloaded ONLY the persisted systems from localStorage
-  // (the freshly-loaded Spansh candidate isn't saved yet — only `applySystem` calls `saveSystem`)
-  // and reset `selectedAddress` straight back to `activeSystemAddress`, silently undoing the Load a
-  // moment after it happened. Confirmed to explain every symptom reported: it worked on the very
-  // first Load of a session (activeSystemAddress starts `null`, so the effect's `== null` guard
-  // already skipped it), and broke on every subsequent Load once formState had a real system
-  // applied. Fixed by only treating this as an EXTERNAL change (the toolbar switcher case this
+  // This only treats `activeSystemAddress` as an EXTERNAL change (the toolbar switcher case this
   // effect exists for) when `activeSystemAddress` itself just changed — tracked via a ref — rather
-  // than whenever it merely differs from this panel's own `selectedAddress`, which can legitimately
-  // diverge for a while during an in-progress Load/Apply preview that hasn't been applied yet.
+  // than whenever it merely differs from this panel's own `selectedAddress`. The two deliberately
+  // diverge for a while during an in-progress Load/Apply preview (e.g. the Spansh tab's "Load"
+  // button sets `selectedAddress` to a not-yet-applied candidate before Apply syncs it into
+  // `formState.systemAddress`); reacting to that divergence directly (instead of to
+  // `activeSystemAddress` actually changing) would re-trigger this effect mid-preview, reload only
+  // the already-persisted systems from localStorage (the freshly-loaded, not-yet-saved candidate
+  // isn't among them), and reset `selectedAddress` straight back to `activeSystemAddress`, silently
+  // undoing the in-progress Load.
   const prevActiveSystemAddress = useRef(activeSystemAddress);
   useEffect(() => {
     const previousActiveSystemAddress = prevActiveSystemAddress.current;

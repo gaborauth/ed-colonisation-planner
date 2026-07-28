@@ -6,8 +6,9 @@ import type { PlannerFormState } from "./plannerState";
 
 /** Adapts the planner's already-present accounting + solver result into the PlanResult shape
  * ordering.ts expects — critically, splitting already-present PORT buildings into
- * "already_present.ports" (a list ordering.ts can sequence), since compute_feasible_order only
- * looks for tier-3 buildings inside the ports list, not the plain facilities dict.
+ * "already_present.ports" (a list ordering.ts can sequence), since `computeFeasibleOrder`
+ * (src/domain/ordering.ts) only looks for tier-3 buildings inside the ports list, not the plain
+ * facilities dict.
  *
  * Already-present counts come from `formState.bodies`' per-slot facility tree when it's in use
  * (per-body placement mode), or the flat `formState.alreadyPresent` map otherwise (aggregate

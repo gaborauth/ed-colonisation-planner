@@ -5,11 +5,10 @@
 // gap-analysis notes for the full field-by-field comparison this was built from.
 //
 // Deliberately does NOT persist the whole Spansh body object into `JournalBody.raw` the way the
-// real Journal parser keeps the whole `Scan` event (user's explicit instruction) — a Spansh dump
-// body carries a lot of incidental data (commodity/market info, faction influence, composition
-// percentages) that would needlessly bloat every saved/exported system. `raw` here only ever
-// carries the one field anything in the codebase actually reads out of it
-// (`economyOverrides.ts`'s `hasVolcanism` reads `raw.Volcanism`).
+// real Journal parser keeps the whole `Scan` event — a Spansh dump body carries a lot of incidental
+// data (commodity/market info, faction influence, composition percentages) that would needlessly
+// bloat every saved/exported system. `raw` here only ever carries the one field anything in the
+// codebase actually reads out of it (`economyOverrides.ts`'s `hasVolcanism` reads `raw.Volcanism`).
 import { parseParents, SIGNAL_TYPE_BIOLOGICAL, SIGNAL_TYPE_GEOLOGICAL, withRingBodies, type JournalBody, type JournalSystem } from "../journal/parser";
 import type { SpanshDumpBody, SpanshDumpRecord } from "./types";
 

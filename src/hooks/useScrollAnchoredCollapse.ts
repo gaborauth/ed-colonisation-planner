@@ -2,9 +2,9 @@ import { useCallback, useLayoutEffect, useRef, useState, type Dispatch, type Ref
 
 /** A `useState<boolean>`-alike for a foldable panel's collapsed flag, except every state change —
  * a manual toggle-button click OR a programmatic one (e.g. SystemConfigPanel's auto-fold-on-solve) —
- * keeps the panel's own toggle button anchored at the same on-screen position (2026-07-26, user
- * request: "I hate when the fold moves out the current viewport"). Folding a tall panel (the body
- * tree, the buildings table, ...) removes a lot of document height below the toggle button; with
+ * keeps the panel's own toggle button anchored at the same on-screen position. Folding a tall panel
+ * (the body tree, the buildings table, ...) removes a lot of document height below the toggle
+ * button; with
  * `window.scrollY` otherwise untouched, the browser is often forced to CLAMP it down because the
  * document just got shorter than the old scroll position — yanking the toggle button (and whatever
  * else was visible) to a completely different spot instead of leaving it where the user was already

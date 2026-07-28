@@ -1,14 +1,13 @@
 import { useEffect } from "react";
 import type { PlannerResultState } from "../state/plannerState";
 
-/** A real blocking modal for the solve's "in progress"/"error" states, replacing the old inline
- * `.status-banner` that used to sit in normal page flow between BuildingsTable and SolvedSystemPanel
- * — easy to scroll past and didn't stop the user from poking at the rest of the form mid-solve
- * (2026-07-28 user request: "give a better UX about the process and the errors"). Renders `null` for
- * "idle"/"done" — those have nothing to block on. The "solving" state has no dismiss control at all
- * (there's nothing to cancel back to — `solveInWorker` runs to completion); the "error" state can be
- * dismissed via the Close button, a backdrop click, or Escape, which resets `resultState` back to
- * idle in App.tsx. */
+/** A real blocking modal for the solve's "in progress"/"error" states, in place of an inline
+ * `.status-banner` sitting in normal page flow between BuildingsTable and SolvedSystemPanel — that
+ * would be easy to scroll past and wouldn't stop the user from poking at the rest of the form
+ * mid-solve. Renders `null` for "idle"/"done" — those have nothing to block on. The "solving" state
+ * has no dismiss control at all (there's nothing to cancel back to — `solveInWorker` runs to
+ * completion); the "error" state can be dismissed via the Close button, a backdrop click, or Escape,
+ * which resets `resultState` back to idle in App.tsx. */
 export function SolverStatusDialog({
   status,
   message,
