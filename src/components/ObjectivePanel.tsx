@@ -121,12 +121,14 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
   const selectedPreset = PRESETS.find((p) => p.expression === formState.customExpression);
 
   // Score constraints / Economy preferences are individually foldable (2026-07-27 user request),
-  // unlike the always-visible single table this used to be — but default to EXPANDED (`?? false`,
-  // same as AboutHelpPanel), not collapsed: the original reason these moved out of a foldable
-  // ConstraintsPanel in the first place was a real user missing the default "at least 1 security"
-  // constraint while it sat folded away. Making it foldable again is fine as long as it isn't
-  // folded-by-default; each panel's own choice is then remembered across sessions via
-  // persistence/panelCollapse.ts, same as AboutHelpPanel.
+  // unlike the always-visible single table this used to be. Score constraints defaults to EXPANDED
+  // (`?? false`, same as AboutHelpPanel), not collapsed: the original reason it moved out of a
+  // foldable ConstraintsPanel in the first place was a real user missing the default "at least 1
+  // security" constraint while it sat folded away. Economy preferences defaults to COLLAPSED
+  // instead (`?? true`, 2026-07-28 user request) — it's a fine-tuning control most solves don't
+  // need to touch, unlike Score constraints' own always-relevant default bound. Each panel's own
+  // choice is then remembered across sessions via persistence/panelCollapse.ts either way, same as
+  // AboutHelpPanel.
   const scoreConstraints = useScrollAnchoredCollapse<HTMLButtonElement>(
     getStoredPanelCollapsed(SCORE_CONSTRAINTS_PANEL_ID) ?? false,
   );
@@ -134,7 +136,7 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
     setStoredPanelCollapsed(SCORE_CONSTRAINTS_PANEL_ID, scoreConstraints.collapsed);
   }, [scoreConstraints.collapsed]);
   const economyPreferencesCollapse = useScrollAnchoredCollapse<HTMLButtonElement>(
-    getStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID) ?? false,
+    getStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID) ?? true,
   );
   useEffect(() => {
     setStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID, economyPreferencesCollapse.collapsed);

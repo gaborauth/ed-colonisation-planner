@@ -307,6 +307,14 @@ td {
   padding-top: 6px;
 }
 
+/* Wider than the app-wide 7ch `.number-input` default (2026-07-28 user request) — Min/Max here can
+ * legitimately need a large value (e.g. construction_cost in the hundreds of thousands/millions),
+ * and this table has the horizontal room to spare for it, unlike BuildingsTable's narrower Min/Max/
+ * Already-present columns shared with several other columns in the same row. */
+.score-constraints-table input.number-input {
+  width: 14ch;
+}
+
 /* Separates the real, persistent system stats (above) from construction_cost/system_score_beta/
  * economy_synergy/economy_preference (below) — see the divider row's own comment in
  * ObjectivePanel.tsx for why construction_cost lands in the lower group. The divider row itself has
