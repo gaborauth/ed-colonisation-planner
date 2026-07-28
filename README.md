@@ -1,4 +1,4 @@
-# EDCP: Elite Dangerous Colonisation Planner
+# EDCPS: Elite Dangerous Colonisation Planner & Solver
 
 A browser-based planner for Elite Dangerous system colonisation. Give it your available construction
 slots (or let it estimate them from an uploaded Journal file), pick an objective, and it uses a MILP
@@ -145,3 +145,8 @@ spreadsheet.
 ## Feedback
 
 Issues and feature requests welcome.
+
+---
+
+EDCPS is not affiliated with [Frontier Developments](https://www.frontier.co.uk/), the developers of
+[Elite Dangerous](https://www.elitedangerous.com/).

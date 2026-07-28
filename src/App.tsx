@@ -129,7 +129,7 @@ function App() {
         onDecline={cookieConsent.decline}
       />
       <main>
-        <h1>Elite Dangerous Colonisation Planner</h1>
+        <h1>Elite Dangerous Colonisation Planner & Solver</h1>
 
         <SystemPortabilityBar
           formState={formState}

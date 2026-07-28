@@ -1,4 +1,4 @@
-# EDCP: Elite Dangerous Colonisation Planner
+# EDCPS: Elite Dangerous Colonisation Planner & Solver
 
 A stateless, client-only React web app that solves "what should I build in this colonisation
 system?" via a MILP solver (HiGHS, compiled to WASM) running entirely in the browser. No backend, no
