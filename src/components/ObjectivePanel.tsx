@@ -29,6 +29,13 @@ interface ObjectivePreset {
 // Each preset carries a separate short `name` (the dropdown option text) and a longer `description`
 // (shown as a hint below the dropdown for whichever one is currently active) rather than cramming
 // both into one long option string, which reads poorly in a native <select>.
+//
+// `e` (security) and `n` (standard_of_living) are deliberately NOT wrapped in sqrt/pow/ln here,
+// unlike the other 5 original stats — see DEFAULT_OBJECTIVE_EXPRESSION's comment in
+// state/plannerState.ts for why (some buildings carry a negative sec/sol contribution, and the
+// concave-function linearizer silently mis-linearizes below its domain-positive floor instead of
+// erroring). `y`/`p` (economy_synergy/economy_preference) are appended the same way for the same
+// reason, matching the Default preset — plain linear terms, never inside sqrt/pow/ln.
 const PRESETS: ObjectivePreset[] = [
   {
     name: "Default preset",
@@ -39,33 +46,33 @@ const PRESETS: ObjectivePreset[] = [
   {
     name: "Balance all stats",
     description:
-      "Moderate diminishing returns per stat (square root) — each stat matters a bit less the higher it already is, encouraging a well-rounded system over maxing out one thing.",
-    expression: "sqrt(i) + sqrt(m) + sqrt(e) + sqrt(t) + sqrt(w) + sqrt(n) + sqrt(d)",
+      "Moderate diminishing returns per stat (square root) — each stat matters a bit less the higher it already is, encouraging a well-rounded system over maxing out one thing. Also factors in security, standard of living, the solver's economy-fit estimate, and your economy preference choices.",
+    expression: "sqrt(i) + sqrt(m) + e + sqrt(t) + sqrt(w) + n + sqrt(d) + y + p",
   },
   {
     name: "Balance all stats, harder",
     description:
-      "Stronger diminishing returns than \"Balance all stats\" — harder to get ahead by dumping everything into one stat, pulling the system toward an even more even spread.",
-    expression: "i^0.2 + m^0.2 + e^0.2 + t^0.2 + w^0.2 + n^0.2 + d^0.2",
+      "Stronger diminishing returns than \"Balance all stats\" — harder to get ahead by dumping everything into one stat, pulling the system toward an even more even spread. Also factors in security, standard of living, the solver's economy-fit estimate, and your economy preference choices.",
+    expression: "i^0.2 + m^0.2 + e + t^0.2 + w^0.2 + n + d^0.2 + y + p",
   },
   {
     name: "Balance all stats, hardest",
     description:
-      "Logarithmic diminishing returns — the strongest equalizing pull of the three balance presets, most resistant to any single stat dominating.",
-    expression: "ln(i) + ln(m) + ln(e) + ln(t) + ln(w) + ln(n) + ln(d)",
+      "Logarithmic diminishing returns — the strongest equalizing pull of the three balance presets, most resistant to any single stat dominating. Also factors in security, standard of living, the solver's economy-fit estimate, and your economy preference choices.",
+    expression: "ln(i) + ln(m) + e + ln(t) + ln(w) + n + ln(d) + y + p",
   },
   {
     name: "Wealth & tech, 2:1 ratio",
-    description: "Maximizes wealth and tech level together, while keeping them close to a 2:1 ratio between them.",
-    expression: "2 * w + t - abs(w - 2 * t)",
+    description:
+      "Maximizes wealth and tech level together, while keeping them close to a 2:1 ratio between them. Also factors in the solver's economy-fit estimate and your economy preference choices.",
+    expression: "2 * w + t - abs(w - 2 * t) + y + p",
   },
 ];
 
-// Hidden for now — the raw formula-editing textarea reads as too technical/confusing for most
-// users; the Presets dropdown above it is the only way to change `customExpression` while this is
-// off. Kept as a flag rather than removed, since the underlying state/behavior is completely
-// untouched — flip this back to `true` to restore the editor, nothing else needs to change.
-const SHOW_EXPRESSION_EDITOR = false;
+// Raw formula-editing textarea, shown alongside the Presets dropdown in "Complex score" mode.
+// Kept as a flag (rather than inlined) so it can be hidden again later without touching the
+// underlying state/behavior if it turns out to read as too technical/confusing for most users.
+const SHOW_EXPRESSION_EDITOR = true;
 
 // Score/EconomyType names are snake_case (`toPrintable` just swaps underscores for spaces, e.g.
 // "standard_of_living" -> "standard of living") — sentence-casing just the first letter, not every
@@ -114,9 +121,9 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
   // Which preset (if any) matches the CURRENT customExpression — drives the select's `value` for
   // real (not a hardcoded "always blank" trick, which would make the dropdown visibly snap back to
   // "Default preset" on every selection, since its value would never actually reflect what was
-  // picked). Falls back to a synthetic "custom" entry when nothing matches (e.g. an old saved plan
-  // written while the now-hidden expression editor was in use) so the select always has a valid,
-  // non-crashing value to show.
+  // picked). Falls back to a synthetic "custom" entry when nothing matches (e.g. a hand-edited
+  // expression that doesn't match any preset) so the select always has a valid, non-crashing value
+  // to show.
   const selectedPreset = PRESETS.find((p) => p.expression === formState.customExpression);
 
   // Score constraints / Economy preferences are individually foldable. Score constraints defaults
@@ -233,9 +240,11 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
           {SHOW_EXPRESSION_EDITOR && (
             <div className="field" style={{ marginTop: 8 }}>
               <label htmlFor="objective-expression">
-                Expression — variables: i m e t w n d c (initial/max pop, security, tech, wealth,
-                standard of living, development, cost); functions: sqrt ln log exp abs, and ^ for a
-                constant fractional power
+                Expression — variables: i m e t w n d c y p (initial/max pop, security, tech,
+                wealth, standard of living, development, cost, economy-fit estimate, economy
+                preference); functions: sqrt ln log exp abs, and ^ for a constant fractional power.
+                Security, standard of living, economy-fit, and economy preference can go negative —
+                avoid wrapping e, n, y, or p in sqrt/ln/^ (add them as plain terms instead).
               </label>
               <textarea
                 id="objective-expression"
