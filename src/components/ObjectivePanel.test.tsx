@@ -66,6 +66,22 @@ describe("ObjectivePanel's Economy preferences section", () => {
   });
 });
 
+describe("ObjectivePanel's primary station reminder", () => {
+  it("shows an accent-colored hint next to the disabled Solve button when no primary station is set", () => {
+    renderPanel(INITIAL_FORM_STATE);
+    expect(screen.getByRole("button", { name: "Solve for a system" })).toBeDisabled();
+    expect(screen.getByText(/Pick a primary station in "Actual facilities in the system"/)).toHaveClass(
+      "panel-hint-accent",
+    );
+  });
+
+  it("hides the reminder once a primary station is picked", () => {
+    renderPanel({ ...INITIAL_FORM_STATE, firstStationBuilding: "Coriolis" });
+    expect(screen.getByRole("button", { name: "Solve for a system" })).toBeEnabled();
+    expect(screen.queryByText(/Pick a primary station in "Actual facilities in the system"/)).not.toBeInTheDocument();
+  });
+});
+
 describe("ObjectivePanel's foldable sub-sections", () => {
   beforeEach(() => {
     localStorage.clear();

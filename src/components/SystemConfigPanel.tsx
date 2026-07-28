@@ -572,63 +572,66 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
         </div>
       </div>
 
-      <div className="row-grid" style={{ marginTop: 14 }}>
-        <div className="field">
-          <label htmlFor="first-station-building">Primary station *</label>
-          <select
-            id="first-station-building"
-            aria-required="true"
-            value={formState.firstStationBuilding}
-            disabled={locked}
-            onChange={(e) => {
-              const building = e.target.value;
-              // Auto-pick the single option when the newly-chosen building has only one known
-              // design variant — same reasoning as the ordinary facility-slot picker above.
-              const newVariants = getBuildingVariants(building);
-              dispatch({
-                type: "patch",
-                patch: {
-                  firstStationBuilding: building,
-                  firstStationVariant: newVariants?.length === 1 ? newVariants[0] : undefined,
-                },
-              });
-            }}
-          >
-            <option value="">— select —</option>
-            {ALL_CATEGORIES["First Station"].map((name) => {
-              const disabledByNoRing = name === "Asteroid_Base" && noRingEligibleBody;
-              return (
-                <option key={name} value={name} disabled={disabledByNoRing}>
-                  {toPrintable(name)}
-                  {disabledByNoRing ? " (no ring-eligible body)" : ""}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-        {hasBodies && (
+      <div className="field-highlight" style={{ marginTop: 14 }}>
+        <p className="panel-hint">The station you already have (or plan to build first). Required before you can solve.</p>
+        <div className="row-grid" style={{ marginTop: 8 }}>
           <div className="field">
-            <label htmlFor="first-station-body">On body</label>
+            <label htmlFor="first-station-building">Primary station *</label>
             <select
-              id="first-station-body"
-              value={formState.firstStationBodyId ?? ""}
+              id="first-station-building"
+              aria-required="true"
+              value={formState.firstStationBuilding}
               disabled={locked}
-              onChange={(e) =>
+              onChange={(e) => {
+                const building = e.target.value;
+                // Auto-pick the single option when the newly-chosen building has only one known
+                // design variant — same reasoning as the ordinary facility-slot picker above.
+                const newVariants = getBuildingVariants(building);
                 dispatch({
                   type: "patch",
-                  patch: { firstStationBodyId: e.target.value === "" ? undefined : Number(e.target.value) },
-                })
-              }
+                  patch: {
+                    firstStationBuilding: building,
+                    firstStationVariant: newVariants?.length === 1 ? newVariants[0] : undefined,
+                  },
+                });
+              }}
             >
-              <option value="">— unassigned —</option>
-              {stationBodyOptions.map((b) => (
-                <option key={b.bodyId} value={b.bodyId}>
-                  {b.bodyName}
-                </option>
-              ))}
+              <option value="">— select —</option>
+              {ALL_CATEGORIES["First Station"].map((name) => {
+                const disabledByNoRing = name === "Asteroid_Base" && noRingEligibleBody;
+                return (
+                  <option key={name} value={name} disabled={disabledByNoRing}>
+                    {toPrintable(name)}
+                    {disabledByNoRing ? " (no ring-eligible body)" : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
-        )}
+          {hasBodies && (
+            <div className="field">
+              <label htmlFor="first-station-body">On body</label>
+              <select
+                id="first-station-body"
+                value={formState.firstStationBodyId ?? ""}
+                disabled={locked}
+                onChange={(e) =>
+                  dispatch({
+                    type: "patch",
+                    patch: { firstStationBodyId: e.target.value === "" ? undefined : Number(e.target.value) },
+                  })
+                }
+              >
+                <option value="">— unassigned —</option>
+                {stationBodyOptions.map((b) => (
+                  <option key={b.bodyId} value={b.bodyId}>
+                    {b.bodyName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </div>
 
       <SystemScoresSummary

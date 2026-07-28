@@ -155,6 +155,11 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
           {solving ? "Solving…" : "Solve for a system"}
         </button>
       </div>
+      {!formState.firstStationBuilding && (
+        <p className="panel-hint panel-hint-accent">
+          Pick a primary station in "Actual facilities in the system" before you can solve.
+        </p>
+      )}
       <div className="row-grid">
         <label>
           <input

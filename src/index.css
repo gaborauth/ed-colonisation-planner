@@ -397,6 +397,17 @@ select.toolbar-summary-system {
   gap: 3px;
 }
 
+/* Draws the eye to the "Primary station"/"On body" fields — the same accent color as
+ * `button.primary` ("Solve for a system"), so the highlight visually reads as "this feeds that
+ * button" (2026-07-28 user request). Always shown, not just while unset — full-width, wraps both
+ * fields' own `.row-grid` rather than being a per-field modifier (2026-07-28 follow-up, same day). */
+.field-highlight {
+  border: 1px solid var(--accent);
+  background: var(--accent-dim);
+  border-radius: 3px;
+  padding: 8px 10px;
+}
+
 /* SystemScoresSummary.tsx's read-only score/points/slots values — same `.field` (label + value)
  * layout as "Orbital slots"/"Primary station" above them, so the moved-in Result-pane content
  * (2026-07-26) reads as part of this panel rather than a bolted-on foreign block. Same
@@ -876,6 +887,14 @@ select.toolbar-summary-system {
   font-size: 12px;
   color: var(--text-dim);
   margin: 0;
+}
+
+/* A `.panel-hint` that needs to stand out rather than read as routine secondary text — e.g.
+ * ObjectivePanel's "pick a primary station first" reminder next to the disabled Solve button,
+ * same accent color as `.field-highlight`/`button.primary` so the two reminders read as one signal. */
+.panel-hint-accent {
+  color: var(--accent-text);
+  margin-top: 8px;
 }
 
 .solved-slot-empty {
