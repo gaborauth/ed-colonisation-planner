@@ -795,7 +795,8 @@ select.toolbar-summary-system {
   font-size: 12px;
 }
 
-.facility-tree-demolish {
+.facility-tree-demolish,
+.facility-tree-blocked {
   display: flex;
   align-items: center;
   gap: 5px;

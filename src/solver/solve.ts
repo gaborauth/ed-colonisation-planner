@@ -133,6 +133,14 @@ export interface SolverBody {
     space: (PresentFacilitySlot | null)[];
     ground: (PresentFacilitySlot | null)[];
   };
+  /** Per-slot-index "leave empty" markers — see `JournalBody.blockedSlots`'s doc comment for the
+   * full design. Absent/undefined arrays are treated as "nothing blocked". Only ever counted against
+   * a slot index that's also empty in `presentFacilities` (see `countBlockedEmptySlots` below), so a
+   * stale/conflicting entry can never double-subtract capacity. */
+  blockedSlots?: {
+    space: boolean[];
+    ground: boolean[];
+  };
   /** This body's full journal attributes (star/planet type, rings, organics, etc.) — the ONLY
    * reason `solve.ts` needs anything beyond bare slot capacity from a body. Feeds
    * `economySynergyCoefficient` below (see this file's header comment for what that term means).
@@ -477,8 +485,10 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
         if (d.kind === "space") spaceUsage = addExpr(spaceUsage, contribution);
         else groundUsage = addExpr(groundUsage, contribution);
       }
-      model.addConstraint(spaceUsage, "<=", b.slots.space - hardSpaceCount, `body_${b.bodyId}_space`);
-      model.addConstraint(groundUsage, "<=", b.slots.ground - hardGroundCount, `body_${b.bodyId}_ground`);
+      const blockedSpaceCount = countBlockedEmptySlots(b, "space");
+      const blockedGroundCount = countBlockedEmptySlots(b, "ground");
+      model.addConstraint(spaceUsage, "<=", b.slots.space - hardSpaceCount - blockedSpaceCount, `body_${b.bodyId}_space`);
+      model.addConstraint(groundUsage, "<=", b.slots.ground - hardGroundCount - blockedGroundCount, `body_${b.bodyId}_ground`);
     }
   } else {
     model.addConstraint(allVars.Asteroid_Base, "<=", input.slots.asteroid);
@@ -874,14 +884,30 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // this reduces to exactly the old aggregate-mode formula.
   const presentOccupiedSpace =
     presentSplit.hard.filter((f) => f.kind === "space").length +
-    presentKeepVars.filter((d) => d.kind === "space" && Math.round(colValues[d.keepVar] ?? 1) === 1).length;
+    presentKeepVars.filter((d) => d.kind === "space" && Math.round(colValues[d.keepVar] ?? 1) === 1).length +
+    (input.bodies ?? []).reduce((sum, b) => sum + countBlockedEmptySlots(b, "space"), 0);
   const presentOccupiedGround =
     presentSplit.hard.filter((f) => f.kind === "ground").length +
-    presentKeepVars.filter((d) => d.kind === "ground" && Math.round(colValues[d.keepVar] ?? 1) === 1).length;
+    presentKeepVars.filter((d) => d.kind === "ground" && Math.round(colValues[d.keepVar] ?? 1) === 1).length +
+    (input.bodies ?? []).reduce((sum, b) => sum + countBlockedEmptySlots(b, "ground"), 0);
   const totalSpaceSlots =
     input.bodies && input.bodies.length > 0 ? input.bodies.reduce((sum, b) => sum + b.slots.space, 0) : input.slots.space;
   const totalGroundSlots =
     input.bodies && input.bodies.length > 0 ? input.bodies.reduce((sum, b) => sum + b.slots.ground, 0) : input.slots.ground;
+
+  // Counts a body's "leave empty" markers (see `SolverBody.blockedSlots`'s doc comment) that
+  // actually reduce usable capacity: an index only counts once it's confirmed empty in
+  // `presentFacilities` too, so a stale/conflicting entry (blocked AND built at the same index)
+  // can never double-subtract.
+  function countBlockedEmptySlots(b: SolverBody, kind: "space" | "ground"): number {
+    const blocked = b.blockedSlots?.[kind] ?? [];
+    const present = b.presentFacilities?.[kind] ?? [];
+    let count = 0;
+    for (let i = 0; i < blocked.length; i++) {
+      if (blocked[i] && !present[i]) count++;
+    }
+    return count;
+  }
 
   // Ring-eligible ("asteroid-eligible") orbital slots are a SUBSET of ordinary orbital slots (any
   // orbital slot on a body with slots.asteroid > 0), not a separate pool — see
@@ -902,6 +928,7 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     used += presentKeepVars.filter(
       (d) => d.bodyId === b.bodyId && d.kind === "space" && Math.round(colValues[d.keepVar] ?? 1) === 1,
     ).length;
+    used += countBlockedEmptySlots(b, "space");
     return used;
   }
   const totalAsteroidEligibleSlots =

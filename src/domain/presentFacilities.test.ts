@@ -6,6 +6,7 @@ import {
   derivePresentCounts,
   deriveCurrentPoints,
   deriveSlotUsage,
+  normalizeBlockedSlots,
   normalizeFacilitySlots,
   presentBuildOrderHint,
   splitPresentFacilities,
@@ -33,6 +34,17 @@ describe("normalizeFacilitySlots", () => {
       { building: "Medical", demolishable: true },
     ];
     expect(normalizeFacilitySlots(slots, 1)).toEqual([{ building: "Government", demolishable: false }]);
+  });
+});
+
+describe("normalizeBlockedSlots", () => {
+  it("pads a short/undefined array with false up to count", () => {
+    expect(normalizeBlockedSlots(undefined, 3)).toEqual([false, false, false]);
+    expect(normalizeBlockedSlots([true], 3)).toEqual([true, false, false]);
+  });
+
+  it("truncates a too-long array down to count", () => {
+    expect(normalizeBlockedSlots([true, true, false], 1)).toEqual([true]);
   });
 });
 
