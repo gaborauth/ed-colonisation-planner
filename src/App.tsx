@@ -128,7 +128,12 @@ function App() {
         onDecline={cookieConsent.decline}
       />
       <main>
-        <h1>Elite Dangerous Colonisation Planner & Solver</h1>
+        <div className="app-header-row">
+          <h1>Elite Dangerous Colonisation Planner & Solver</h1>
+          <a className="app-header-link" href="tutorials.html" target="_blank" rel="noreferrer">
+            Tutorials
+          </a>
+        </div>
 
         <SystemPortabilityBar
           formState={formState}
