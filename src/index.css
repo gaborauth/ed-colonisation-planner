@@ -462,6 +462,26 @@ select.toolbar-summary-system {
   color: var(--danger);
 }
 
+/* SolvedSystemPanel's own stat block, opting into `SystemScoresSummary`'s `emphasized` prop
+ * (2026-07-28 user request) — a completed solve's totals are the actual payoff of running the
+ * solver, so they get a highlighted card + slightly larger numbers. Success-green rather than the
+ * accent-orange used for "Primary station, fill this in" or the cyan used for "solving in
+ * progress" elsewhere, so this doesn't collide with either of those existing meanings.
+ * `SystemConfigPanel`'s pre-solve "current totals" view deliberately does NOT opt in, so the
+ * emphasis still differentiates something instead of making every stat block look the same. */
+.system-scores-emphasized {
+  border: 1px solid var(--success);
+  background: var(--success-dim);
+  border-radius: 3px;
+  /* No top padding of its own — the inner `.row-grid`'s existing `marginTop: 14` inline style
+   * already provides that gap, so this keeps all four sides visually equal at 14px. */
+  padding: 0 14px 14px;
+}
+
+.system-scores-emphasized .field-value {
+  font-size: 17px;
+}
+
 /* Built/free slot summary in "Actual facilities in the system" (SystemConfigPanel) — read-only,
  * derived from the manually-filled facilities tree below it (see domain/presentFacilities.ts's
  * `deriveSlotUsage`), not an editable field like the old plain slot-count inputs it replaced. */
