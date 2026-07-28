@@ -7,16 +7,19 @@ import type { SolverResult } from "../solver/solve";
 import { NumberInput } from "./NumberInput";
 import { Tooltip } from "./Tooltip";
 
-// Visible panel title/column header say "Constructions" (2026-07-27, user request) — the umbrella
-// term Frontier's own patch notes use ("All constructions are divided into two types... Ports and
-// Supporting Facilities"), picked specifically because "Facilities" is already the OFFICIAL,
-// narrower term for the non-port half of this table (see `isPortRole`/`PORT_ROLE_BUILDINGS` in
-// data/buildings.ts) — calling the whole table (ports included) "Facilities" would misuse that
-// term. Deliberately UI-copy-only: `Building`/`ALL_BUILDINGS`/`data/buildings.ts` and every other
-// internal identifier are untouched, including the `building` field name inside already-exported/
-// saved JSON (`PresentFacilitySlot.building`, `firstStationBuilding`, `SolverResult.placements[].
-// building`) — renaming those would break every already-saved plan and already-exported system
-// JSON a real user has sitting in localStorage/on disk today.
+// Column header says "Construction" (2026-07-27, user request) — the umbrella term Frontier's own
+// patch notes use ("All constructions are divided into two types... Ports and Supporting
+// Facilities"), picked specifically because "Facilities" is already the OFFICIAL, narrower term for
+// the non-port half of this table (see `isPortRole`/`PORT_ROLE_BUILDINGS` in data/buildings.ts) —
+// calling the whole table (ports included) "Facilities" would misuse that term. The panel's own
+// title moved on from that same umbrella word to "Ports & Facilities numbers" (2026-07-28, user
+// request) — naming both halves explicitly rather than reusing the single umbrella term sidesteps
+// the same "Facilities" ambiguity concern, since it isn't relying on "Facilities" alone to cover
+// ports too. Deliberately UI-copy-only either way: `Building`/`ALL_BUILDINGS`/`data/buildings.ts`
+// and every other internal identifier are untouched, including the `building` field name inside
+// already-exported/saved JSON (`PresentFacilitySlot.building`, `firstStationBuilding`,
+// `SolverResult.placements[].building`) — renaming those would break every already-saved plan and
+// already-exported system JSON a real user has sitting in localStorage/on disk today.
 interface BuildingsTableProps {
   formState: PlannerFormState;
   dispatch: Dispatch<PlannerAction>;
@@ -107,7 +110,7 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
         aria-expanded={!collapsed}
         onClick={() => setCollapsed((c) => !c)}
       >
-        <span className="panel-toggle-title">Constructions</span>
+        <span className="panel-toggle-title">Ports & Facilities numbers</span>
         <span className="chevron" aria-hidden="true">
           ▾
         </span>
@@ -122,8 +125,8 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
                 <tr>
                   <th>Construction</th>
                   <th>Already present</th>
-                  <th>At least</th>
-                  <th>At most</th>
+                  <th>Min</th>
+                  <th>Max</th>
                   <th>Built</th>
                   <th>Total</th>
                 </tr>
@@ -151,14 +154,14 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
                       </td>
                       <td>
                         <NumberInput
-                          ariaLabel={`${toPrintable(name)} at least`}
+                          ariaLabel={`Minimum ${toPrintable(name)}`}
                           value={formState.atLeast[name]}
                           onChange={(value) => dispatch({ type: "setMapEntry", map: "atLeast", name, value })}
                         />
                       </td>
                       <td>
                         <NumberInput
-                          ariaLabel={`${toPrintable(name)} at most`}
+                          ariaLabel={`Maximum ${toPrintable(name)}`}
                           value={formState.atMost[name]}
                           onChange={(value) => dispatch({ type: "setMapEntry", map: "atMost", name, value })}
                         />

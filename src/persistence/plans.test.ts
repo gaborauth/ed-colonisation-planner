@@ -41,6 +41,6 @@ describe("plan persistence", () => {
   });
 
   it("importPlanFromJSON rejects malformed input", () => {
-    expect(() => importPlanFromJSON(JSON.stringify({ foo: "bar" }))).toThrow("Not a valid EDCP plan file");
+    expect(() => importPlanFromJSON(JSON.stringify({ foo: "bar" }))).toThrow("Not a valid EDCPS plan file");
   });
 });

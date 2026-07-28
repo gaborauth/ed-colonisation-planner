@@ -60,6 +60,7 @@
 import {
   ALL_BUILDINGS,
   ALL_SCORES,
+  type EconomyType,
   type Score,
   computeCompoundScore,
   FIRST_STATION_BONUS,
@@ -72,6 +73,7 @@ import {
 import { computeBoostDecrease, facilityBaseEconomies } from "../domain/economyOverrides";
 import { WEAK_LINK_CONTRIBUTION, type BuildingPlacement } from "../domain/links";
 import {
+  applyPrimaryReservation,
   computeHardNonPortSeed,
   computePresentPortsSeed,
   splitPresentFacilities,
@@ -93,6 +95,15 @@ export type { Direction } from "./objective";
 const DEPENDENCY_BIG_M = 1000;
 const DEFAULT_BUILDING_COUNT_CAP = 300;
 const DEFAULT_MAX_NEW_PORTS = 20;
+
+/** Flat weight for a Want/Don't-want `economyPreferences` entry, added (Want) or subtracted (Don't
+ * want) into `economy_preference` per qualifying (building, body) pair. User-supplied, no source —
+ * chosen to sit in the same order of magnitude as `economy_synergy`'s own existing deltas (a single
+ * strong-link boost/decrease is ±0.4, weak-link trickle is 0.05, full strong-link tier
+ * contributions run 0.4-1.2), so one preferred building's pull is comparable to a single real
+ * link-boost, not negligible or overwhelming. See CLAUDE.md's "Explicitly unverified/best-effort
+ * constants" section. */
+const ECONOMY_PREFERENCE_WEIGHT = 0.5;
 
 export interface SlotAvailability {
   space: number;
@@ -121,6 +132,14 @@ export interface SolverBody {
   presentFacilities?: {
     space: (PresentFacilitySlot | null)[];
     ground: (PresentFacilitySlot | null)[];
+  };
+  /** Per-slot-index "leave empty" markers — see `JournalBody.blockedSlots`'s doc comment for the
+   * full design. Absent/undefined arrays are treated as "nothing blocked". Only ever counted against
+   * a slot index that's also empty in `presentFacilities` (see `countBlockedEmptySlots` below), so a
+   * stale/conflicting entry can never double-subtract capacity. */
+  blockedSlots?: {
+    space: boolean[];
+    ground: boolean[];
   };
   /** This body's full journal attributes (star/planet type, rings, organics, etc.) — the ONLY
    * reason `solve.ts` needs anything beyond bare slot capacity from a body. Feeds
@@ -171,7 +190,23 @@ export interface SolverInput {
    * buildings stay body-unassigned either way — only newly solved-for buildings (and the primary
    * station, if `firstStationBodyId` is given) get placed. */
   bodies?: SolverBody[];
+  /** Per-`EconomyType` Must/Want/Don't-want/Forbid steering (absent per economy = no bias, today's
+   * default). Only meaningful when `bodies` is present and non-empty — like `economy_synergy`,
+   * evaluating a generic port's economy set needs a real body's attributes
+   * (`domain/economyOverrides.ts#facilityBaseEconomies`), which aggregate mode doesn't have.
+   * Silently ignored (no effect, no error) when `bodies` is absent/empty — same backward-compatible
+   * degrade pattern as `SolverBody.economy` itself. See this file's `economy_preference`/Forbid/Must
+   * block (search "economyPreferences") for exactly how each value is enforced. */
+  economyPreferences?: Partial<Record<EconomyType, EconomyPreference>>;
 }
+
+/** One of five states a user can set per `EconomyType` in `ObjectivePanel`'s "Economy preferences"
+ * table. `undefined`/absent (not a listed member here) = "Dunno", today's unbiased default.
+ * - `forbid`/`must` are hard MILP constraints (zero out / require at least one carrying variable).
+ * - `want`/`dont_want` are soft: a flat `± ECONOMY_PREFERENCE_WEIGHT` folded into the
+ *   `economy_preference` score (letter `p`) rather than a constraint, so they never make an
+ *   otherwise-feasible plan infeasible. */
+export type EconomyPreference = "must" | "want" | "dont_want" | "forbid";
 
 export interface SolverResult {
   status: "optimal" | "infeasible" | "error";
@@ -208,6 +243,7 @@ const SCORE_LETTER_TO_SCORE: Record<ScoreLetter, Score> = {
   d: "development_level",
   c: "construction_cost",
   y: "economy_synergy",
+  p: "economy_preference",
 };
 
 function errorResult(message: string): SolverResult {
@@ -248,16 +284,30 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // hard-vs-demolishable split, and SolverBody's doc comment for why `presentFacilities` replaces
   // the flat `alreadyPresent` map's role entirely once `bodies` is used). Computed unconditionally
   // — both lists are simply empty when `input.bodies` is absent/empty.
-  const presentBodies: PresentFacilitiesBody[] = (input.bodies ?? []).map((b) => ({
-    bodyId: b.bodyId,
-    space: b.presentFacilities?.space ?? [],
-    ground: b.presentFacilities?.ground ?? [],
-  }));
+  //
+  // `applyPrimaryReservation` overwrites the primary station's own assigned body's Orbital-1 slot
+  // with its own real, synced entry (see `PresentFacilitySlot.primary`'s doc comment) — authoritative
+  // regardless of whatever `input.bodies` itself says was there, exactly like this file already
+  // never trusts a caller to have independently gotten `firstStationBuilding` itself right. This is
+  // what lets the capacity constraint below, `computeHardNonPortSeed`/`computePresentPortsSeed`'s
+  // T2/T3 seed (further down), and the reported `slotsRemaining` all treat the primary's slot as an
+  // ordinary occupied one via `presentSplit.hard` directly — no separate "+1 for the primary" is
+  // needed anywhere in this file, which would otherwise double-count it whenever `input.bodies`
+  // also has a real facility recorded in that same slot.
+  const presentBodies: PresentFacilitiesBody[] = applyPrimaryReservation(
+    (input.bodies ?? []).map((b) => ({
+      bodyId: b.bodyId,
+      space: b.presentFacilities?.space ?? [],
+      ground: b.presentFacilities?.ground ?? [],
+    })),
+    input.firstStationBodyId,
+    input.firstStationBuilding,
+  );
   const presentSplit = splitPresentFacilities(presentBodies);
 
   const nbPortsAlreadyPresent =
     input.bodies && input.bodies.length > 0
-      ? presentSplit.hard.filter((f) => isPort(ALL_BUILDINGS[f.building])).length
+      ? presentSplit.hard.filter((f) => !f.primary && isPort(ALL_BUILDINGS[f.building])).length
       : Object.entries(input.alreadyPresent)
           .filter(([name]) => isPort(ALL_BUILDINGS[name]))
           .reduce((sum, [, nb]) => sum + nb, 0);
@@ -304,7 +354,12 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       let bodySum: LPExpr = exprConst(0);
       for (const b of input.bodies) {
         // Asteroid_Base is hard-restricted to ring/belt-eligible bodies here, replacing the old
-        // system-wide `Asteroid_Base <= input.slots.asteroid` pseudo-pool entirely in this mode.
+        // system-wide `Asteroid_Base <= input.slots.asteroid` pseudo-pool entirely in this mode. A
+        // ring/belt-eligible body's slot (whether a ringed planet's own slot, or a star belt's
+        // dedicated synthetic `kind: "ring"` body — see `journal/parser.ts`'s `withRingBodies`)
+        // can ALSO host any ordinary building — user-confirmed 2026-07-27 that a belt cluster
+        // slot isn't Asteroid_Base-exclusive, it's an ordinary orbital slot that additionally
+        // qualifies for Asteroid_Base. No further restriction needed here beyond the existing one.
         const ub = name === "Asteroid_Base" && b.slots.asteroid === 0 ? 0 : DEFAULT_BUILDING_COUNT_CAP;
         const v = model.addVar(`${name}__body_${b.bodyId}`, "integer", 0, ub);
         bodyVars[name][b.bodyId] = v;
@@ -404,9 +459,11 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     // the body's TOTAL physical slot count (see SolverBody's doc comment) — occupied-by-already-
     // present capacity is subtracted here: hard-present facilities always occupy their slot;
     // demolishable ones do too unless the solver's `keepVar` for that slot solves to 0. The
-    // primary station's body (if assigned, see SolverInput.firstStationBodyId) has one further
-    // orbital slot reserved for it, on top of whatever's already present — it's a real physical
-    // slot like any other, just fixed to the chosen firstStationBuilding instead of solved for.
+    // primary station's body (if assigned, see SolverInput.firstStationBodyId) has its own
+    // reserved orbital slot too — it's a real physical slot like any other, just fixed to the
+    // chosen firstStationBuilding instead of solved for; it's already included in `hardSpaceCount`
+    // below via `presentSplit.hard` (see `applyPrimaryReservation`, applied above), so it needs no
+    // separate reservation term here.
     for (const b of input.bodies) {
       let spaceUsage: LPExpr = exprConst(0);
       let groundUsage: LPExpr = exprConst(0);
@@ -428,14 +485,10 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
         if (d.kind === "space") spaceUsage = addExpr(spaceUsage, contribution);
         else groundUsage = addExpr(groundUsage, contribution);
       }
-      const firstStationReservation = b.bodyId === input.firstStationBodyId ? 1 : 0;
-      model.addConstraint(
-        spaceUsage,
-        "<=",
-        b.slots.space - hardSpaceCount - firstStationReservation,
-        `body_${b.bodyId}_space`,
-      );
-      model.addConstraint(groundUsage, "<=", b.slots.ground - hardGroundCount, `body_${b.bodyId}_ground`);
+      const blockedSpaceCount = countBlockedEmptySlots(b, "space");
+      const blockedGroundCount = countBlockedEmptySlots(b, "ground");
+      model.addConstraint(spaceUsage, "<=", b.slots.space - hardSpaceCount - blockedSpaceCount, `body_${b.bodyId}_space`);
+      model.addConstraint(groundUsage, "<=", b.slots.ground - hardGroundCount - blockedGroundCount, `body_${b.bodyId}_ground`);
     }
   } else {
     model.addConstraint(allVars.Asteroid_Base, "<=", input.slots.asteroid);
@@ -530,15 +583,19 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     addExpr(systemScores.wealth, systemScores.standard_of_living),
   );
 
-  // --- economy_synergy: per-body economy-fit term (see this file's header comment) -------------
+  // --- economy_synergy / economy_preference / Forbid / Must (per-body economy-fit + steering) ----
   // Only meaningful in per-body mode, and only for bodies whose caller actually supplied
   // `economy` — see `SolverBody.economy`'s doc comment for the backward-compatible degrade.
   // `allEconomyBodies` is the whole-system `JournalBody[]` `computeBoostDecrease` needs for its
   // system-wide checks (resource level, black hole/white dwarf/neutron star presence) — built once
   // rather than per (building, body) pair. `knownPortBodyIds` gates the full strong-link-style
   // delta to bodies that actually have (or will certainly have) a port — see the header comment's
-  // "One thing this term does NOT get to ignore" paragraph for why.
+  // "One thing this term does NOT get to ignore" paragraph for why. `economy_preference`/Forbid/
+  // Must reuse this exact same (building, body) loop and `facilityBaseEconomies` lookup — see
+  // `SolverInput.economyPreferences`'s doc comment for why this stays a separate score from
+  // `economy_synergy` rather than folded into it.
   systemScores.economy_synergy = exprConst(0);
+  systemScores.economy_preference = exprConst(0);
   if (input.bodies && input.bodies.length > 0) {
     const allEconomyBodies: JournalBody[] = input.bodies
       .map((b) => b.economy)
@@ -562,16 +619,50 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       return economies.reduce((sum, economy) => sum + (deltas[economy] ?? 0), 0);
     }
 
+    const preferences = input.economyPreferences;
+    // Must: `sum(vars carrying this economy) >= 1`, collected per economy across every (building,
+    // body) pair before adding one constraint each below. Deliberately does NOT offset against
+    // already-present facilities already carrying the economy (matches the backlog spec exactly) —
+    // a known, documented limitation, not an oversight.
+    const mustSums: Partial<Record<EconomyType, LPExpr>> = {};
+
     let synergy: LPExpr = exprConst(0);
+    let preference: LPExpr = exprConst(0);
     for (const name of Object.keys(ALL_BUILDINGS)) {
       for (const b of input.bodies) {
-        const coeff = economySynergyCoefficient(name, b);
-        if (coeff !== 0) {
-          synergy = addExpr(synergy, scaleExpr(exprVar(bodyVars[name][b.bodyId], 1), coeff));
+        const synergyCoeff = economySynergyCoefficient(name, b);
+        if (synergyCoeff !== 0) {
+          synergy = addExpr(synergy, scaleExpr(exprVar(bodyVars[name][b.bodyId], 1), synergyCoeff));
+        }
+
+        if (!preferences || !b.economy) continue;
+        const economies = facilityBaseEconomies(name, b.economy);
+        if (economies.length === 0) continue;
+        const v = bodyVars[name][b.bodyId];
+        for (const economy of economies) {
+          const pref = preferences[economy];
+          if (!pref) continue;
+          if (pref === "forbid") {
+            // Zeroing every carrying (building, body) var is enough even for ports: the pre-
+            // existing `body_split_<name>` equality constraint (bodySum == allVars[name]) forces
+            // the building's aggregate/port_k variables to 0 too once every body's slot is zeroed.
+            model.addConstraint(exprVar(v, 1), "==", 0, `forbid_${economy}_${name}_${b.bodyId}`);
+          } else if (pref === "must") {
+            mustSums[economy] = addExpr(mustSums[economy] ?? exprConst(0), exprVar(v, 1));
+          } else if (pref === "want") {
+            preference = addExpr(preference, scaleExpr(exprVar(v, 1), ECONOMY_PREFERENCE_WEIGHT));
+          } else if (pref === "dont_want") {
+            preference = addExpr(preference, scaleExpr(exprVar(v, 1), -ECONOMY_PREFERENCE_WEIGHT));
+          }
         }
       }
     }
     systemScores.economy_synergy = synergy;
+    systemScores.economy_preference = preference;
+
+    for (const [economy, sum] of Object.entries(mustSums) as [EconomyType, LPExpr][]) {
+      model.addConstraint(sum, ">=", 1, `must_${economy}`);
+    }
   }
 
   // --- Objective -----------------------------------------------------------------------------
@@ -793,15 +884,30 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // this reduces to exactly the old aggregate-mode formula.
   const presentOccupiedSpace =
     presentSplit.hard.filter((f) => f.kind === "space").length +
-    presentKeepVars.filter((d) => d.kind === "space" && Math.round(colValues[d.keepVar] ?? 1) === 1).length;
+    presentKeepVars.filter((d) => d.kind === "space" && Math.round(colValues[d.keepVar] ?? 1) === 1).length +
+    (input.bodies ?? []).reduce((sum, b) => sum + countBlockedEmptySlots(b, "space"), 0);
   const presentOccupiedGround =
     presentSplit.hard.filter((f) => f.kind === "ground").length +
-    presentKeepVars.filter((d) => d.kind === "ground" && Math.round(colValues[d.keepVar] ?? 1) === 1).length;
-  const primaryReservation = input.bodies && input.bodies.length > 0 && input.firstStationBodyId !== undefined ? 1 : 0;
+    presentKeepVars.filter((d) => d.kind === "ground" && Math.round(colValues[d.keepVar] ?? 1) === 1).length +
+    (input.bodies ?? []).reduce((sum, b) => sum + countBlockedEmptySlots(b, "ground"), 0);
   const totalSpaceSlots =
     input.bodies && input.bodies.length > 0 ? input.bodies.reduce((sum, b) => sum + b.slots.space, 0) : input.slots.space;
   const totalGroundSlots =
     input.bodies && input.bodies.length > 0 ? input.bodies.reduce((sum, b) => sum + b.slots.ground, 0) : input.slots.ground;
+
+  // Counts a body's "leave empty" markers (see `SolverBody.blockedSlots`'s doc comment) that
+  // actually reduce usable capacity: an index only counts once it's confirmed empty in
+  // `presentFacilities` too, so a stale/conflicting entry (blocked AND built at the same index)
+  // can never double-subtract.
+  function countBlockedEmptySlots(b: SolverBody, kind: "space" | "ground"): number {
+    const blocked = b.blockedSlots?.[kind] ?? [];
+    const present = b.presentFacilities?.[kind] ?? [];
+    let count = 0;
+    for (let i = 0; i < blocked.length; i++) {
+      if (blocked[i] && !present[i]) count++;
+    }
+    return count;
+  }
 
   // Ring-eligible ("asteroid-eligible") orbital slots are a SUBSET of ordinary orbital slots (any
   // orbital slot on a body with slots.asteroid > 0), not a separate pool — see
@@ -810,9 +916,10 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // occupancy by every OTHER building (present or new) sitting on a ring-eligible body's orbital
   // slots — contradictorily reporting asteroid slots free while plain orbital slots (a superset)
   // were already all used up. `bodySpaceOccupied` mirrors the per-body capacity constraint above
-  // (new + present-hard + present-kept-demolishable + primary reservation) for one specific body.
+  // (new + present-hard [which already includes the primary's own synced entry, see
+  // `applyPrimaryReservation`] + present-kept-demolishable) for one specific body.
   function bodySpaceOccupied(b: SolverBody): number {
-    let used = primaryReservation && b.bodyId === input.firstStationBodyId ? 1 : 0;
+    let used = 0;
     for (const [name, building] of Object.entries(ALL_BUILDINGS)) {
       if (building.slot !== "space") continue;
       used += Math.round(colValues[bodyVars[name][b.bodyId]] ?? 0);
@@ -821,6 +928,7 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     used += presentKeepVars.filter(
       (d) => d.bodyId === b.bodyId && d.kind === "space" && Math.round(colValues[d.keepVar] ?? 1) === 1,
     ).length;
+    used += countBlockedEmptySlots(b, "space");
     return used;
   }
   const totalAsteroidEligibleSlots =
@@ -843,7 +951,7 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
     finalT2Points: Math.round(evalExprAt(finalT2Expr, colValues)),
     finalT3Points: Math.round(evalExprAt(finalT3Expr, colValues)),
     slotsRemaining: {
-      space: totalSpaceSlots - presentOccupiedSpace - primaryReservation - Math.round(evalExprAt(usedSlots.space, colValues)),
+      space: totalSpaceSlots - presentOccupiedSpace - Math.round(evalExprAt(usedSlots.space, colValues)),
       ground: totalGroundSlots - presentOccupiedGround - Math.round(evalExprAt(usedSlots.ground, colValues)),
       asteroid: totalAsteroidEligibleSlots - occupiedAsteroidEligibleSlots,
     },

@@ -8,6 +8,7 @@ import {
   deriveCurrentPoints,
   derivePresentCounts,
   deriveSlotUsage,
+  normalizeBlockedSlots,
   normalizeFacilitySlots,
   toSlotUsageBodies,
   type PresentFacilitySlot,
@@ -236,6 +237,7 @@ function BodySlotLeaves({
       {SLOT_KINDS.flatMap(({ kind, label, category }) => {
         const count = body.slots?.[kind] ?? 0;
         const slots = normalizeFacilitySlots(body.presentFacilities?.[kind], count);
+        const blockedList = normalizeBlockedSlots(body.blockedSlots?.[kind], count);
         // The primary station's own reservation is only ever the first *orbital* slot (it's always
         // an orbital Port-role building, see SolverInput.firstStationBuilding) — ground slots are
         // never affected, and this body's index 0 space slot is expected to stay empty in
@@ -250,6 +252,7 @@ function BodySlotLeaves({
         const editableSlots = reserveFirstForPrimary ? slots.slice(1) : slots;
         const leaves = editableSlots.map((slot, i) => {
           const index = reserveFirstForPrimary ? i + 1 : i;
+          const blocked = blockedList[index] ?? false;
           const building = slot ? ALL_BUILDINGS[slot.building] : undefined;
           const buildingIsPort = building ? isPort(building) : false;
           const variants = slot ? getBuildingVariants(slot.building) : undefined;
@@ -276,7 +279,7 @@ function BodySlotLeaves({
               <select
                 aria-label={`${body.bodyName} ${label} slot ${index + 1} facility`}
                 value={slot?.building ?? ""}
-                disabled={locked}
+                disabled={locked || blocked}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === "") {
@@ -302,6 +305,20 @@ function BodySlotLeaves({
                   </option>
                 ))}
               </select>
+              {!slot && (
+                <label className="facility-tree-blocked">
+                  <input
+                    type="checkbox"
+                    aria-label={`${body.bodyName} ${label} slot ${index + 1} leave empty`}
+                    checked={blocked}
+                    disabled={locked}
+                    onChange={(e) =>
+                      dispatch({ type: "setSlotBlocked", bodyId: body.bodyId, kind, index, blocked: e.target.checked })
+                    }
+                  />
+                  Leave empty
+                </label>
+              )}
               {slot && variants && (
                 <select
                   className="facility-tree-variant"
@@ -479,16 +496,7 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
   // Link topology for what's actually built today (see domain/presentLinks.ts) — feeds the
   // "Strong market link(s)" hover section below. Recomputed only when the underlying present-
   // facility/primary-station state actually changes, not on every render.
-  const linksResult = useMemo(
-    () =>
-      computePresentSystemLinks(
-        formState.bodies,
-        formState.firstStationBuilding && formState.firstStationBodyId !== undefined
-          ? { building: formState.firstStationBuilding, bodyId: formState.firstStationBodyId }
-          : undefined,
-      ),
-    [formState.bodies, formState.firstStationBuilding, formState.firstStationBodyId],
-  );
+  const linksResult = useMemo(() => computePresentSystemLinks(formState.bodies), [formState.bodies]);
 
   // The primary station shows up as a leaf under whichever body it's assigned to (see
   // HierarchyBranch/the root's own leaves below) — but if it's been picked without a body
@@ -505,14 +513,17 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
   // `deriveSlotUsage`'s doc comment — so they're shown nested under "Orbital slots" rather than as
   // a third sibling field.
   const slotUsageBodies = toSlotUsageBodies(formState.bodies);
-  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots, formState.firstStationBodyId);
+  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots);
 
   // "The actual sum of values of the system" (moved in from the old standalone Result panel,
   // 2026-07-26) — the CURRENT, already-built system's totals, computed directly (no MILP: nothing
   // to optimize for a fixed layout) via domain/currentSystemScores.ts. Falls back to the flat
   // `alreadyPresent` map in aggregate mode, same source BuildingsTable.tsx already uses there —
   // this panel's own tree only exists in per-body mode.
-  const presentCounts = hasBodies ? derivePresentCounts(slotUsageBodies) : formState.alreadyPresent;
+  // `excludePrimary`: `computeCurrentSystemScores` already adds the primary's own contribution
+  // separately (with its own bonus, distinct from every other facility's reduction) — including it
+  // here too would double-count it (see PresentFacilitySlot.primary's doc comment).
+  const presentCounts = hasBodies ? derivePresentCounts(slotUsageBodies, { excludePrimary: true }) : formState.alreadyPresent;
   const currentScores = computeCurrentSystemScores(presentCounts, formState.firstStationBuilding);
   const currentPoints = deriveCurrentPoints(slotUsageBodies, formState.firstStationBuilding);
 
@@ -561,63 +572,66 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
         </div>
       </div>
 
-      <div className="row-grid" style={{ marginTop: 14 }}>
-        <div className="field">
-          <label htmlFor="first-station-building">Primary station *</label>
-          <select
-            id="first-station-building"
-            aria-required="true"
-            value={formState.firstStationBuilding}
-            disabled={locked}
-            onChange={(e) => {
-              const building = e.target.value;
-              // Auto-pick the single option when the newly-chosen building has only one known
-              // design variant — same reasoning as the ordinary facility-slot picker above.
-              const newVariants = getBuildingVariants(building);
-              dispatch({
-                type: "patch",
-                patch: {
-                  firstStationBuilding: building,
-                  firstStationVariant: newVariants?.length === 1 ? newVariants[0] : undefined,
-                },
-              });
-            }}
-          >
-            <option value="">— select —</option>
-            {ALL_CATEGORIES["First Station"].map((name) => {
-              const disabledByNoRing = name === "Asteroid_Base" && noRingEligibleBody;
-              return (
-                <option key={name} value={name} disabled={disabledByNoRing}>
-                  {toPrintable(name)}
-                  {disabledByNoRing ? " (no ring-eligible body)" : ""}
-                </option>
-              );
-            })}
-          </select>
-        </div>
-        {hasBodies && (
+      <div className="field-highlight" style={{ marginTop: 14 }}>
+        <p className="panel-hint">The station you already have (or plan to build first). Required before you can solve.</p>
+        <div className="row-grid" style={{ marginTop: 8 }}>
           <div className="field">
-            <label htmlFor="first-station-body">On body</label>
+            <label htmlFor="first-station-building">Primary station *</label>
             <select
-              id="first-station-body"
-              value={formState.firstStationBodyId ?? ""}
+              id="first-station-building"
+              aria-required="true"
+              value={formState.firstStationBuilding}
               disabled={locked}
-              onChange={(e) =>
+              onChange={(e) => {
+                const building = e.target.value;
+                // Auto-pick the single option when the newly-chosen building has only one known
+                // design variant — same reasoning as the ordinary facility-slot picker above.
+                const newVariants = getBuildingVariants(building);
                 dispatch({
                   type: "patch",
-                  patch: { firstStationBodyId: e.target.value === "" ? undefined : Number(e.target.value) },
-                })
-              }
+                  patch: {
+                    firstStationBuilding: building,
+                    firstStationVariant: newVariants?.length === 1 ? newVariants[0] : undefined,
+                  },
+                });
+              }}
             >
-              <option value="">— unassigned —</option>
-              {stationBodyOptions.map((b) => (
-                <option key={b.bodyId} value={b.bodyId}>
-                  {b.bodyName}
-                </option>
-              ))}
+              <option value="">— select —</option>
+              {ALL_CATEGORIES["First Station"].map((name) => {
+                const disabledByNoRing = name === "Asteroid_Base" && noRingEligibleBody;
+                return (
+                  <option key={name} value={name} disabled={disabledByNoRing}>
+                    {toPrintable(name)}
+                    {disabledByNoRing ? " (no ring-eligible body)" : ""}
+                  </option>
+                );
+              })}
             </select>
           </div>
-        )}
+          {hasBodies && (
+            <div className="field">
+              <label htmlFor="first-station-body">On body</label>
+              <select
+                id="first-station-body"
+                value={formState.firstStationBodyId ?? ""}
+                disabled={locked}
+                onChange={(e) =>
+                  dispatch({
+                    type: "patch",
+                    patch: { firstStationBodyId: e.target.value === "" ? undefined : Number(e.target.value) },
+                  })
+                }
+              >
+                <option value="">— unassigned —</option>
+                {stationBodyOptions.map((b) => (
+                  <option key={b.bodyId} value={b.bodyId}>
+                    {b.bodyName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
       </div>
 
       <SystemScoresSummary

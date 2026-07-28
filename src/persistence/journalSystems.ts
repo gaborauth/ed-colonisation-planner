@@ -37,6 +37,11 @@ export function deleteSystem(systemAddress: number): void {
   const store = readStore();
   delete store[systemAddress];
   writeStore(store);
+  // Otherwise a deleted system's address would linger in LAST_USED_KEY, pointing at a system that
+  // no longer exists in the store.
+  if (getLastUsedSystemAddress() === systemAddress) {
+    localStorage.removeItem(LAST_USED_KEY);
+  }
 }
 
 /** Which system was last applied to the System facilities panel — lets `JournalImportPanel` restore

@@ -253,6 +253,31 @@ describe("solve with per-body placement (input.bodies)", () => {
     expect(placement?.bodyId).toBe(2);
   }, 20000);
 
+  // 2026-07-27 user report: a synthetic `kind: "ring"` star-belt body (see `journal/parser.ts`'s
+  // `withRingBodies`) is an ordinary orbital slot that ADDITIONALLY qualifies for Asteroid_Base —
+  // not an Asteroid_Base-EXCLUSIVE slot (an earlier version of this fix wrongly restricted it that
+  // way, corrected after the user clarified it in-game). Same behavior a ring-eligible PLANET's own
+  // slot already had — no special-casing by `kind` needed in solve.ts at all.
+  it("still allows an ordinary building on a ring/belt-eligible body's slot, same as any other asteroid-eligible body", async () => {
+    const ringBody: JournalBody = {
+      bodyName: "Test A Belt",
+      bodyId: 2,
+      kind: "ring",
+      landable: false,
+      parents: [],
+      rings: [],
+      raw: {},
+    };
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 1 }, economy: ringBody }],
+        constraints: { atLeast: { Commercial_Outpost: 1 } },
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.placements).toContainEqual({ building: "Commercial_Outpost", bodyId: 1, count: 1 });
+  }, 20000);
+
   it("reserves one of the primary station's body's orbital slots, leaving the rest for other buildings", async () => {
     const result = await solve(
       baseInput({
@@ -270,6 +295,39 @@ describe("solve with per-body placement (input.bodies)", () => {
     // the forced Commercial_Outposts — a 3rd would make this infeasible if the reservation weren't
     // being enforced.
     expect(result.placements).toContainEqual({ building: "Commercial_Outpost", bodyId: 1, count: 2 });
+  }, 20000);
+
+  // A body's Orbital 1 slot can carry a stale, manually-entered facility from before that body was
+  // ever assigned as the primary station — `domain/presentFacilities.ts`'s `applyPrimaryReservation`
+  // overwrites that slot with the primary's own real, synced entry regardless of whatever the
+  // caller's `presentFacilities` said was there, so it's never counted as occupied alongside the
+  // primary's own reservation (`solve.ts` never trusted caller data hygiene for the primary's
+  // identity either, matching how `firstStationBuilding` itself is always taken as given).
+  it("doesn't double-count a stale presentFacilities entry left in the primary station's own Orbital-1 slot", async () => {
+    const result = await solve(
+      baseInput({
+        firstStationBuilding: "Coriolis",
+        firstStationBodyId: 1,
+        bodies: [
+          {
+            bodyId: 1,
+            slots: { space: 2, ground: 0, asteroid: 0 },
+            presentFacilities: {
+              space: [{ building: "Commercial_Outpost", demolishable: false }, null],
+              ground: [],
+            },
+          },
+        ],
+        objective: { kind: "simple", score: "wealth" },
+        constraints: { atLeast: { Commercial_Outpost: 1 }, atMost: { Commercial_Outpost: 1 } },
+      }),
+    );
+    // Without the fix: the stale Commercial_Outpost entry occupies slot 0 (hardSpaceCount=1) AND
+    // the primary's own reservation ALSO claims a slot, leaving 0 of body 1's 2 slots for the
+    // forced Commercial_Outpost — infeasible even though only 1 slot is physically occupied.
+    expect(result.status).toBe("optimal");
+    expect(result.placements).toContainEqual({ building: "Coriolis", bodyId: 1, count: 1 });
+    expect(result.placements).toContainEqual({ building: "Commercial_Outpost", bodyId: 1, count: 1 });
   }, 20000);
 
   it("is infeasible when the primary station's body has no spare orbital slot for it", async () => {
@@ -367,6 +425,66 @@ describe("solve with per-body placement (input.bodies)", () => {
     );
     expect(result.status).toBe("optimal");
     expect(result.slotsRemaining.asteroid).toBe(0);
+  }, 20000);
+
+  // A "leave empty" marker (`SolverBody.blockedSlots`) reduces usable capacity exactly like an
+  // already-present hard facility, even though nothing is actually built there.
+  it("prevents the solver from placing anything in a slot marked blockedSlots", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 0 }, blockedSlots: { space: [true], ground: [] } }],
+        objective: { kind: "simple", score: "wealth" },
+        constraints: { atLeast: { Commercial_Outpost: 1 } },
+      }),
+    );
+    expect(result.status).toBe("infeasible");
+  }, 20000);
+
+  it("reflects a blocked slot in slotsRemaining even though nothing is built there", async () => {
+    // Minimizing construction_cost with no atLeast requirement means the solver's optimal choice
+    // is to build nothing at all — isolates the blocked slot's own contribution to slotsRemaining
+    // from whatever else a wealth-maximizing objective might otherwise choose to build in the
+    // still-open second slot.
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, blockedSlots: { space: [true, false], ground: [] } }],
+        objective: { kind: "simple", score: "construction_cost" },
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.slotsRemaining.space).toBe(1);
+  }, 20000);
+
+  // The `!present[i]` guard in `countBlockedEmptySlots`: a blocked index that's ALSO occupied by a
+  // real present facility (a data-hygiene edge case the UI itself never produces, since it only
+  // offers the toggle on an empty slot) must not double-subtract capacity for that one physical slot.
+  it("doesn't double-subtract capacity when a blocked index also has a stale present facility", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [
+          {
+            bodyId: 1,
+            slots: { space: 1, ground: 0, asteroid: 0 },
+            presentFacilities: { space: [{ building: "Commercial_Outpost", demolishable: false }], ground: [] },
+            blockedSlots: { space: [true], ground: [] },
+          },
+        ],
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.slotsRemaining.space).toBe(0);
+  }, 20000);
+
+  it("blockedSlots omitted is byte-identical to today's behavior", async () => {
+    const withoutBlocked = await solve(
+      baseInput({ bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 } }] }),
+    );
+    const withEmptyBlocked = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, blockedSlots: { space: [], ground: [] } }],
+      }),
+    );
+    expect(withEmptyBlocked).toEqual(withoutBlocked);
   }, 20000);
 });
 
@@ -481,5 +599,104 @@ describe("solve with economy_synergy (input.bodies[].economy)", () => {
     );
     expect(result.status).toBe("optimal");
     expect(result.objectiveValue).toBeCloseTo(0.05, 5);
+  }, 20000);
+});
+
+describe("solve with economyPreferences (Must/Want/Don't want/Forbid)", () => {
+  // Small_Military_Settlement is a leaf building (no `dependencies`) whose economy comes from
+  // FACILITY_ECONOMY_GUESS (body-independent) — a real body still needs to be attached via
+  // `economy` for solve.ts to evaluate `facilityBaseEconomies` at all (see SolverBody.economy's
+  // doc comment: no `economy` means no economy-based effect whatsoever, Forbid/Must/Want/Don't
+  // want included, same backward-compatible degrade `economy_synergy` already follows).
+  const plainBody: JournalBody = {
+    bodyName: "Test 1",
+    bodyId: 1,
+    kind: "planet",
+    landable: false,
+    parents: [],
+    rings: [],
+    raw: {},
+  };
+
+  it("Forbid zeroes out every building carrying that economy, making an otherwise-satisfiable atLeast requirement infeasible", async () => {
+    const bodies = [{ bodyId: 1, slots: { space: 0, ground: 3, asteroid: 0 }, economy: plainBody }];
+
+    const withoutForbid = await solve(
+      baseInput({ bodies, constraints: { atLeast: { Small_Military_Settlement: 1 } } }),
+    );
+    expect(withoutForbid.status).toBe("optimal");
+    expect(withoutForbid.toBuild.Small_Military_Settlement).toBeGreaterThanOrEqual(1);
+
+    const withForbid = await solve(
+      baseInput({
+        bodies,
+        constraints: { atLeast: { Small_Military_Settlement: 1 } },
+        economyPreferences: { Military: "forbid" },
+      }),
+    );
+    expect(withForbid.status).toBe("infeasible");
+  }, 20000);
+
+  it("Must on an economy no candidate building can actually satisfy (zero physical capacity) returns a clean infeasible status, not a crash", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 0, ground: 0, asteroid: 0 }, economy: plainBody }],
+        economyPreferences: { Military: "must" },
+      }),
+    );
+    expect(result.status).toBe("infeasible");
+  }, 20000);
+
+  it("Must is satisfied without erroring once a body can actually host a qualifying building", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 }, economy: plainBody }],
+        economyPreferences: { Military: "must" },
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    const militaryBuilt =
+      (result.toBuild.Small_Military_Settlement ?? 0) +
+      (result.toBuild.Medium_Military_Settlement ?? 0) +
+      (result.toBuild.Large_Military_Settlement ?? 0) +
+      (result.toBuild.Military_Hub ?? 0) +
+      (result.toBuild.Military_Outpost ?? 0);
+    expect(militaryBuilt).toBeGreaterThanOrEqual(1);
+  }, 20000);
+
+  it("Want vs Don't want measurably shifts which buildings the solver picks (maximizing economy_preference alone)", async () => {
+    const bodies = [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 }, economy: plainBody }];
+    const objective: SolverInput["objective"] = { kind: "simple", score: "economy_preference" };
+
+    const wantResult = await solve(baseInput({ bodies, objective, economyPreferences: { Military: "want" } }));
+    const dontWantResult = await solve(
+      baseInput({ bodies, objective, economyPreferences: { Military: "dont_want" } }),
+    );
+
+    expect(wantResult.status).toBe("optimal");
+    expect(dontWantResult.status).toBe("optimal");
+    const militaryCount = (r: typeof wantResult) =>
+      (r.toBuild.Small_Military_Settlement ?? 0) +
+      (r.toBuild.Medium_Military_Settlement ?? 0) +
+      (r.toBuild.Large_Military_Settlement ?? 0);
+    expect(militaryCount(wantResult)).toBeGreaterThan(0);
+    expect(militaryCount(dontWantResult)).toBe(0);
+  }, 20000);
+
+  it("economyPreferences omitted, {}, and every value explicitly undefined are byte-identical (backward-compat)", async () => {
+    const bodies = [{ bodyId: 1, slots: { space: 1, ground: 1, asteroid: 0 }, economy: plainBody }];
+    const omitted = await solve(baseInput({ bodies }));
+    const empty = await solve(baseInput({ bodies, economyPreferences: {} }));
+    const allUndefined = await solve(
+      baseInput({ bodies, economyPreferences: { Military: undefined, Agriculture: undefined } }),
+    );
+    expect(empty).toEqual(omitted);
+    expect(allUndefined).toEqual(omitted);
+  }, 20000);
+
+  it("has no effect in aggregate mode (bodies absent) — silently ignored, not an error", async () => {
+    const withPrefs = await solve(baseInput({ economyPreferences: { Military: "forbid" } }));
+    const without = await solve(baseInput());
+    expect(withPrefs).toEqual(without);
   }, 20000);
 });

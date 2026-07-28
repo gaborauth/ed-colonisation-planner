@@ -15,12 +15,14 @@ import { readFileSync } from "node:fs";
 import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { buildSolverInput } from "../App";
-import type { JournalSystem } from "../journal/parser";
-import { solve } from "../solver/solve";
+import { ALL_SCORES, type Score } from "../data/buildings";
+import type { JournalBody, JournalSystem } from "../journal/parser";
+import { solve, type SolverResult } from "../solver/solve";
 import { INITIAL_FORM_STATE, type PlannerFormState } from "../state/plannerState";
 import { computeBuildOrderTable } from "./buildOrderTable";
 import { computeSolvedPlacements } from "./solvedPlacement";
 import { getOrderingFromResult } from "./ordering";
+import { syncPrimaryIntoBodies } from "./presentFacilities";
 import { toPlanResult } from "../state/toPlanResult";
 
 const SYSTEM_PATH = path.join(process.cwd(), "jsons", "swoilz-aw-c-d52.json");
@@ -49,6 +51,13 @@ describe("computeBuildOrderTable", () => {
 
     // Nr. is a gapless 1..N sequence.
     expect(rows.map((r) => r.nr)).toEqual(rows.map((_, i) => i + 1));
+
+    // The primary station's own row (always first) is flagged and shows its real body/slot, not "—".
+    expect(rows[0].isPrimary).toBe(true);
+    expect(rows[0].building).toBe(system.firstStationBuilding);
+    expect(rows[0].bodyId).toBe(system.firstStationBodyId);
+    expect(rows[0].slotLabel).toBe("Orbital 1");
+    expect(rows.slice(1).every((r) => !r.isPrimary)).toBe(true);
 
     // Row count matches present + demolish + planned counts from the same underlying data.
     const order = getOrderingFromResult(toPlanResult(formState, result), true, false);
@@ -81,6 +90,53 @@ describe("computeBuildOrderTable", () => {
     const lastRow = rows[rows.length - 1];
     expect(lastRow.t2Total).toBeGreaterThanOrEqual(result.finalT2Points);
     expect(lastRow.t3Total).toBeGreaterThanOrEqual(result.finalT3Points);
+  }, 30000);
+
+  // Exercises a real interaction that only surfaces with an ESCALATING-cost primary like Coriolis
+  // (never with a flat-cost Outpost): once the primary has its own real, synced `presentFacilities`
+  // entry (`PresentFacilitySlot.primary`) — which the real app's `plannerReducer` always applies,
+  // unlike this file's other tests, which bypass it by assigning `formState.bodies` directly —
+  // `computeValidatedBuiltOrder` must not pick that entry up as an extra, un-exempted port on top of
+  // the separate `firstStationBuilding` seed already given to `computeFeasibleOrder`; doing so would
+  // double-charge the escalating port's cost and throw off every subsequent real port's sequence
+  // position (`presentBuildOrderHint`'s `excludePrimary` option is what prevents this).
+  it("doesn't throw when the primary station's own synced presentFacilities entry is present (real app path via plannerReducer)", async () => {
+    const system: JournalSystem = JSON.parse(readFileSync(SYSTEM_PATH, "utf-8"));
+    const reconciledBodies = syncPrimaryIntoBodies(
+      system.bodies,
+      system.firstStationBodyId,
+      system.firstStationBuilding,
+      system.firstStationVariant,
+      system.firstStationCustomName,
+    );
+    // Confirms the fixture's primary really is an escalating-cost port (Coriolis), not a flat-cost
+    // one (Outpost) — the distinction this test is specifically about.
+    expect(system.firstStationBuilding).toBe("Coriolis");
+    const primaryBody = reconciledBodies.find((b) => b.bodyId === system.firstStationBodyId)!;
+    expect(primaryBody.presentFacilities?.space[0]).toMatchObject({ building: "Coriolis", primary: true });
+
+    const formState: PlannerFormState = {
+      ...INITIAL_FORM_STATE,
+      bodies: reconciledBodies,
+      starSystem: system.starSystem,
+      systemAddress: system.systemAddress,
+      systemConfigured: true,
+      firstStationBuilding: system.firstStationBuilding ?? "",
+      firstStationBodyId: system.firstStationBodyId,
+      firstStationVariant: system.firstStationVariant,
+      firstStationCustomName: system.firstStationCustomName,
+    };
+
+    const result = await solve(buildSolverInput(formState));
+    expect(result.status).toBe("optimal");
+
+    const { rows, error } = computeBuildOrderTable(formState, result);
+    expect(error).toBeNull();
+    expect(rows.length).toBeGreaterThan(0);
+    for (const row of rows) {
+      expect(row.t2Total).toBeGreaterThanOrEqual(0);
+      expect(row.t3Total).toBeGreaterThanOrEqual(0);
+    }
   }, 30000);
 
   it("falls back to Built + Planned rows with no Demolish section in aggregate mode (no body layout)", async () => {
@@ -244,4 +300,51 @@ describe("computeBuildOrderTable", () => {
     expect(firstPlannedIndex).toBeGreaterThan(-1);
     expect(firstPlannedIndex).toBeLessThan(lastDemolishIndex);
   }, 30000);
+
+  it("shows a demolish-then-rebuild-the-SAME-building pair as one plain Built row, not a Demolish+Planned pair", () => {
+    // 2026-07-28 user report: demolishing a facility only to rebuild the identical building type
+    // there is real wasted commodities for zero net benefit. Uses a hand-built SolverResult (not a
+    // real `solve()` call) since which specific slot HiGHS's tie-breaking lands a same-building
+    // collision on is an implementation detail this test shouldn't depend on — this exercises the
+    // FIX directly against a scenario known to trigger it, same as solvedPlacement.test.ts's own
+    // dedicated case for the same bug.
+    const bodies: JournalBody[] = [
+      {
+        bodyName: "A 1",
+        bodyId: 1,
+        kind: "planet",
+        landable: true,
+        parents: [],
+        rings: [],
+        raw: {},
+        slots: { space: 0, ground: 1, asteroid: 0 },
+        presentFacilities: {
+          space: [],
+          ground: [{ building: "Small_Military_Settlement", demolishable: true }],
+        },
+      },
+    ];
+    const formState: PlannerFormState = { ...INITIAL_FORM_STATE, bodies, systemConfigured: true };
+    const result: SolverResult = {
+      status: "optimal",
+      toBuild: { Small_Military_Settlement: 1 },
+      portOrder: [],
+      firstStation: null,
+      scores: Object.fromEntries(ALL_SCORES.map((s: Score) => [s, 0])) as Record<Score, number>,
+      finalT2Points: 0,
+      finalT3Points: 0,
+      slotsRemaining: { space: 0, ground: 0, asteroid: 0 },
+      objectiveValue: 0,
+      placements: [{ building: "Small_Military_Settlement", bodyId: 1, count: 1 }],
+      firstStationBodyId: null,
+      demolished: [{ bodyId: 1, slotKind: "ground", index: 0, building: "Small_Military_Settlement" }],
+    };
+
+    const { rows, error } = computeBuildOrderTable(formState, result);
+    expect(error).toBeNull();
+    expect(rows).toHaveLength(1);
+    expect(rows[0]).toMatchObject({ state: "built", building: "Small_Military_Settlement", bodyId: 1 });
+    expect(rows.some((r) => r.state === "demolish")).toBe(false);
+    expect(rows.some((r) => r.state === "planned")).toBe(false);
+  });
 });

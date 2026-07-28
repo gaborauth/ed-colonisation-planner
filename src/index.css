@@ -161,6 +161,17 @@ h2 {
   color: var(--text-faint);
 }
 
+/* A `.panel-toggle` that's a SUB-section within another panel's own header — e.g. ObjectivePanel's
+ * "Score constraints"/"Economy preferences", nested under its "Objective" `<h2>` — rather than a
+ * genuine top-level panel toggle (BuildingsTable's "Constructions", SavedPlansPanel, etc., which use
+ * `.panel-toggle-title` as their ONLY header). Those used to render at the exact same size/color as
+ * a real top-level title, reading as more important than they are (2026-07-28 user request):
+ * smaller and tinted with the same yellow used for Tier 2 badges elsewhere, instead. */
+.panel-toggle-nested {
+  font-size: 12px;
+  color: var(--tier2-yellow);
+}
+
 /* "Reads as unfoldable, still technically works" (2026-07-26, user request, after two rounds of
  * clarification: NOT actually removing the click-to-expand — that would break real functionality;
  * Saved plans' save/load/import/export has no other UI path — just discouraging a casual user from
@@ -287,6 +298,38 @@ td {
   border-bottom: 1px solid var(--bg-panel-alt);
 }
 
+/* ObjectivePanel's Score constraints table — the first cell now stacks a capitalized score name
+ * over a short `.panel-hint` description (2026-07-28 user request), taller than the plain single-
+ * line Min/Max input cells beside it; top-align so the label reads next to the input, not centered
+ * against the description line below it. */
+.score-constraints-table td {
+  vertical-align: top;
+  padding-top: 6px;
+}
+
+/* Wider than the app-wide 7ch `.number-input` default (2026-07-28 user request) — Min/Max here can
+ * legitimately need a large value (e.g. construction_cost in the hundreds of thousands/millions),
+ * and this table has the horizontal room to spare for it, unlike BuildingsTable's narrower Min/Max/
+ * Already-present columns shared with several other columns in the same row. */
+.score-constraints-table input.number-input {
+  width: 14ch;
+}
+
+/* Separates the real, persistent system stats (above) from construction_cost/system_score_beta/
+ * economy_synergy/economy_preference (below) — see the divider row's own comment in
+ * ObjectivePanel.tsx for why construction_cost lands in the lower group. The divider row itself has
+ * no left/right cell padding of its own (`td { padding: 4px 8px }` above would otherwise inset the
+ * <hr> short of the table's real edges). */
+.score-constraints-table tr[aria-hidden="true"] td {
+  padding: 4px 0;
+}
+
+.score-constraints-divider {
+  border: none;
+  border-top: 1px solid var(--border-bright);
+  margin: 2px 0;
+}
+
 tbody tr:hover {
   background: var(--bg-panel-alt);
 }
@@ -397,6 +440,17 @@ select.toolbar-summary-system {
   gap: 3px;
 }
 
+/* Draws the eye to the "Primary station"/"On body" fields — the same accent color as
+ * `button.primary` ("Solve for a system"), so the highlight visually reads as "this feeds that
+ * button" (2026-07-28 user request). Always shown, not just while unset — full-width, wraps both
+ * fields' own `.row-grid` rather than being a per-field modifier (2026-07-28 follow-up, same day). */
+.field-highlight {
+  border: 1px solid var(--accent);
+  background: var(--accent-dim);
+  border-radius: 3px;
+  padding: 8px 10px;
+}
+
 /* SystemScoresSummary.tsx's read-only score/points/slots values — same `.field` (label + value)
  * layout as "Orbital slots"/"Primary station" above them, so the moved-in Result-pane content
  * (2026-07-26) reads as part of this panel rather than a bolted-on foreign block. Same
@@ -414,6 +468,26 @@ select.toolbar-summary-system {
 
 .field-value.negative {
   color: var(--danger);
+}
+
+/* SolvedSystemPanel's own stat block, opting into `SystemScoresSummary`'s `emphasized` prop
+ * (2026-07-28 user request) — a completed solve's totals are the actual payoff of running the
+ * solver, so they get a highlighted card + slightly larger numbers. Success-green rather than the
+ * accent-orange used for "Primary station, fill this in" or the cyan used for "solving in
+ * progress" elsewhere, so this doesn't collide with either of those existing meanings.
+ * `SystemConfigPanel`'s pre-solve "current totals" view deliberately does NOT opt in, so the
+ * emphasis still differentiates something instead of making every stat block look the same. */
+.system-scores-emphasized {
+  border: 1px solid var(--success);
+  background: var(--success-dim);
+  border-radius: 3px;
+  /* No top padding of its own — the inner `.row-grid`'s existing `marginTop: 14` inline style
+   * already provides that gap, so this keeps all four sides visually equal at 14px. */
+  padding: 0 14px 14px;
+}
+
+.system-scores-emphasized .field-value {
+  font-size: 17px;
 }
 
 /* Built/free slot summary in "Actual facilities in the system" (SystemConfigPanel) — read-only,
@@ -567,6 +641,71 @@ select.toolbar-summary-system {
   border-color: var(--border-bright);
   background: var(--bg-inset);
   color: var(--text-dim);
+}
+
+/* Blocking modal for the solve's "solving"/"error" states — see SolverStatusDialog.tsx. Above the
+ * cookie consent banner's z-index (100), since a solve can legitimately run before that banner's
+ * choice is made. */
+.solver-status-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(10, 14, 20, 0.7);
+  padding: 16px;
+}
+
+.solver-status-dialog {
+  background: var(--bg-panel);
+  border: 1px solid var(--border-bright);
+  border-radius: 3px;
+  padding: 20px;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.solver-status-dialog-message {
+  margin: 0;
+}
+
+.solver-status-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+
+/* A real, clearly-animated indeterminate bar under the "Running the solver…" text — the text's own
+ * `.status-banner.loading` sweep (a faint background tint behind the text) reads too subtle on its
+ * own as proof the page hasn't frozen (2026-07-28 user feedback after trying the new dialog in a
+ * real browser); this is a separate, unmissable bar rather than a replacement for that sweep, so
+ * `.status-banner.loading` stays shared/unchanged for its other user (JournalImportPanel's
+ * "Searching Spansh…" indicator). */
+.solver-progress-bar {
+  margin-top: 14px;
+  height: 6px;
+  border-radius: 3px;
+  background: var(--bg-inset);
+  overflow: hidden;
+}
+
+.solver-progress-bar-fill {
+  height: 100%;
+  width: 40%;
+  border-radius: 3px;
+  background: var(--cyan);
+  animation: solver-progress-bar-slide 1.2s ease-in-out infinite;
+}
+
+@keyframes solver-progress-bar-slide {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(250%);
+  }
 }
 
 .category-heading {
@@ -795,7 +934,8 @@ select.toolbar-summary-system {
   font-size: 12px;
 }
 
-.facility-tree-demolish {
+.facility-tree-demolish,
+.facility-tree-blocked {
   display: flex;
   align-items: center;
   gap: 5px;
@@ -810,6 +950,14 @@ select.toolbar-summary-system {
   font-size: 12px;
   color: var(--text-dim);
   margin: 0;
+}
+
+/* A `.panel-hint` that needs to stand out rather than read as routine secondary text — e.g.
+ * ObjectivePanel's "pick a primary station first" reminder next to the disabled Solve button,
+ * same accent color as `.field-highlight`/`button.primary` so the two reminders read as one signal. */
+.panel-hint-accent {
+  color: var(--accent-text);
+  margin-top: 8px;
 }
 
 .solved-slot-empty {
@@ -876,6 +1024,15 @@ select.toolbar-summary-system {
 
 .build-order-row-planned {
   background: var(--success-dim);
+}
+
+/* The primary/claim station's own row — layered on top of its state's own tint (always "built"
+ * in practice) via a left accent border, since a second flat background would just fight the
+ * existing state coloring instead of standing out. Its Nr. cell reuses `.primary-badge`'s own ★,
+ * the same marker SystemConfigPanel.tsx already uses for the primary elsewhere in the app. */
+.build-order-row-primary {
+  background: var(--cyan-dim);
+  box-shadow: inset 3px 0 0 var(--cyan);
 }
 
 .build-order-state-built {

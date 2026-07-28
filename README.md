@@ -1,4 +1,4 @@
-# EDCP: Elite Dangerous Colonisation Planner
+# EDCPS: Elite Dangerous Colonisation Planner & Solver
 
 A browser-based planner for Elite Dangerous system colonisation. Give it your available construction
 slots (or let it estimate them from an uploaded Journal file), pick an objective, and it uses a MILP
@@ -32,29 +32,35 @@ Otherwise:
    against your in-game System Map. Clicking **Apply slots and body layout to Actual facilities in
    the system** switches the solver into *per-body placement* mode (real per-body slot capacity)
    instead of just aggregate totals.
-2. **Actual facilities in the system** — pick your primary station (required), then mark what's
-   already built in each body's slots using the tree below (one dropdown per physical orbital/ground
-   slot). Flag an already-built facility **Demolishable** to let the solver optionally remove it —
-   refunding its stat/T2/T3 contribution and freeing its slot — if replacing it scores better; ports
-   can't be demolished. Your current T2/T3 construction-point balance is derived automatically from
-   what you mark here, not entered by hand. Hit **Save** (top toolbar) to persist your already-built
-   layout for next time.
+2. **Actual facilities in the system** — pick your primary station (required, and visually
+   highlighted until you do), then mark what's already built in each body's slots using the tree
+   below (one dropdown per physical orbital/ground slot). Flag an already-built facility
+   **Demolishable** to let the solver optionally remove it — refunding its stat/T2/T3 contribution
+   and freeing its slot — if replacing it scores better; ports can't be demolished. A genuinely
+   empty slot can instead be marked **Leave empty**, telling the solver to never place anything
+   there at all (distinct from just setting a body's slot count to 0). Your current T2/T3
+   construction-point balance is derived automatically from what you mark here, not entered by hand.
+   Hit **Save** (top toolbar) to persist your already-built layout for next time.
 3. **Objective** — maximize a single system score (construction cost is minimized instead), or write
    a custom expression (`sqrt(w) + sqrt(n)`, `2*w + t - abs(w - 2*t)`, etc.) over the score letters
-   `i m e t w n d c`.
-4. **System score constraints** — optional min/max bounds per score.
-5. **Buildings** — pin per-building minimums/maximums, and hover a building's total (after solving)
+   `i m e t w n d c`. Two optional, foldable sub-sections sit below it: **Score constraints** (min/max
+   bounds per score) and **Economy preferences** (per-body layout only) — a Must / Want / Dunno /
+   Don't want / Forbid choice per Update 3 economy type, letting you steer which economies the
+   solver favors or avoids on top of its aggregate scoring.
+4. **Buildings** — pin per-building Min/Max counts, and hover a building's total (after solving)
    to see its contribution to each score. The "Already present" column is only editable without a
    journal-imported body layout — with one, it's a read-only mirror of the Actual facilities in the
    system tree.
-6. Hit **Solve for a system**. The **Solved system** panel shows the resulting scores, remaining
-   slots/points, and the per-body proposed layout with its Update 3 Strong/Weak links and economy
-   types (hover any facility's "i" icon). The **Build order** panel below it lays out the whole plan
-   as one numbered, color-coded table — every facility instance, already built, marked for
-   demolition, or newly planned, in build order — with a running T2/T3 point total per row and a
-   Total row for the solver's own final numbers.
-7. **Saved plans** — save/load plans locally (browser storage), or export/import a plan as a file to
-   move it between browsers.
+5. Hit **Solve for a system**. A blocking dialog shows solve progress (or any error) until it's
+   done. The **Solved system** panel then shows the resulting scores, remaining slots/points, and
+   the per-body proposed layout with its Update 3 Strong/Weak links and economy types (hover any
+   facility's "i" icon) — a demolish immediately followed by rebuilding the identical building type
+   is automatically treated as a no-op rather than recommended as real (wasted) construction. The
+   **Build order** panel below it lays out the whole plan as one numbered, color-coded table — every
+   facility instance, already built, marked for demolition, or newly planned, in build order — with
+   a running T2/T3 point total per row and a Total row for the solver's own final numbers.
+6. **Saved plans** — save/load plans locally (browser storage), delete a saved system you no longer
+   need, or export/import a plan as a file to move it between browsers.
 
 ## Update 3: links & economy
 
@@ -87,9 +93,7 @@ tables this is built from, if you want to check the implementation against the s
 
 ## Known limitations
 
-This is a from-scratch rewrite (see [History](#history)) of a tool that predates several game
-balance changes, rebuilt against the current ruleset as best as could be verified from public
-sources. A few pieces are explicitly best-effort and flagged as such in both the code and the UI:
+A few pieces are explicitly best-effort and flagged as such in both the code and the UI:
 
 - **Journal → slot estimate** (`src/journal/eligibility.ts`): no official formula for how scanned
   body data maps to buildable slot counts was locatable. The heuristic there is a reasonable guess,
@@ -114,11 +118,7 @@ sources. A few pieces are explicitly best-effort and flagged as such in both the
   approximation rather than a confirmed value.
 
 If you have more accurate numbers for any of these, they're all single, well-commented constants to
-edit. (The first-station/subsequent-facility stat-weighting split used to be listed here too — it's
-now sourced from the Dodec Update's official patch notes, see `src/solver/solve.ts`'s
-`FIRST_STATION_BONUS`/`SUBSEQUENT_FACILITY_REDUCTION`. An illustrative-only population growth curve
-used to be listed here too — it was never based on any published formula and has since been removed
-entirely, along with the panel that displayed it.)
+edit.
 
 Also out of scope: real commodity supply/demand simulation (exact tradeable quantities) and
 construction-progress/demolition tracking — see [Update 3: links & economy](#update-3-links--economy)
@@ -142,12 +142,11 @@ Building stats and costs come from DaftMav's community-maintained
 ["Colonization Construction v3"](https://forums.frontier.co.uk/threads/v3-of-the-colonization-construction-spreadsheet-is-now-available.635762/)
 spreadsheet.
 
-## History
-
-EDCP was originally a Python/Tkinter desktop application, built at colonisation's launch in March
-2025. It's since been fully rewritten as this stateless web app — the original source is still
-available in this repository's Git history for reference.
-
 ## Feedback
 
 Issues and feature requests welcome.
+
+---
+
+EDCPS is not affiliated with [Frontier Developments](https://www.frontier.co.uk/), the developers of
+[Elite Dangerous](https://www.elitedangerous.com/).

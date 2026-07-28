@@ -1,7 +1,13 @@
-import { type Dispatch, useRef, useState } from "react";
+import { type Dispatch, useEffect, useRef, useState } from "react";
 import { deriveCurrentPoints, deriveSlotUsage, toSlotUsageBodies } from "../domain/presentFacilities";
 import { computeSystemSlotTotals, type JournalSystem } from "../journal/parser";
-import { listSavedSystems, saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
+import {
+  deleteSystem,
+  getLastUsedSystemAddress,
+  listSavedSystems,
+  saveSystem,
+  setLastUsedSystemAddress,
+} from "../persistence/journalSystems";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
 import { SlotBar } from "./SlotBar";
 import { TierIcon } from "./TierIcon";
@@ -9,15 +15,15 @@ import { TierIcon } from "./TierIcon";
 interface SystemPortabilityBarProps {
   formState: PlannerFormState;
   dispatch: Dispatch<PlannerAction>;
-  /** Called after Save/Import write a system into the shared localStorage store, so App.tsx can
-   * bump JournalImportPanel's refresh token — that panel keeps its own local copy of the saved-
-   * systems list (loaded once at mount) and otherwise never notices a sibling component's write. */
+  /** Called after Save/Import/Delete write to (or remove from) the shared localStorage store, so
+   * App.tsx can bump JournalImportPanel's refresh token — that panel keeps its own local copy of
+   * the saved-systems list and otherwise never notices a sibling component's write. */
   onImported?: () => void;
-  /** Called whenever "Import system" or "Live Demo" actually applies a different system to
-   * `formState` — lets App.tsx clear its stale solved result, which is keyed to the PREVIOUS
-   * system's bodies and would otherwise keep showing through against the newly-loaded one (same
-   * fix as JournalImportPanel's own `onSystemChanged`). Not fired by Save/Export, which don't
-   * change `formState` at all. */
+  /** Called whenever "Import system"/"Live Demo"/the switcher/mount-time restore actually applies a
+   * different system to `formState`, or "Delete" clears it back to blank — lets App.tsx clear its
+   * stale solved result, which is keyed to the PREVIOUS system's bodies and would otherwise keep
+   * showing through against the new (or now-empty) one (same fix as JournalImportPanel's own
+   * `onSystemChanged`). Not fired by Save/Export, which don't change `formState` at all. */
   onSystemChanged?: () => void;
 }
 
@@ -80,7 +86,7 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
   // it's visible without scrolling. Only meaningful once a body layout is applied, same gate as
   // `canSaveOrExport` above.
   const slotUsageBodies = toSlotUsageBodies(formState.bodies);
-  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots, formState.firstStationBodyId);
+  const slotUsage = deriveSlotUsage(slotUsageBodies, formState.slots);
   const points = deriveCurrentPoints(slotUsageBodies, formState.firstStationBuilding);
 
   // Every saved system regardless of source (Journal upload or Spansh) — read fresh on every
@@ -115,11 +121,47 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
     onSystemChanged?.();
   }
 
+  // On first load, silently re-apply whichever system was last used, as long as it has bodies —
+  // "Actual facilities in the system" should already look "applied" without the user needing to
+  // pick it again every session. Moved here from JournalImportPanel (2026-07-27) once that panel's
+  // own Journal-tab dropdown stopped browsing already-saved systems at all — switching to /
+  // restoring a known system is now exclusively this toolbar's job, so the mount-time restore
+  // belongs here too, reusing `switchToSavedSystem` above rather than re-implementing the same
+  // dispatch/persistence shape a second time. Guarded on `formState.systemAddress` rather than
+  // running unconditionally, so it never clobbers a system that's already active by the time this
+  // mounts (e.g. in a future scenario where `formState` starts pre-filled).
+  useEffect(() => {
+    if (formState.systemAddress !== null) return;
+    const lastUsedAddress = getLastUsedSystemAddress();
+    if (lastUsedAddress === null) return;
+    const system = savedSystems.find((s) => s.systemAddress === lastUsedAddress);
+    if (!system || system.bodies.length === 0) return;
+    switchToSavedSystem(system.systemAddress);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentionally mount-only
+  }, []);
+
   function handleSave(): void {
     const system = systemFromFormState(formState);
     if (!system) return;
     saveSystem(system);
     onImported?.();
+  }
+
+  // Direct, unrecoverable localStorage removal, no undo — confirm first. Always targets the
+  // currently-active system: the switcher below already keeps its own selection synced to
+  // `formState.systemAddress` whenever `canSaveOrExport` is true, so there's no separate
+  // "highlighted but not switched to" state to resolve here (unlike JournalImportPanel's new
+  // pick-then-Load flow, which does need that distinction).
+  function handleDelete(): void {
+    if (formState.systemAddress === null) return;
+    if (!window.confirm(`Delete the saved system "${formState.starSystem}"? This can't be undone.`)) return;
+    deleteSystem(formState.systemAddress);
+    // Bumps App.tsx's journalStoreVersion so JournalImportPanel's own refreshToken effect notices
+    // the deletion too (see that effect's own comment — it drops the stale system once it's no
+    // longer in listSavedSystems()).
+    onImported?.();
+    dispatch({ type: "reset" });
+    onSystemChanged?.();
   }
 
   function handleExport(): void {
@@ -203,6 +245,14 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
           title={!canSaveOrExport ? "Apply a system to Actual facilities in the system first" : undefined}
         >
           Export system
+        </button>
+        <button
+          type="button"
+          onClick={handleDelete}
+          disabled={!canSaveOrExport}
+          title={!canSaveOrExport ? "Apply a system to Actual facilities in the system first" : undefined}
+        >
+          Delete
         </button>
         <button type="button" onClick={() => fileInputRef.current?.click()}>
           Import system

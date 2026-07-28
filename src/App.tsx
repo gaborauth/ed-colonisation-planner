@@ -8,9 +8,10 @@ import { JournalImportPanel } from "./components/JournalImportPanel";
 import { ObjectivePanel } from "./components/ObjectivePanel";
 import { SavedPlansPanel } from "./components/SavedPlansPanel";
 import { SolvedSystemPanel } from "./components/SolvedSystemPanel";
+import { SolverStatusDialog } from "./components/SolverStatusDialog";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
 import { SystemPortabilityBar } from "./components/SystemPortabilityBar";
-import { normalizeFacilitySlots } from "./domain/presentFacilities";
+import { normalizeBlockedSlots, normalizeFacilitySlots } from "./domain/presentFacilities";
 import { useCookieConsent } from "./hooks/useCookieConsent";
 import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
 import type { SavedPlan } from "./persistence/plans";
@@ -43,6 +44,10 @@ export function buildSolverInput(formState: PlannerFormState): SolverInput {
             space: normalizeFacilitySlots(b.presentFacilities?.space, slots.space),
             ground: normalizeFacilitySlots(b.presentFacilities?.ground, slots.ground),
           },
+          blockedSlots: {
+            space: normalizeBlockedSlots(b.blockedSlots?.space, slots.space),
+            ground: normalizeBlockedSlots(b.blockedSlots?.ground, slots.ground),
+          },
           // Feeds solve.ts's economy_synergy term — see SolverBody.economy's doc comment.
           economy: b,
         };
@@ -64,6 +69,10 @@ export function buildSolverInput(formState: PlannerFormState): SolverInput {
     alreadyPresent: hasBodies ? {} : formState.alreadyPresent,
     constraints: { atLeast: formState.atLeast, atMost: formState.atMost },
     scoreConstraints: { min: formState.scoreMin, max: formState.scoreMax },
+    // Only actually meaningful when `bodies` is non-empty (see SolverInput.economyPreferences's
+    // doc comment) — solve.ts silently ignores it otherwise, so no need to gate the pass-through
+    // here on `hasBodies` too.
+    economyPreferences: formState.economyPreferences,
   };
 }
 
@@ -120,7 +129,7 @@ function App() {
         onDecline={cookieConsent.decline}
       />
       <main>
-        <h1>Elite Dangerous Colonisation Planner</h1>
+        <h1>Elite Dangerous Colonisation Planner & Solver</h1>
 
         <SystemPortabilityBar
           formState={formState}
@@ -145,8 +154,11 @@ function App() {
         />
         <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
 
-        {resultState.status === "solving" && <div className="status-banner loading">Running the solver…</div>}
-        {resultState.status === "error" && <div className="status-banner">{resultState.message}</div>}
+        <SolverStatusDialog
+          status={resultState.status}
+          message={resultState.message}
+          onDismiss={() => setResultState(INITIAL_RESULT_STATE)}
+        />
 
         <SolvedSystemPanel formState={formState} result={resultState.result} />
 

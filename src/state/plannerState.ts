@@ -1,14 +1,22 @@
-import { ALL_SCORES, type Score } from "../data/buildings";
-import { normalizeFacilitySlots, type PresentFacilitySlot } from "../domain/presentFacilities";
+import { ALL_SCORES, type EconomyType, type Score } from "../data/buildings";
+import {
+  normalizeBlockedSlots,
+  normalizeFacilitySlots,
+  syncPrimaryIntoBodies,
+  type PresentFacilitySlot,
+} from "../domain/presentFacilities";
 import type { JournalBody } from "../journal/parser";
-import type { Direction, SlotAvailability, SolverResult } from "../solver/solve";
+import type { Direction, EconomyPreference, SlotAvailability, SolverResult } from "../solver/solve";
 
 // Exported (not just inlined into INITIAL_FORM_STATE below) so ObjectivePanel.tsx's "Default
 // preset" entry can reference the exact same string — one source of truth, so the dropdown's
 // "is this preset currently active" check (`expression === formState.customExpression`) can never
-// silently drift out of sync with what a fresh session actually starts with.
+// silently drift out of sync with what a fresh session actually starts with. `+ p` (economy_
+// preference) added alongside `y` (economy_synergy) — same precedent as when `y` itself was added:
+// Want/Don't want preferences only actually bias the solve when the active objective references
+// `p`, same as economy_synergy today (see solve.ts's SolverInput.economyPreferences doc comment).
 export const DEFAULT_OBJECTIVE_EXPRESSION =
-  "sqrt(i) + sqrt(m) + sqrt(e) + sqrt(t) + sqrt(w) + sqrt(n) + sqrt(d) + 2 * w + t - abs(w - 2 * t) + y";
+  "sqrt(i) + sqrt(m) + sqrt(e) + sqrt(t) + sqrt(w) + sqrt(n) + sqrt(d) + 2 * w + t - abs(w - 2 * t) + y + p";
 
 export interface PlannerFormState {
   slots: SlotAvailability;
@@ -51,6 +59,12 @@ export interface PlannerFormState {
   customDirection: Direction;
   scoreMin: Partial<Record<Score, number>>;
   scoreMax: Partial<Record<Score, number>>;
+  /** Per-`EconomyType` Must/Want/Don't-want/Forbid steering — ObjectivePanel's "Economy
+   * preferences" table. Absent per economy = "Dunno", today's unbiased default. Only meaningful
+   * once `bodies` is non-empty (see `solve.ts`'s `SolverInput.economyPreferences` doc comment) —
+   * same session/system scope as `scoreMin`/`scoreMax`/`atLeast`/`atMost`, not persisted to
+   * localStorage the way `objectiveMode`/`customExpression` are. */
+  economyPreferences: Partial<Record<EconomyType, EconomyPreference>>;
 }
 
 export const INITIAL_FORM_STATE: PlannerFormState = {
@@ -79,12 +93,14 @@ export const INITIAL_FORM_STATE: PlannerFormState = {
   customDirection: "maximize",
   scoreMin: { security: 1 },
   scoreMax: {},
+  economyPreferences: {},
 };
 
 export type PlannerAction =
   | { type: "patch"; patch: Partial<PlannerFormState> }
   | { type: "setMapEntry"; map: "alreadyPresent" | "atLeast" | "atMost"; name: string; value: number | undefined }
   | { type: "setScoreBound"; bound: "scoreMin" | "scoreMax"; score: Score; value: number | undefined }
+  | { type: "setEconomyPreference"; economy: EconomyType; value: EconomyPreference | undefined }
   | {
       type: "setFacilitySlot";
       bodyId: number;
@@ -92,6 +108,7 @@ export type PlannerAction =
       index: number;
       slot: PresentFacilitySlot | null;
     }
+  | { type: "setSlotBlocked"; bodyId: number; kind: "space" | "ground"; index: number; blocked: boolean }
   | { type: "load"; state: PlannerFormState }
   | { type: "reset" };
 
@@ -113,7 +130,7 @@ function withMapEntry(
   return next;
 }
 
-export function plannerReducer(state: PlannerFormState, action: PlannerAction): PlannerFormState {
+function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFormState {
   switch (action.type) {
     case "patch":
       return { ...state, ...action.patch };
@@ -131,6 +148,15 @@ export function plannerReducer(state: PlannerFormState, action: PlannerAction): 
       }
       return { ...state, [action.bound]: next };
     }
+    case "setEconomyPreference": {
+      const next = { ...state.economyPreferences };
+      if (action.value === undefined) {
+        delete next[action.economy];
+      } else {
+        next[action.economy] = action.value;
+      }
+      return { ...state, economyPreferences: next };
+    }
     case "setFacilitySlot": {
       const bodies = state.bodies.map((b) => {
         if (b.bodyId !== action.bodyId) return b;
@@ -142,6 +168,22 @@ export function plannerReducer(state: PlannerFormState, action: PlannerAction): 
           presentFacilities: {
             space: action.kind === "space" ? slots : (b.presentFacilities?.space ?? []),
             ground: action.kind === "ground" ? slots : (b.presentFacilities?.ground ?? []),
+          },
+        };
+      });
+      return { ...state, bodies };
+    }
+    case "setSlotBlocked": {
+      const bodies = state.bodies.map((b) => {
+        if (b.bodyId !== action.bodyId) return b;
+        const count = Math.max(b.slots?.[action.kind] ?? 0, action.index + 1);
+        const blocked = normalizeBlockedSlots(b.blockedSlots?.[action.kind], count);
+        blocked[action.index] = action.blocked;
+        return {
+          ...b,
+          blockedSlots: {
+            space: action.kind === "space" ? blocked : (b.blockedSlots?.space ?? []),
+            ground: action.kind === "ground" ? blocked : (b.blockedSlots?.ground ?? []),
           },
         };
       });
@@ -167,11 +209,43 @@ export function plannerReducer(state: PlannerFormState, action: PlannerAction): 
       // until the user re-applies a journal system — not worth losing the rest of the plan over.
       const systemAddress = action.state.systemAddress ?? null;
       const starSystem = action.state.starSystem ?? "";
-      return { ...action.state, bodies, systemConfigured, systemAddress, starSystem };
+      // Same shim style for `economyPreferences` (added after `bodies`): a plan saved before it
+      // existed just has no preferences set, not a broken/undefined lookup target.
+      const economyPreferences = action.state.economyPreferences ?? {};
+      return { ...action.state, bodies, systemConfigured, systemAddress, starSystem, economyPreferences };
     }
     case "reset":
       return INITIAL_FORM_STATE;
   }
+}
+
+/** Keeps the primary station's assigned body's Orbital-1 slot synced to a real, flagged
+ * `presentFacilities` entry (see `PresentFacilitySlot.primary`'s doc comment /
+ * `domain/presentFacilities.ts`'s `syncPrimaryIntoBodies`) — run after EVERY action, not just the
+ * ones that touch `firstStationBuilding`/`firstStationBodyId`/`firstStationVariant`/
+ * `firstStationCustomName` or `bodies` directly, so the invariant holds regardless of which action
+ * path changed them: a `"patch"` from either dropdown, `"load"`ing a saved system that has no
+ * synced entry at all (an older export, or one authored by hand — reconciled automatically the
+ * moment it loads, no separate migration step needed), or any future action type. This matters
+ * because a real facility can be manually entered in a body's Orbital 1 slot before that body is
+ * ever assigned as the primary — the System facilities panel only stops *rendering* that slot once
+ * a primary is assigned, it doesn't clear the data behind it — so without this reconciliation, that
+ * stale entry would sit alongside the primary's own reservation and get double-counted. Aggregate
+ * mode (`bodies` empty) has nothing to reconcile onto. */
+function reconcilePrimarySlot(state: PlannerFormState): PlannerFormState {
+  if (state.bodies.length === 0) return state;
+  const bodies = syncPrimaryIntoBodies(
+    state.bodies,
+    state.firstStationBodyId,
+    state.firstStationBuilding,
+    state.firstStationVariant,
+    state.firstStationCustomName,
+  );
+  return bodies === state.bodies ? state : { ...state, bodies };
+}
+
+export function plannerReducer(state: PlannerFormState, action: PlannerAction): PlannerFormState {
+  return reconcilePrimarySlot(applyAction(state, action));
 }
 
 export const ALL_SCORES_LIST: Score[] = ALL_SCORES;

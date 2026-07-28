@@ -24,6 +24,11 @@ interface SystemScoresSummaryProps {
   /** Non-score numbers shown after the score fields, in order — slots remaining, T2/T3 points,
    * first station, objective value, etc.; each caller decides which apply. */
   extraFields?: SystemScoresSummaryField[];
+  /** Wraps the block in a highlighted card (2026-07-28 user request) — only `SolvedSystemPanel`
+   * opts in, since a solved plan's own totals are the actual payoff of running the solver, unlike
+   * `SystemConfigPanel`'s pre-solve "current totals" view, which stays plain so the emphasis still
+   * differentiates something instead of making every stat block look the same. */
+  emphasized?: boolean;
 }
 
 function valueClass(value: number | string, neutral: boolean | undefined): string {
@@ -33,9 +38,14 @@ function valueClass(value: number | string, neutral: boolean | undefined): strin
   return "";
 }
 
-export function SystemScoresSummary({ scores, includeEconomySynergy = true, extraFields = [] }: SystemScoresSummaryProps) {
+export function SystemScoresSummary({
+  scores,
+  includeEconomySynergy = true,
+  extraFields = [],
+  emphasized = false,
+}: SystemScoresSummaryProps) {
   const visibleScores = includeEconomySynergy ? ALL_SCORES : ALL_SCORES.filter((score) => score !== "economy_synergy");
-  return (
+  const grid = (
     <div className="row-grid" style={{ marginTop: 14 }}>
       {visibleScores.map((score) => (
         <div className="field" key={score}>
@@ -52,4 +62,5 @@ export function SystemScoresSummary({ scores, includeEconomySynergy = true, extr
       ))}
     </div>
   );
+  return emphasized ? <div className="system-scores-emphasized">{grid}</div> : grid;
 }

@@ -1,13 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  applyPrimaryReservation,
   computeHardNonPortSeed,
   computePresentPortsSeed,
   derivePresentCounts,
   deriveCurrentPoints,
   deriveSlotUsage,
+  normalizeBlockedSlots,
   normalizeFacilitySlots,
   presentBuildOrderHint,
   splitPresentFacilities,
+  syncPrimaryIntoBodies,
   toBuildingPlacements,
   toSlotUsageBodies,
   type PresentFacilitiesBody,
@@ -31,6 +34,17 @@ describe("normalizeFacilitySlots", () => {
       { building: "Medical", demolishable: true },
     ];
     expect(normalizeFacilitySlots(slots, 1)).toEqual([{ building: "Government", demolishable: false }]);
+  });
+});
+
+describe("normalizeBlockedSlots", () => {
+  it("pads a short/undefined array with false up to count", () => {
+    expect(normalizeBlockedSlots(undefined, 3)).toEqual([false, false, false]);
+    expect(normalizeBlockedSlots([true], 3)).toEqual([true, false, false]);
+  });
+
+  it("truncates a too-long array down to count", () => {
+    expect(normalizeBlockedSlots([true, true, false], 1)).toEqual([true]);
   });
 });
 
@@ -59,6 +73,22 @@ describe("splitPresentFacilities / derivePresentCounts", () => {
     expect(hard).toEqual([{ bodyId: 1, kind: "space", index: 0, building: "Coriolis" }]);
     expect(demolishable).toEqual([]);
   });
+
+  // The primary station's own synced entry (see `PresentFacilitySlot.primary`'s doc comment) is
+  // meant to show up in the Constructions table, but must NOT be double-counted wherever the
+  // caller already accounts for it separately (e.g. `computeCurrentSystemScores`'s own bonus
+  // split, `domain/systemState.ts`'s `addFirstStation`).
+  it("derivePresentCounts: includes the primary by default, excludes it with excludePrimary", () => {
+    const bodies: PresentFacilitiesBody[] = [
+      {
+        bodyId: 1,
+        space: [{ building: "Coriolis", demolishable: false, primary: true }],
+        ground: [{ building: "Small_Agricultural_Settlement", demolishable: false }],
+      },
+    ];
+    expect(derivePresentCounts(bodies)).toEqual({ Coriolis: 1, Small_Agricultural_Settlement: 1 });
+    expect(derivePresentCounts(bodies, { excludePrimary: true })).toEqual({ Small_Agricultural_Settlement: 1 });
+  });
 });
 
 describe("computeHardNonPortSeed", () => {
@@ -77,6 +107,14 @@ describe("computeHardNonPortSeed", () => {
     const { hard } = splitPresentFacilities(bodies);
     expect(computeHardNonPortSeed(hard)).toEqual({ t2: 0, t3: 2 });
   });
+
+  it("skips the primary station's own synced entry entirely (its point contribution is handled elsewhere)", () => {
+    const bodies: PresentFacilitiesBody[] = [
+      { bodyId: 1, space: [], ground: [{ building: "Large_Military_Settlement", demolishable: false, primary: true }] },
+    ];
+    const { hard } = splitPresentFacilities(bodies);
+    expect(computeHardNonPortSeed(hard)).toEqual({ t2: 0, t3: 0 });
+  });
 });
 
 describe("deriveSlotUsage", () => {
@@ -89,7 +127,7 @@ describe("deriveSlotUsage", () => {
         asteroidEligible: false,
       },
     ];
-    const usage = deriveSlotUsage(bodies, { space: 2, ground: 1, asteroid: 0 }, undefined);
+    const usage = deriveSlotUsage(bodies, { space: 2, ground: 1, asteroid: 0 });
     expect(usage.space).toEqual({ built: 1, free: 1, total: 2 });
     expect(usage.ground).toEqual({ built: 1, free: 0, total: 1 });
     expect(usage.asteroidEligibleSpace).toEqual({ built: 0, free: 0, total: 0 });
@@ -110,17 +148,26 @@ describe("deriveSlotUsage", () => {
         asteroidEligible: false,
       },
     ];
-    const usage = deriveSlotUsage(bodies, { space: 4, ground: 0, asteroid: 3 }, undefined);
+    const usage = deriveSlotUsage(bodies, { space: 4, ground: 0, asteroid: 3 });
     expect(usage.space).toEqual({ built: 2, free: 2, total: 4 });
     // Only body 1's built slot counts toward the asteroid-eligible subset, not body 2's.
     expect(usage.asteroidEligibleSpace).toEqual({ built: 1, free: 2, total: 3 });
   });
 
-  it("counts the primary station's reserved slot even though it has no presentFacilities entry", () => {
+  // The primary station's reserved slot is now a real, synced `presentFacilities` entry (see
+  // `PresentFacilitySlot.primary`'s doc comment / `applyPrimaryReservation`) — it counts here via
+  // the exact same generic loop as any other facility, no special "firstStationBodyId" parameter
+  // needed anymore (removed — see this function's own doc comment).
+  it("counts the primary station's own synced entry the same as any other built facility", () => {
     const bodies: SlotUsageBody[] = [
-      { bodyId: 1, space: [null, null], ground: [], asteroidEligible: true },
+      {
+        bodyId: 1,
+        space: [{ building: "Coriolis", demolishable: false, primary: true }, null],
+        ground: [],
+        asteroidEligible: true,
+      },
     ];
-    const usage = deriveSlotUsage(bodies, { space: 2, ground: 0, asteroid: 2 }, 1);
+    const usage = deriveSlotUsage(bodies, { space: 2, ground: 0, asteroid: 2 });
     expect(usage.space).toEqual({ built: 1, free: 1, total: 2 });
     expect(usage.asteroidEligibleSpace).toEqual({ built: 1, free: 1, total: 2 });
   });
@@ -129,7 +176,7 @@ describe("deriveSlotUsage", () => {
     const bodies: SlotUsageBody[] = [
       { bodyId: 1, space: [{ building: "Coriolis", demolishable: false }], ground: [], asteroidEligible: false },
     ];
-    const usage = deriveSlotUsage(bodies, { space: 0, ground: 0, asteroid: 0 }, undefined);
+    const usage = deriveSlotUsage(bodies, { space: 0, ground: 0, asteroid: 0 });
     expect(usage.space).toEqual({ built: 1, free: 0, total: 0 });
   });
 });
@@ -164,6 +211,28 @@ describe("computePresentPortsSeed", () => {
     // Planetary_Port: T2 0 (not "port", no t2 contribution); Tier-3-cost port, 1st of ITS OWN
     // sequence (not pushed to position 2 by the two Tier-2-cost ports before it) -> -getT3PortCost(0) = -6.
     expect(computePresentPortsSeed(hard)).toEqual({ t2: -3 - 5, t3: 1 + 1 - 6 });
+  });
+
+  // The primary station is exempt from its own escalating port cost (handled by
+  // `deriveCurrentPoints`'s own separate `firstStationBuilding` logic / `solve.ts`'s
+  // `initialT2Points`/`initialT3Points`) — it must be skipped here entirely, not charged AND not
+  // counted toward the escalation sequence position of any OTHER real port that follows it.
+  it("skips the primary station's own synced entry entirely — no cost, and doesn't consume an escalation-sequence slot", () => {
+    const bodies: PresentFacilitiesBody[] = [
+      {
+        bodyId: 1,
+        space: [
+          { building: "Coriolis", demolishable: false, primary: true },
+          { building: "Coriolis", demolishable: false },
+        ],
+        ground: [],
+      },
+    ];
+    const { hard } = splitPresentFacilities(bodies);
+    // If the primary counted toward the sequence, the second (real, non-primary) Coriolis would be
+    // charged as the 2nd-of-type (-getT2PortCost(1) = -5); since it's skipped, the real Coriolis is
+    // still the 1st of its sequence (-getT2PortCost(0) = -3).
+    expect(computePresentPortsSeed(hard)).toEqual({ t2: -3, t3: 1 });
   });
 });
 
@@ -289,6 +358,14 @@ describe("toBuildingPlacements", () => {
   it("returns an empty array for a system with nothing built yet", () => {
     expect(toBuildingPlacements([{ bodyId: 1, space: [null], ground: [] }])).toEqual([]);
   });
+
+  it("includes the primary by default, excludes it with excludePrimary (for callers that already get it from elsewhere, e.g. SolverResult.placements)", () => {
+    const bodies: PresentFacilitiesBody[] = [
+      { bodyId: 1, space: [{ building: "Coriolis", demolishable: false, primary: true }], ground: [] },
+    ];
+    expect(toBuildingPlacements(bodies)).toEqual([{ building: "Coriolis", bodyId: 1, count: 1 }]);
+    expect(toBuildingPlacements(bodies, { excludePrimary: true })).toEqual([]);
+  });
 });
 
 describe("presentBuildOrderHint", () => {
@@ -342,5 +419,77 @@ describe("toSlotUsageBodies", () => {
       },
       { bodyId: 2, space: [], ground: [], asteroidEligible: false },
     ]);
+  });
+});
+
+describe("applyPrimaryReservation", () => {
+  it("overwrites the primary's assigned body's space[0], authoritative regardless of what was there before", () => {
+    const bodies: PresentFacilitiesBody[] = [
+      // A stale manually-entered facility left behind before this body became the primary's.
+      { bodyId: 1, space: [{ building: "Commercial_Outpost", demolishable: false }, null], ground: [] },
+      { bodyId: 2, space: [{ building: "Coriolis", demolishable: false }], ground: [] },
+    ];
+    const result = applyPrimaryReservation(bodies, 1, "Orbis_or_Ocellus", "Apollo", "Galen Vision");
+    expect(result[0]).toEqual({
+      bodyId: 1,
+      space: [{ building: "Orbis_or_Ocellus", demolishable: false, variant: "Apollo", customName: "Galen Vision", primary: true }, null],
+      ground: [],
+    });
+    // Body 2 (not the primary's) is completely untouched.
+    expect(result[1]).toBe(bodies[1]);
+  });
+
+  it("clears a stale primary:true leftover on a body that's no longer the primary's (it moved elsewhere)", () => {
+    const bodies: PresentFacilitiesBody[] = [
+      { bodyId: 1, space: [{ building: "Coriolis", demolishable: false, primary: true }], ground: [] },
+      { bodyId: 2, space: [null], ground: [] },
+    ];
+    const result = applyPrimaryReservation(bodies, 2, "Coriolis");
+    expect(result[0].space).toEqual([null]);
+    expect(result[1].space).toEqual([{ building: "Coriolis", demolishable: false, primary: true }]);
+  });
+
+  it("is a no-op (same array reference) when already fully synced", () => {
+    const bodies: PresentFacilitiesBody[] = [
+      { bodyId: 1, space: [{ building: "Coriolis", demolishable: false, primary: true }], ground: [] },
+    ];
+    expect(applyPrimaryReservation(bodies, 1, "Coriolis")).toBe(bodies);
+  });
+
+  it("is a no-op when no primary is assigned at all", () => {
+    const bodies: PresentFacilitiesBody[] = [{ bodyId: 1, space: [{ building: "Coriolis", demolishable: false }], ground: [] }];
+    expect(applyPrimaryReservation(bodies, undefined, undefined)).toBe(bodies);
+  });
+});
+
+describe("syncPrimaryIntoBodies", () => {
+  it("writes the synced entry into JournalBody.presentFacilities (nested, unlike PresentFacilitiesBody's flat shape)", () => {
+    const bodies: JournalBody[] = [
+      {
+        bodyName: "Test A",
+        bodyId: 1,
+        kind: "planet",
+        landable: false,
+        parents: [],
+        rings: [],
+        slots: { space: 1, ground: 0, asteroid: 0 },
+        presentFacilities: { space: [null], ground: [] },
+        raw: {},
+      },
+    ];
+    const result = syncPrimaryIntoBodies(bodies, 1, "Coriolis", undefined, "Home Base");
+    expect(result[0].presentFacilities).toEqual({
+      space: [{ building: "Coriolis", demolishable: false, variant: undefined, customName: "Home Base", primary: true }],
+      ground: [],
+    });
+    // Everything else about the body is untouched.
+    expect(result[0].bodyName).toBe("Test A");
+  });
+
+  it("returns the input unchanged (same reference) when nothing needs reconciling", () => {
+    const bodies: JournalBody[] = [
+      { bodyName: "Test A", bodyId: 1, kind: "planet", landable: false, parents: [], rings: [], raw: {} },
+    ];
+    expect(syncPrimaryIntoBodies(bodies, undefined, undefined)).toBe(bodies);
   });
 });

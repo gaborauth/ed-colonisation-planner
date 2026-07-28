@@ -26,6 +26,10 @@ describe("spanshDumpToJournalSystem", () => {
     expect(system.bodies.some((b) => b.bodyName.includes("barycentre"))).toBe(false);
   });
 
+  it("does not synthesize ring bodies here — all 15 rings in this fixture belong to planets, not the star", () => {
+    expect(system.bodies.some((b) => b.kind === "ring")).toBe(false);
+  });
+
   it("keeps Spansh's real bodyId verbatim, including the main star at 0", () => {
     const star = system.bodies.find((b) => b.bodyName === "Swoilz AW-C d52")!;
     expect(star.bodyId).toBe(0);
@@ -72,5 +76,41 @@ describe("spanshDumpToJournalSystem", () => {
     const unscanned = system.bodies.find((b) => b.bodyName === "Swoilz AW-C d52 6 b")!;
     expect(unscanned.hasBiologicalSignals).toBeUndefined();
     expect(unscanned.hasGeologicalSignals).toBeUndefined();
+  });
+});
+
+describe("spanshDumpToJournalSystem — a star's own asteroid belts (belts vs rings field mismatch)", () => {
+  // Real fixture confirming the bug: this star has a `belts` array (2 belts) and no `rings` key at
+  // all, unlike ordinary planets in the same dump which use `rings`.
+  const beltsRecord: SpanshDumpRecord = JSON.parse(
+    readFileSync(path.join(process.cwd(), "spansh-jsons", "swoilz-cd-e-c1-1-dump.json"), "utf-8"),
+  ).system;
+  const beltsSystem = spanshDumpToJournalSystem(beltsRecord);
+
+  it("maps a star's `belts` into JournalBody.rings, same as an ordinary body's `rings`", () => {
+    const star = beltsSystem.bodies.find((b) => b.bodyName === "Swoilz CD-E c1-1")!;
+    expect(star.kind).toBe("star");
+    expect(star.rings).toEqual([
+      { name: "Swoilz CD-E c1-1 A Belt", ringClass: "Rocky", massMT: 52421000000000 },
+      { name: "Swoilz CD-E c1-1 B Belt", ringClass: "Metallic", massMT: 1.281e16 },
+    ]);
+  });
+
+  it("still maps an ordinary ringed planet's `rings` field unaffected by the `belts` fallback, and does NOT synthesize a ring body for it (star belts only)", () => {
+    const planet = beltsSystem.bodies.find((b) => b.bodyName === "Swoilz CD-E c1-1 1")!;
+    expect(planet.rings.length).toBe(1);
+    expect(beltsSystem.bodies.find((b) => b.bodyName === "Swoilz CD-E c1-1 1 A Ring")).toBeUndefined();
+  });
+
+  it("synthesizes a separate kind:'ring' body for each of the star's two belts, parented to the star", () => {
+    const star = beltsSystem.bodies.find((b) => b.bodyName === "Swoilz CD-E c1-1")!;
+    const beltA = beltsSystem.bodies.find((b) => b.bodyName === "Swoilz CD-E c1-1 A Belt")!;
+    const beltB = beltsSystem.bodies.find((b) => b.bodyName === "Swoilz CD-E c1-1 B Belt")!;
+    expect(beltA.kind).toBe("ring");
+    expect(beltB.kind).toBe("ring");
+    expect(beltA.parents[0]).toEqual({ type: "Star", bodyId: star.bodyId });
+    // Self-referencing `rings` so a port built here still gets the "Has rings" Extraction bonus.
+    expect(beltA.rings).toEqual([star.rings[0]]);
+    expect(beltA.bodyId).not.toBe(beltB.bodyId);
   });
 });

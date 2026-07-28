@@ -67,7 +67,7 @@ export function exportPlanToJSON(plan: SavedPlan): string {
 export function importPlanFromJSON(json: string): SavedPlan {
   const plan = JSON.parse(json) as SavedPlan;
   if (!plan.systemName || !plan.planName || !plan.formState) {
-    throw new Error("Not a valid EDCP plan file");
+    throw new Error("Not a valid EDCPS plan file");
   }
   return plan;
 }

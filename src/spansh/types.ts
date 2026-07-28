@@ -38,6 +38,10 @@ export interface SpanshDumpBody {
   volcanismType?: string | null;
   reserveLevel?: string;
   rings?: SpanshDumpRing[];
+  /** A star's own asteroid belts use this key instead of `rings` (same shape) — Spansh's `/dump`
+   * response names a planet's rings `rings` but a star's belts `belts` (confirmed against a real
+   * fixture: the star has a `belts` array, no `rings` key at all; see adapter.ts). */
+  belts?: SpanshDumpRing[];
   /** Keys are the exact same `$SAA_SignalType_*;` strings Journal's `FSSBodySignals` event uses. */
   signals?: { signals: Record<string, number> };
 }
