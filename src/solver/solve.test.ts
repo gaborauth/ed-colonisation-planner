@@ -426,6 +426,66 @@ describe("solve with per-body placement (input.bodies)", () => {
     expect(result.status).toBe("optimal");
     expect(result.slotsRemaining.asteroid).toBe(0);
   }, 20000);
+
+  // A "leave empty" marker (`SolverBody.blockedSlots`) reduces usable capacity exactly like an
+  // already-present hard facility, even though nothing is actually built there.
+  it("prevents the solver from placing anything in a slot marked blockedSlots", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 0 }, blockedSlots: { space: [true], ground: [] } }],
+        objective: { kind: "simple", score: "wealth" },
+        constraints: { atLeast: { Commercial_Outpost: 1 } },
+      }),
+    );
+    expect(result.status).toBe("infeasible");
+  }, 20000);
+
+  it("reflects a blocked slot in slotsRemaining even though nothing is built there", async () => {
+    // Minimizing construction_cost with no atLeast requirement means the solver's optimal choice
+    // is to build nothing at all — isolates the blocked slot's own contribution to slotsRemaining
+    // from whatever else a wealth-maximizing objective might otherwise choose to build in the
+    // still-open second slot.
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, blockedSlots: { space: [true, false], ground: [] } }],
+        objective: { kind: "simple", score: "construction_cost" },
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.slotsRemaining.space).toBe(1);
+  }, 20000);
+
+  // The `!present[i]` guard in `countBlockedEmptySlots`: a blocked index that's ALSO occupied by a
+  // real present facility (a data-hygiene edge case the UI itself never produces, since it only
+  // offers the toggle on an empty slot) must not double-subtract capacity for that one physical slot.
+  it("doesn't double-subtract capacity when a blocked index also has a stale present facility", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [
+          {
+            bodyId: 1,
+            slots: { space: 1, ground: 0, asteroid: 0 },
+            presentFacilities: { space: [{ building: "Commercial_Outpost", demolishable: false }], ground: [] },
+            blockedSlots: { space: [true], ground: [] },
+          },
+        ],
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.slotsRemaining.space).toBe(0);
+  }, 20000);
+
+  it("blockedSlots omitted is byte-identical to today's behavior", async () => {
+    const withoutBlocked = await solve(
+      baseInput({ bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 } }] }),
+    );
+    const withEmptyBlocked = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, blockedSlots: { space: [], ground: [] } }],
+      }),
+    );
+    expect(withEmptyBlocked).toEqual(withoutBlocked);
+  }, 20000);
 });
 
 describe("solve with already-present facility demolition", () => {

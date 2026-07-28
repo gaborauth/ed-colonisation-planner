@@ -102,6 +102,15 @@ export interface JournalBody {
     space: (PresentFacilitySlot | null)[];
     ground: (PresentFacilitySlot | null)[];
   };
+  /** Per-slot-index "leave empty" markers: tells the solver to never place a new building at this
+   * index, independent of `presentFacilities` (what's actually built). Same index-alignment/padding
+   * convention as `presentFacilities` above. Only meaningful where `presentFacilities[kind][index]`
+   * is empty — the UI only offers the toggle there, and `solve.ts` only counts a blocked index when
+   * it's also empty, so the two structures can never conflict. */
+  blockedSlots?: {
+    space: boolean[];
+    ground: boolean[];
+  };
   /** The full raw Scan event JSON, kept verbatim alongside the typed fields above so future slot
    * heuristics can use fields we don't parse today without needing the user to re-upload the
    * journal. */

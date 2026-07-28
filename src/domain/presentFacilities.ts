@@ -64,6 +64,16 @@ export function normalizeFacilitySlots(
   return result;
 }
 
+/** Same pad/truncate convention as `normalizeFacilitySlots` above, for the parallel `blockedSlots`
+ * boolean arrays (see `JournalBody.blockedSlots`'s doc comment) — a body's slot count can change
+ * after some slots were already marked "leave empty", same reason `normalizeFacilitySlots` exists. */
+export function normalizeBlockedSlots(blocked: boolean[] | undefined, count: number): boolean[] {
+  const base = blocked ?? [];
+  const result: boolean[] = [];
+  for (let i = 0; i < count; i++) result.push(base[i] ?? false);
+  return result;
+}
+
 function flatten(bodies: PresentFacilitiesBody[]): FlatPresentFacility[] {
   const flat: FlatPresentFacility[] = [];
   for (const body of bodies) {

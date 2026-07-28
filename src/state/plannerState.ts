@@ -1,5 +1,10 @@
 import { ALL_SCORES, type EconomyType, type Score } from "../data/buildings";
-import { normalizeFacilitySlots, syncPrimaryIntoBodies, type PresentFacilitySlot } from "../domain/presentFacilities";
+import {
+  normalizeBlockedSlots,
+  normalizeFacilitySlots,
+  syncPrimaryIntoBodies,
+  type PresentFacilitySlot,
+} from "../domain/presentFacilities";
 import type { JournalBody } from "../journal/parser";
 import type { Direction, EconomyPreference, SlotAvailability, SolverResult } from "../solver/solve";
 
@@ -103,6 +108,7 @@ export type PlannerAction =
       index: number;
       slot: PresentFacilitySlot | null;
     }
+  | { type: "setSlotBlocked"; bodyId: number; kind: "space" | "ground"; index: number; blocked: boolean }
   | { type: "load"; state: PlannerFormState }
   | { type: "reset" };
 
@@ -162,6 +168,22 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
           presentFacilities: {
             space: action.kind === "space" ? slots : (b.presentFacilities?.space ?? []),
             ground: action.kind === "ground" ? slots : (b.presentFacilities?.ground ?? []),
+          },
+        };
+      });
+      return { ...state, bodies };
+    }
+    case "setSlotBlocked": {
+      const bodies = state.bodies.map((b) => {
+        if (b.bodyId !== action.bodyId) return b;
+        const count = Math.max(b.slots?.[action.kind] ?? 0, action.index + 1);
+        const blocked = normalizeBlockedSlots(b.blockedSlots?.[action.kind], count);
+        blocked[action.index] = action.blocked;
+        return {
+          ...b,
+          blockedSlots: {
+            space: action.kind === "space" ? blocked : (b.blockedSlots?.space ?? []),
+            ground: action.kind === "ground" ? blocked : (b.blockedSlots?.ground ?? []),
           },
         };
       });

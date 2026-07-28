@@ -83,6 +83,28 @@ describe("plannerReducer", () => {
     expect(state.economyPreferences).toEqual({ Agriculture: "want" });
   });
 
+  it("setSlotBlocked sets/clears/pads a body's blocked-slot array", () => {
+    const body: JournalBody = {
+      bodyName: "Test 1",
+      bodyId: 1,
+      kind: "planet",
+      landable: false,
+      parents: [],
+      rings: [],
+      slots: { space: 2, ground: 0, asteroid: 0 },
+      raw: {},
+    };
+    const withBodies = { ...INITIAL_FORM_STATE, bodies: [body] };
+
+    let state = plannerReducer(withBodies, { type: "setSlotBlocked", bodyId: 1, kind: "space", index: 1, blocked: true });
+    expect(state.bodies[0].blockedSlots?.space).toEqual([false, true]);
+    // Other kind/body untouched.
+    expect(state.bodies[0].blockedSlots?.ground).toEqual([]);
+
+    state = plannerReducer(state, { type: "setSlotBlocked", bodyId: 1, kind: "space", index: 1, blocked: false });
+    expect(state.bodies[0].blockedSlots?.space).toEqual([false, false]);
+  });
+
   it("load defaults economyPreferences to {} for a plan saved before it existed", () => {
     // Same shim style as `bodies ?? []`/`systemAddress ?? null` for older SavedPlan shapes — see
     // plannerState.ts's `load` case.

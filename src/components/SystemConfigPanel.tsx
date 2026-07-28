@@ -8,6 +8,7 @@ import {
   deriveCurrentPoints,
   derivePresentCounts,
   deriveSlotUsage,
+  normalizeBlockedSlots,
   normalizeFacilitySlots,
   toSlotUsageBodies,
   type PresentFacilitySlot,
@@ -236,6 +237,7 @@ function BodySlotLeaves({
       {SLOT_KINDS.flatMap(({ kind, label, category }) => {
         const count = body.slots?.[kind] ?? 0;
         const slots = normalizeFacilitySlots(body.presentFacilities?.[kind], count);
+        const blockedList = normalizeBlockedSlots(body.blockedSlots?.[kind], count);
         // The primary station's own reservation is only ever the first *orbital* slot (it's always
         // an orbital Port-role building, see SolverInput.firstStationBuilding) — ground slots are
         // never affected, and this body's index 0 space slot is expected to stay empty in
@@ -250,6 +252,7 @@ function BodySlotLeaves({
         const editableSlots = reserveFirstForPrimary ? slots.slice(1) : slots;
         const leaves = editableSlots.map((slot, i) => {
           const index = reserveFirstForPrimary ? i + 1 : i;
+          const blocked = blockedList[index] ?? false;
           const building = slot ? ALL_BUILDINGS[slot.building] : undefined;
           const buildingIsPort = building ? isPort(building) : false;
           const variants = slot ? getBuildingVariants(slot.building) : undefined;
@@ -276,7 +279,7 @@ function BodySlotLeaves({
               <select
                 aria-label={`${body.bodyName} ${label} slot ${index + 1} facility`}
                 value={slot?.building ?? ""}
-                disabled={locked}
+                disabled={locked || blocked}
                 onChange={(e) => {
                   const value = e.target.value;
                   if (value === "") {
@@ -302,6 +305,20 @@ function BodySlotLeaves({
                   </option>
                 ))}
               </select>
+              {!slot && (
+                <label className="facility-tree-blocked">
+                  <input
+                    type="checkbox"
+                    aria-label={`${body.bodyName} ${label} slot ${index + 1} leave empty`}
+                    checked={blocked}
+                    disabled={locked}
+                    onChange={(e) =>
+                      dispatch({ type: "setSlotBlocked", bodyId: body.bodyId, kind, index, blocked: e.target.checked })
+                    }
+                  />
+                  Leave empty
+                </label>
+              )}
               {slot && variants && (
                 <select
                   className="facility-tree-variant"

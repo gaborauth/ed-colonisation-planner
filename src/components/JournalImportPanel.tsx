@@ -68,6 +68,10 @@ function mergeBySystemAddress(existing: JournalSystem[], incoming: JournalSystem
       const withPresent = priorBody?.presentFacilities
         ? { ...withSlots, presentFacilities: priorBody.presentFacilities }
         : withSlots;
+      // Same precedence as presentFacilities above — a "leave empty" marker is manually entered by
+      // the user in the System facilities panel, and a fresh journal/Spansh parse knows nothing
+      // about it either.
+      const withBlocked = priorBody?.blockedSlots ? { ...withPresent, blockedSlots: priorBody.blockedSlots } : withPresent;
       // Same idea as slots/presentFacilities above, but the OPPOSITE precedence: unlike a slot
       // count (always a rough guess needing human judgment), a confident true/false here came from
       // real `FSSBodySignals` event data in THIS upload's journal (see journal/parser.ts) — that's
@@ -77,7 +81,7 @@ function mergeBySystemAddress(existing: JournalSystem[], incoming: JournalSystem
       // correction, or an earlier upload's finding) when THIS upload's journal doesn't cover that
       // body's signals at all (`undefined` — genuinely no FSSBodySignals event for it here).
       return {
-        ...withPresent,
+        ...withBlocked,
         hasBiologicalSignals: body.hasBiologicalSignals ?? priorBody?.hasBiologicalSignals,
         hasGeologicalSignals: body.hasGeologicalSignals ?? priorBody?.hasGeologicalSignals,
       };

@@ -10,7 +10,7 @@ import { SavedPlansPanel } from "./components/SavedPlansPanel";
 import { SolvedSystemPanel } from "./components/SolvedSystemPanel";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
 import { SystemPortabilityBar } from "./components/SystemPortabilityBar";
-import { normalizeFacilitySlots } from "./domain/presentFacilities";
+import { normalizeBlockedSlots, normalizeFacilitySlots } from "./domain/presentFacilities";
 import { useCookieConsent } from "./hooks/useCookieConsent";
 import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
 import type { SavedPlan } from "./persistence/plans";
@@ -42,6 +42,10 @@ export function buildSolverInput(formState: PlannerFormState): SolverInput {
           presentFacilities: {
             space: normalizeFacilitySlots(b.presentFacilities?.space, slots.space),
             ground: normalizeFacilitySlots(b.presentFacilities?.ground, slots.ground),
+          },
+          blockedSlots: {
+            space: normalizeBlockedSlots(b.blockedSlots?.space, slots.space),
+            ground: normalizeBlockedSlots(b.blockedSlots?.ground, slots.ground),
           },
           // Feeds solve.ts's economy_synergy term — see SolverBody.economy's doc comment.
           economy: b,
