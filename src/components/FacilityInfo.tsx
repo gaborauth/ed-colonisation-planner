@@ -23,6 +23,7 @@ import {
 } from "../domain/economyOverrides";
 import type { MarketLinkLine, PortEconomyLine, SystemLinksResult } from "../domain/links";
 import type { StrongLinkedInstance } from "../domain/presentLinks";
+import { METERS_PER_SECOND_SQUARED_PER_G } from "../journal/eligibility";
 import type { JournalBody } from "../journal/parser";
 import { Tooltip } from "./Tooltip";
 
@@ -265,8 +266,6 @@ function bodyTypeLabel(body: JournalBody): string | undefined {
   if (body.kind === "star") return body.starType ? `${body.starType}-type star` : "Star";
   return body.planetClass;
 }
-
-const METERS_PER_SECOND_SQUARED_PER_G = 9.80665;
 
 /** Shared Economy/Value/Effects table markup for both the "Default economies" and "Strong links"
  * hover-box blocks below — same per-economy row-grouping (one `rowSpan`'d Economy cell per block,

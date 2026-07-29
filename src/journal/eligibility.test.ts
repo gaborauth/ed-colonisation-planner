@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estimateBodySlots } from "./eligibility";
+import { estimateBodySlots, GROUND_SLOT_MAX_GRAVITY_MS2 } from "./eligibility";
 import FIXTURE from "./fixtures/sample.jsonl?raw";
 import { parseJournalScans } from "./parser";
 
@@ -49,8 +49,12 @@ describe("estimateBodySlots", () => {
     const tooHot = { ...rocky, surfaceTemperature: 700 };
     expect(estimateBodySlots(tooHot).slots.ground).toBe(0);
 
-    const tooHeavy = { ...rocky, surfaceGravity: 2.7 };
+    // `surfaceGravity` is in m/s², not G — see `GROUND_SLOT_MAX_GRAVITY_MS2`'s doc comment.
+    const tooHeavy = { ...rocky, surfaceGravity: GROUND_SLOT_MAX_GRAVITY_MS2 };
     expect(estimateBodySlots(tooHeavy).slots.ground).toBe(0);
+
+    const justUnderCap = { ...rocky, surfaceGravity: GROUND_SLOT_MAX_GRAVITY_MS2 - 0.01 };
+    expect(estimateBodySlots(justUnderCap).slots.ground).toBeGreaterThan(0);
   });
 
   it("caps ground slots at 7 even when every bonus applies", () => {
