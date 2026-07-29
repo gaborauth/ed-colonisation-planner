@@ -5,14 +5,16 @@ import { BuildingsTable } from "./components/BuildingsTable";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { Footer } from "./components/Footer";
 import { JournalImportPanel } from "./components/JournalImportPanel";
+import { LiveDemoHintDialog } from "./components/LiveDemoHintDialog";
 import { ObjectivePanel } from "./components/ObjectivePanel";
 import { SavedPlansPanel } from "./components/SavedPlansPanel";
 import { SolvedSystemPanel } from "./components/SolvedSystemPanel";
 import { SolverStatusDialog } from "./components/SolverStatusDialog";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
-import { SystemPortabilityBar } from "./components/SystemPortabilityBar";
+import { applyParsedSystem, SystemPortabilityBar } from "./components/SystemPortabilityBar";
 import { normalizeBlockedSlots, normalizeFacilitySlots } from "./domain/presentFacilities";
 import { useCookieConsent } from "./hooks/useCookieConsent";
+import { getHasUsedLiveDemo, setHasUsedLiveDemo } from "./persistence/liveDemoHint";
 import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
 import type { SavedPlan } from "./persistence/plans";
 import type { SolverBody, SolverInput } from "./solver/solve";
@@ -88,6 +90,15 @@ function App() {
   // copy of the saved-systems list in local state (loaded once at mount), so writing a fresh
   // system into localStorage from a sibling component wouldn't otherwise be noticed there.
   const [journalStoreVersion, setJournalStoreVersion] = useState(0);
+  // Bumped by "Live Demo" to force-collapse AboutHelpPanel/JournalImportPanel — see each panel's
+  // own `collapseSignal` prop doc comment.
+  const [collapseSignal, setCollapseSignal] = useState(0);
+  const [liveDemoHintOpen, setLiveDemoHintOpen] = useState(false);
+  // Drives the "Live Demo" button's attention-grabbing pulse for a genuinely first-time visitor
+  // (never used it in this browser before) — lazy initializer so this is only ever read once, not
+  // on every render. Stops for good the moment they actually click it, in this tab and every future
+  // one (persisted via persistence/liveDemoHint.ts).
+  const [showLiveDemoAttention, setShowLiveDemoAttention] = useState(() => !getHasUsedLiveDemo());
   const cookieConsent = useCookieConsent();
 
   async function handleSolve(): Promise<void> {
@@ -96,6 +107,12 @@ function App() {
       const result = await solveInWorker(buildSolverInput(formState));
       if (result.status === "optimal") {
         setResultState({ status: "done", result, message: null });
+        // Deferred one frame so the "Solved system" panel has already re-rendered with the new
+        // result before measuring where to scroll — same reasoning as JournalImportPanel's own
+        // "system-panel" scroll after Apply.
+        requestAnimationFrame(() => {
+          document.getElementById("solved-system-panel")?.scrollIntoView?.({ behavior: "smooth", block: "start" });
+        });
       } else {
         setResultState({ status: "error", result: null, message: result.message ?? "Unknown error" });
       }
@@ -123,6 +140,31 @@ function App() {
     setResultState(INITIAL_RESULT_STATE);
   }
 
+  // Loads the same real exported system committed at jsons/swoilz-aw-c-d52.json that the test
+  // suite uses (see CLAUDE.md's "Testing conventions") — dynamically imported so it's only fetched
+  // when this button is actually clicked, not bundled into the main chunk. Lives in the header
+  // (next to "Tutorials") rather than SystemPortabilityBar's own sticky toolbar, so it shares that
+  // component's `applyParsedSystem` helper instead of a separate copy of the same dispatch/
+  // persistence shape. Also folds AboutHelpPanel/JournalImportPanel out of the way and pops up
+  // LiveDemoHintDialog pointing at the Objective panel/"Solve for a system" — a first-time visitor
+  // who clicks this now has a fully-populated system in front of them with no obvious next step,
+  // since both those panels would otherwise still be taking up the space between here and it.
+  async function handleLiveDemo(): Promise<void> {
+    setHasUsedLiveDemo();
+    setShowLiveDemoAttention(false);
+    try {
+      const module = await import("../jsons/swoilz-aw-c-d52.json");
+      applyParsedSystem(module.default, dispatch, () => setJournalStoreVersion((v) => v + 1), handleSystemChanged);
+      setCollapseSignal((v) => v + 1);
+      setLiveDemoHintOpen(true);
+    } catch (e) {
+      // No error-display UI up here (unlike SystemPortabilityBar's own toolbar) — this loads a
+      // real, committed, always-well-formed asset, so a failure here would be a build/bundling
+      // problem, not a user-input mistake worth its own banner.
+      console.error("Live Demo failed to load", e);
+    }
+  }
+
   return (
     <>
       <CookieConsentBanner
@@ -133,9 +175,19 @@ function App() {
       <main>
         <div className="app-header-row">
           <h1>Elite Dangerous Colonisation Planner & Solver</h1>
-          <a className="app-header-link" href="tutorials.html" target="_blank" rel="noreferrer">
-            Tutorials
-          </a>
+          <div className="app-header-links">
+            <button
+              type="button"
+              className={`app-header-link${showLiveDemoAttention ? " app-header-link-attention" : ""}`}
+              onClick={() => void handleLiveDemo()}
+              title="Load a real exported system to try the planner without your own journal data"
+            >
+              Live Demo
+            </button>
+            <a className="app-header-link" href="tutorials.html" target="_blank" rel="noreferrer">
+              Tutorials
+            </a>
+          </div>
         </div>
 
         <SystemPortabilityBar
@@ -145,12 +197,13 @@ function App() {
           onSystemChanged={handleSystemChanged}
         />
 
-        <AboutHelpPanel />
+        <AboutHelpPanel collapseSignal={collapseSignal} />
         <JournalImportPanel
           dispatch={dispatch}
           refreshToken={journalStoreVersion}
           onSystemChanged={handleSystemChanged}
           activeSystemAddress={formState.systemAddress}
+          collapseSignal={collapseSignal}
         />
         <SystemConfigPanel formState={formState} dispatch={dispatch} justSolved={resultState.result} />
         <ObjectivePanel
@@ -166,6 +219,7 @@ function App() {
           message={resultState.message}
           onDismiss={() => setResultState(INITIAL_RESULT_STATE)}
         />
+        <LiveDemoHintDialog open={liveDemoHintOpen} onDismiss={() => setLiveDemoHintOpen(false)} />
 
         <SolvedSystemPanel formState={formState} result={resultState.result} />
 

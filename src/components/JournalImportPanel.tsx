@@ -36,6 +36,10 @@ interface JournalImportPanelProps {
    * this panel's own Apply flow). Without this, switching systems via the toolbar would leave this
    * panel's body/slot table showing the PREVIOUS system. See the dedicated effect below. */
   activeSystemAddress?: number | null;
+  /** Bumped by App.tsx's "Live Demo" button to force this panel closed — same "signal" pattern as
+   * `refreshToken` (a different concern: that one re-reads the saved-systems store, this one only
+   * folds the panel), only acting on a change AFTER mount, never on the initial value. */
+  collapseSignal?: number;
 }
 
 const SLOT_KINDS = Object.keys(ALL_SLOTS) as SlotKind[];
@@ -107,6 +111,7 @@ export function JournalImportPanel({
   refreshToken,
   onSystemChanged,
   activeSystemAddress,
+  collapseSignal,
 }: JournalImportPanelProps) {
   // Purely backing data for the shared body/slot table below and `mergeBySystemAddress`'s
   // slot-preservation lookup — no longer seeded from `listSavedSystems()` at mount. It's
@@ -127,7 +132,7 @@ export function JournalImportPanel({
   const [applied, setApplied] = useState(false);
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(false);
 
-  const [activeTab, setActiveTab] = useState<ImportTab>("journal");
+  const [activeTab, setActiveTab] = useState<ImportTab>("spansh");
   const [spanshQuery, setSpanshQuery] = useState("");
   const [spanshCandidates, setSpanshCandidates] = useState<{ id64: number; name: string }[]>([]);
   const [spanshSelected, setSpanshSelected] = useState<{ id64: number; name: string } | null>(null);
@@ -355,6 +360,22 @@ export function JournalImportPanel({
       setApplied(false);
     }
   }, [refreshToken]);
+
+  // Forces this panel closed whenever `collapseSignal` changes (see the prop's doc comment) — a
+  // first-time visitor who clicks "Live Demo" already has a live system loaded and doesn't need
+  // this panel still open and taking up space above it. Compares against the LAST SEEN value
+  // rather than a plain "is this the first run" boolean flag — the latter breaks under React 18
+  // StrictMode's dev-only double-invoke-on-mount (the ref flips to "seen" on the first of the two
+  // mount invocations, so the second one wrongly treats itself as a real change and folds the panel
+  // immediately on page load, before "Live Demo" was ever clicked). This form is safe under a
+  // double-invoke: both calls compare against the same untouched snapshot and agree nothing changed.
+  const lastCollapseSignal = useRef(collapseSignal);
+  useEffect(() => {
+    if (collapseSignal === lastCollapseSignal.current) return;
+    lastCollapseSignal.current = collapseSignal;
+    setCollapsed(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires only on collapseSignal changing, setCollapsed identity is stable
+  }, [collapseSignal]);
 
   // Mirrors this panel's own `selectedAddress` to `formState.systemAddress` whenever THAT changes
   // out from under it — i.e. the toolbar switcher case above, not this panel's own Apply (which

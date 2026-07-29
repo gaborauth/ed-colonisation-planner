@@ -19,11 +19,13 @@ interface SystemPortabilityBarProps {
    * App.tsx can bump JournalImportPanel's refresh token — that panel keeps its own local copy of
    * the saved-systems list and otherwise never notices a sibling component's write. */
   onImported?: () => void;
-  /** Called whenever "Import system"/"Live Demo"/the switcher/mount-time restore actually applies a
-   * different system to `formState`, or "Delete" clears it back to blank — lets App.tsx clear its
-   * stale solved result, which is keyed to the PREVIOUS system's bodies and would otherwise keep
-   * showing through against the new (or now-empty) one (same fix as JournalImportPanel's own
-   * `onSystemChanged`). Not fired by Save/Export, which don't change `formState` at all. */
+  /** Called whenever "Import system"/the switcher/mount-time restore actually applies a different
+   * system to `formState`, or "Delete" clears it back to blank — lets App.tsx clear its stale
+   * solved result, which is keyed to the PREVIOUS system's bodies and would otherwise keep showing
+   * through against the new (or now-empty) one (same fix as JournalImportPanel's own
+   * `onSystemChanged`). Not fired by Save/Export, which don't change `formState` at all. App.tsx's
+   * own "Live Demo" button (in the header, not this toolbar) calls `applyParsedSystem` directly
+   * with its own equivalent callback instead of going through this component's props at all. */
   onSystemChanged?: () => void;
 }
 
@@ -35,6 +37,43 @@ function looksLikeJournalSystem(value: unknown): value is JournalSystem {
   if (!value || typeof value !== "object") return false;
   const v = value as Record<string, unknown>;
   return typeof v.starSystem === "string" && typeof v.systemAddress === "number" && Array.isArray(v.bodies);
+}
+
+/** Applies a parsed, unknown-shaped value as the active system — shared by this component's own
+ * file-based "Import system" button and App.tsx's "Live Demo" button (a different location in the
+ * component tree, hence a standalone exported function rather than a local closure): saves it to
+ * the shared store, marks it as last-used, and dispatches the same patch shape
+ * `JournalImportPanel.applySystem` and this component's own mount-time restore/switcher use.
+ * Returns a user-facing error message on a bad shape, or `null` on success. */
+export function applyParsedSystem(
+  parsed: unknown,
+  dispatch: Dispatch<PlannerAction>,
+  onImported?: () => void,
+  onSystemChanged?: () => void,
+): string | null {
+  if (!looksLikeJournalSystem(parsed)) {
+    return "That file doesn't look like an exported system (missing starSystem/systemAddress/bodies).";
+  }
+  saveSystem(parsed);
+  setLastUsedSystemAddress(parsed.systemAddress);
+  dispatch({
+    type: "patch",
+    patch: {
+      slots: computeSystemSlotTotals(parsed),
+      bodies: parsed.bodies,
+      systemConfigured: true,
+      systemAddress: parsed.systemAddress,
+      starSystem: parsed.starSystem,
+      firstStationBuilding: parsed.firstStationBuilding ?? "",
+      firstStationBodyId: parsed.firstStationBodyId,
+      firstStationVariant: parsed.firstStationVariant,
+      firstStationCustomName: parsed.firstStationCustomName,
+      ravenColonialSkeleton: parsed.ravenColonialSkeleton,
+    },
+  });
+  onImported?.();
+  onSystemChanged?.();
+  return null;
 }
 
 /** Reconstructs the `JournalSystem` shape from form state — same fields the Save and Export
@@ -178,53 +217,10 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
     URL.revokeObjectURL(url);
   }
 
-  // Shared by file-based Import and the Live Demo button below — an imported/demo system should
-  // behave exactly like applying a saved/uploaded one, not a separate code path (same wiring as
-  // JournalImportPanel.applySystem).
-  function loadParsedSystem(parsed: unknown): void {
-    if (!looksLikeJournalSystem(parsed)) {
-      setError("That file doesn't look like an exported system (missing starSystem/systemAddress/bodies).");
-      return;
-    }
-    saveSystem(parsed);
-    setLastUsedSystemAddress(parsed.systemAddress);
-    dispatch({
-      type: "patch",
-      patch: {
-        slots: computeSystemSlotTotals(parsed),
-        bodies: parsed.bodies,
-        systemConfigured: true,
-        systemAddress: parsed.systemAddress,
-        starSystem: parsed.starSystem,
-        firstStationBuilding: parsed.firstStationBuilding ?? "",
-        firstStationBodyId: parsed.firstStationBodyId,
-        firstStationVariant: parsed.firstStationVariant,
-        firstStationCustomName: parsed.firstStationCustomName,
-        ravenColonialSkeleton: parsed.ravenColonialSkeleton,
-      },
-    });
-    setError(null);
-    onImported?.();
-    onSystemChanged?.();
-  }
-
   async function handleImportFile(file: File): Promise<void> {
     try {
       const parsed: unknown = JSON.parse(await file.text());
-      loadParsedSystem(parsed);
-    } catch (e) {
-      setError((e as Error).message);
-    }
-  }
-
-  // Loads the same real exported system committed at jsons/swoilz-aw-c-d52.json that the test
-  // suite uses (see CLAUDE.md's "Testing conventions") — dynamically imported so it's only fetched
-  // when this button is actually clicked, not bundled into the main chunk.
-  async function handleLiveDemo(): Promise<void> {
-    try {
-      const module = await import("../../jsons/swoilz-aw-c-d52.json");
-      const parsed: unknown = module.default;
-      loadParsedSystem(parsed);
+      setError(applyParsedSystem(parsed, dispatch, onImported, onSystemChanged));
     } catch (e) {
       setError((e as Error).message);
     }
@@ -243,29 +239,22 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
         </button>
         <button
           type="button"
-          onClick={handleExport}
-          disabled={!canSaveOrExport}
-          title={!canSaveOrExport ? "Apply a system to Actual facilities in the system first" : undefined}
-        >
-          Export system
-        </button>
-        <button
-          type="button"
           onClick={handleDelete}
           disabled={!canSaveOrExport}
           title={!canSaveOrExport ? "Apply a system to Actual facilities in the system first" : undefined}
         >
           Delete
         </button>
-        <button type="button" onClick={() => fileInputRef.current?.click()}>
-          Import system
-        </button>
         <button
           type="button"
-          onClick={() => void handleLiveDemo()}
-          title="Load a real exported system to try the planner without your own journal data"
+          onClick={handleExport}
+          disabled={!canSaveOrExport}
+          title={!canSaveOrExport ? "Apply a system to Actual facilities in the system first" : undefined}
         >
-          Live Demo
+          Export system
+        </button>
+        <button type="button" onClick={() => fileInputRef.current?.click()}>
+          Import system
         </button>
         <input
           ref={fileInputRef}
