@@ -1,3 +1,16 @@
+## [1.4.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.3.0...v1.4.0) (2026-07-29)
+
+### Features
+
+* export solved plan as a Raven Colonial JSON ([0a47959](https://github.com/gaborauth/ed-colonisation-planner/commit/0a479598e696f6d9bda76f788c90e7766d5e65aa))
+
+### Bug Fixes
+
+* convert Spansh gravity from mps2 to G ([458b6d9](https://github.com/gaborauth/ed-colonisation-planner/commit/458b6d9c5a2f47ecaee13bcbcf799c60f29616f3))
+* correct ground slot gravity effective unit mismatch ([#81](https://github.com/gaborauth/ed-colonisation-planner/issues/81)) ([44f08e7](https://github.com/gaborauth/ed-colonisation-planner/commit/44f08e7f3d5c8c0c3cfb26d2ab4f6744dd5a1179))
+* polish first time onboarding ([cc9a9fc](https://github.com/gaborauth/ed-colonisation-planner/commit/cc9a9fc4ca9abb50e73f9f5e2b0278c447283357))
+* restrict a star belts dedicated slot ([d11b760](https://github.com/gaborauth/ed-colonisation-planner/commit/d11b7602e588ba67a31a2d4e7c87e8d0c4467ecd))
+
 ## [1.3.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.2.0...v1.3.0) (2026-07-28)
 
 ### Features
