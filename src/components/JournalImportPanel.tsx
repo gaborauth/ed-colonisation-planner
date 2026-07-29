@@ -11,7 +11,7 @@ import {
 } from "../journal/parser";
 import { getLastUsedSystemAddress, listSavedSystems, saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
 import { applyRavenColonialOverlay } from "../ravenColonial/adapter";
-import type { RcSystem } from "../ravenColonial/types";
+import type { RcSystemSkeleton } from "../ravenColonial/types";
 import { spanshDumpToJournalSystem } from "../spansh/adapter";
 import { fetchSpanshSystemDump, searchSystemNames } from "../spansh/api";
 import type { PlannerAction } from "../state/plannerState";
@@ -261,9 +261,9 @@ export function JournalImportPanel({
     setRcImported(false);
     try {
       const text = await file.text();
-      let rc: RcSystem;
+      let rc: RcSystemSkeleton;
       try {
-        rc = JSON.parse(text) as RcSystem;
+        rc = JSON.parse(text) as RcSystemSkeleton;
       } catch {
         throw new Error("That doesn't look like a valid JSON file.");
       }
@@ -292,6 +292,7 @@ export function JournalImportPanel({
         systemConfigured: true,
         systemAddress: system.systemAddress,
         starSystem: system.starSystem,
+        ravenColonialSkeleton: system.ravenColonialSkeleton,
         // Restores whatever primary station was saved for this system (see SystemConfigPanel's
         // "Save" button) — blank/undefined for a system that's never had one chosen yet, which
         // correctly resets the field rather than leaving a previous system's choice behind.
@@ -577,43 +578,51 @@ export function JournalImportPanel({
 
           {selected && (
             <div style={{ marginTop: 10 }}>
-              <div className="row-grid">
-                <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>
-                  Already tracking this system's construction in{" "}
-                  <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">
-                    Raven Colonial
-                  </a>
-                  ? Upload its "Export backup" JSON file to overlay its slot counts and built
-                  facilities onto the system loaded above (its own body/orbital data is untouched).
-                  Raven Colonial's slot counts are manually entered by whoever tracks the project,
-                  same as this panel's own fields — check them the same way.
-                </p>
-                <input
-                  type="file"
-                  accept=".json,application/json"
-                  aria-label="Raven Colonial export backup file"
-                  disabled={rcLoading}
-                  style={{ marginLeft: "auto" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void handleRavenColonialFile(file);
-                    e.target.value = "";
-                  }}
-                />
-              </div>
-              {rcError && <div className="status-banner">{rcError}</div>}
-              {rcImported && !rcError && (
-                <div className="status-banner" style={{ color: "var(--success)" }}>
-                  Raven Colonial file processed successfully — check "Apply slots and body layout"
-                  below to save it.
-                </div>
-              )}
-              {rcWarnings.length > 0 && (
-                <div className="status-banner">
-                  {rcWarnings.map((w) => (
-                    <div key={w}>{w}</div>
-                  ))}
-                </div>
+              {/* Hidden once the currently loaded system has no unapplied changes left — most
+               * notably right after "Apply slots and body layout" is clicked (`applied` flips back
+               * to `false` on the next edit/import, which brings this back). Keeps the panel from
+               * still prompting to import Raven Colonial data for a system that was just saved. */}
+              {!applied && (
+                <>
+                  <div className="row-grid">
+                    <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>
+                      Already tracking this system's construction in{" "}
+                      <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">
+                        Raven Colonial
+                      </a>
+                      ? Upload its "Export backup" JSON file to overlay its slot counts and built
+                      facilities onto the system loaded above (its own body/orbital data is
+                      untouched). Raven Colonial's slot counts are manually entered by whoever
+                      tracks the project, same as this panel's own fields — check them the same way.
+                    </p>
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      aria-label="Raven Colonial export backup file"
+                      disabled={rcLoading}
+                      style={{ marginLeft: "auto" }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void handleRavenColonialFile(file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                  {rcError && <div className="status-banner">{rcError}</div>}
+                  {rcImported && !rcError && (
+                    <div className="status-banner" style={{ color: "var(--success)" }}>
+                      Raven Colonial file processed successfully — check "Apply slots and body
+                      layout" below to save it.
+                    </div>
+                  )}
+                  {rcWarnings.length > 0 && (
+                    <div className="status-banner">
+                      {rcWarnings.map((w) => (
+                        <div key={w}>{w}</div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
               <table style={{ marginTop: 10 }}>
                 <thead>

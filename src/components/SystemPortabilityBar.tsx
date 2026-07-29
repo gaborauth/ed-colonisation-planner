@@ -49,6 +49,7 @@ function systemFromFormState(formState: PlannerFormState): JournalSystem | null 
     firstStationBodyId: formState.firstStationBodyId,
     firstStationVariant: formState.firstStationVariant,
     firstStationCustomName: formState.firstStationCustomName,
+    ravenColonialSkeleton: formState.ravenColonialSkeleton,
   };
 }
 
@@ -116,6 +117,7 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
         firstStationBodyId: system.firstStationBodyId,
         firstStationVariant: system.firstStationVariant,
         firstStationCustomName: system.firstStationCustomName,
+        ravenColonialSkeleton: system.ravenColonialSkeleton,
       },
     });
     onSystemChanged?.();
@@ -198,6 +200,7 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
         firstStationBodyId: parsed.firstStationBodyId,
         firstStationVariant: parsed.firstStationVariant,
         firstStationCustomName: parsed.firstStationCustomName,
+        ravenColonialSkeleton: parsed.ravenColonialSkeleton,
       },
     });
     setError(null);

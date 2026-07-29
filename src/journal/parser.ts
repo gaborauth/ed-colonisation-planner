@@ -136,6 +136,16 @@ export interface JournalSystem {
    * behavior, only display. */
   firstStationVariant?: string;
   firstStationCustomName?: string;
+  /** The full parsed Raven Colonial "Export backup" JSON, kept verbatim, set whenever a Raven
+   * Colonial file is overlaid onto this system (`ravenColonial/adapter.ts`'s
+   * `applyRavenColonialOverlay`) — undefined for a system that's never had one imported. Kept
+   * opaque here (same "raw blob" treatment as `JournalBody.raw` below) rather than importing
+   * `ravenColonial/types.ts`'s `RcSystemSkeleton` type directly, so this generic parsing module
+   * doesn't need to know about that feature-specific shape; `ravenColonial/adapter.ts` and
+   * `ravenColonial/export.ts` are the two places that actually read/write it typed as
+   * `RcSystemSkeleton`. Exists so `ravenColonial/export.ts` can later turn a solved plan back into
+   * a re-importable Raven Colonial file — see CLAUDE.md's "Raven Colonial import"/export notes. */
+  ravenColonialSkeleton?: Record<string, unknown>;
 }
 
 /** Natural/numeric name comparator, so "System A 2" sorts before "System A 10" — used everywhere

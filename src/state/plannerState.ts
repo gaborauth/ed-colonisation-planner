@@ -45,6 +45,13 @@ export interface PlannerFormState {
    * a journal import, never typed in by hand — see CLAUDE.md). Null until a system is applied. */
   systemAddress: number | null;
   starSystem: string;
+  /** The full Raven Colonial "Export backup" JSON last imported for this system, kept verbatim — set
+   * alongside `bodies`/`systemAddress`/`starSystem` by `JournalImportPanel`'s "Apply" button
+   * whenever `bodies` came from a system that's had a Raven Colonial file overlaid onto it (see
+   * `journal/parser.ts`'s `JournalSystem.ravenColonialSkeleton`). Undefined for a system that's
+   * never had one imported — gates `SolvedSystemPanel`'s "Export Raven Colonial" button, since
+   * fields like `id64`/`pos`/`architect`/`v`/`rev` have no other source in this app. */
+  ravenColonialSkeleton: Record<string, unknown> | undefined;
   /** Whether the System facilities panel's fields have been unlocked for editing — either by applying a
    * journal body layout, or by explicitly clicking "Enter slots manually". Starts `false` (panel
    * greyed out and disabled) so a fresh session doesn't look like it's mid-configuration; a
@@ -85,6 +92,7 @@ export const INITIAL_FORM_STATE: PlannerFormState = {
   bodies: [],
   systemAddress: null,
   starSystem: "",
+  ravenColonialSkeleton: undefined,
   systemConfigured: false,
   firstStationBuilding: "",
   firstStationBodyId: undefined,
