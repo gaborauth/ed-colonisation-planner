@@ -634,6 +634,71 @@ describe("solve with economy_synergy (input.bodies[].economy)", () => {
     expect(result.status).toBe("optimal");
     expect(result.objectiveValue).toBeCloseTo(0.05, 5);
   }, 20000);
+
+  it("systemResourceLevel omitted defaults to the same result as explicit 'pristine' (backward-compat)", async () => {
+    // volcanicBody has no `reserveLevel` of its own, so before this field existed the system's
+    // resource level was "unknown" (no Extraction boost from it). Omitting `systemResourceLevel`
+    // must resolve identically to explicitly passing "pristine" — the documented default — not to
+    // the old "unknown" behavior.
+    const omitted = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+      }),
+    );
+    const explicitPristine = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+        systemResourceLevel: "pristine",
+      }),
+    );
+    expect(omitted).toEqual(explicitPristine);
+  }, 20000);
+
+  it("a manual 'low' override lowers economy_synergy relative to the 'pristine' default, on a body with a known port", async () => {
+    const withPristine = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+        systemResourceLevel: "pristine",
+      }),
+    );
+    const withLow = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+        systemResourceLevel: "low",
+      }),
+    );
+    expect(withLow.objectiveValue).toBeLessThan(withPristine.objectiveValue as number);
+  }, 20000);
+
+  it("real per-body reserveLevel data always wins over the manual override", async () => {
+    const depletedBody: JournalBody = { ...volcanicBody, reserveLevel: "DepletedResources" };
+    const withDepletedData = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, economy: depletedBody }],
+        systemResourceLevel: "pristine",
+      }),
+    );
+    const withNoOverride = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, economy: depletedBody }],
+      }),
+    );
+    // Real "Depleted" data on the body itself wins over the "pristine" manual override — same
+    // result whether the override is set or left at its default.
+    expect(withDepletedData).toEqual(withNoOverride);
+  }, 20000);
 });
 
 describe("solve with economyPreferences (Must/Want/Don't want/Forbid)", () => {

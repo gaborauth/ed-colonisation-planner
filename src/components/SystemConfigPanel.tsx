@@ -2,6 +2,7 @@ import { useEffect, useMemo, type Dispatch } from "react";
 import { ALL_CATEGORIES, isPort, isPortRole, ALL_BUILDINGS, toPrintable, getBuildingVariants } from "../data/buildings";
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
 import { computeCurrentSystemScores } from "../domain/currentSystemScores";
+import { applyManualResourceLevel, type ResourceLevel } from "../domain/economyOverrides";
 import type { SystemLinksResult } from "../domain/links";
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import {
@@ -34,6 +35,16 @@ interface SystemConfigPanelProps {
 const SLOT_KINDS: { kind: "space" | "ground"; label: string; category: string }[] = [
   { kind: "space", label: "Orbital", category: "Space" },
   { kind: "ground", label: "Ground", category: "Ground" },
+];
+
+// Real in-game `ReserveLevel` vocabulary (see economyOverrides.ts's `ResourceLevel`) — Pristine
+// first/default since most colonizable systems actually are one.
+const RESOURCE_LEVEL_OPTIONS: { value: ResourceLevel; label: string }[] = [
+  { value: "pristine", label: "Pristine" },
+  { value: "major", label: "Major" },
+  { value: "common", label: "Common" },
+  { value: "low", label: "Low" },
+  { value: "depleted", label: "Depleted" },
 ];
 
 interface PrimaryStationFieldsProps {
@@ -472,6 +483,14 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
   // Only meaningful once a per-body layout is applied (see JournalImportPanel); in aggregate mode
   // there's no per-body ring-eligibility data to check, so this never disables anything there.
   const hasBodies = formState.bodies.length > 0;
+  // Injects the manual "System resource level" dropdown value into the body array wherever real
+  // per-body detection finds nothing (see `applyManualResourceLevel`'s doc comment) — used
+  // everywhere below in place of `formState.bodies` so the tree's economy hovers and link topology
+  // stay consistent with the dropdown, not just the ones with real scanned reserveLevel data.
+  const effectiveBodies = useMemo(
+    () => applyManualResourceLevel(formState.bodies, formState.systemResourceLevel),
+    [formState.bodies, formState.systemResourceLevel],
+  );
   const ringEligibleBodyIds = new Set(
     formState.bodies.filter((b) => (b.slots?.asteroid ?? 0) > 0).map((b) => b.bodyId),
   );
@@ -496,7 +515,7 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
   // Link topology for what's actually built today (see domain/presentLinks.ts) — feeds the
   // "Strong market link(s)" hover section below. Recomputed only when the underlying present-
   // facility/primary-station state actually changes, not on every render.
-  const linksResult = useMemo(() => computePresentSystemLinks(formState.bodies), [formState.bodies]);
+  const linksResult = useMemo(() => computePresentSystemLinks(effectiveBodies), [effectiveBodies]);
 
   // The primary station shows up as a leaf under whichever body it's assigned to (see
   // HierarchyBranch/the root's own leaves below) — but if it's been picked without a body
@@ -609,9 +628,10 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
           </div>
           {hasBodies && (
             <div className="field">
-              <label htmlFor="first-station-body">On body</label>
+              <label htmlFor="first-station-body">On body *</label>
               <select
                 id="first-station-body"
+                aria-required="true"
                 value={formState.firstStationBodyId ?? ""}
                 disabled={locked}
                 onChange={(e) =>
@@ -621,10 +641,32 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
                   })
                 }
               >
-                <option value="">— unassigned —</option>
+                <option value="">— select —</option>
                 {stationBodyOptions.map((b) => (
                   <option key={b.bodyId} value={b.bodyId}>
                     {b.bodyName}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+          {hasBodies && (
+            <div className="field">
+              <label htmlFor="system-resource-level">System resource level</label>
+              <select
+                id="system-resource-level"
+                value={formState.systemResourceLevel}
+                disabled={locked}
+                onChange={(e) =>
+                  dispatch({
+                    type: "patch",
+                    patch: { systemResourceLevel: e.target.value as ResourceLevel },
+                  })
+                }
+              >
+                {RESOURCE_LEVEL_OPTIONS.map(({ value, label }) => (
+                  <option key={value} value={value}>
+                    {label}
                   </option>
                 ))}
               </select>
@@ -645,7 +687,7 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
       {hierarchyRoot && (
         <div className="facility-tree">
           <div className="facility-tree-root">
-            {hierarchyRoot.body && <BodyInfoIcon body={hierarchyRoot.body} allBodies={formState.bodies} />}
+            {hierarchyRoot.body && <BodyInfoIcon body={hierarchyRoot.body} allBodies={effectiveBodies} />}
             {formState.starSystem || "System"}
           </div>
           {primaryStationUnassigned && (
@@ -668,7 +710,7 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
                 firstStationVariant={formState.firstStationVariant}
                 firstStationCustomName={formState.firstStationCustomName}
                 linksResult={linksResult}
-                allBodies={formState.bodies}
+                allBodies={effectiveBodies}
               />
             </div>
           )}
@@ -684,7 +726,7 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
               locked={locked}
               dispatch={dispatch}
               linksResult={linksResult}
-              allBodies={formState.bodies}
+              allBodies={effectiveBodies}
             />
           ))}
         </div>

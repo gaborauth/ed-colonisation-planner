@@ -5,6 +5,7 @@ import {
   syncPrimaryIntoBodies,
   type PresentFacilitySlot,
 } from "../domain/presentFacilities";
+import { systemResourceLevel, type ResourceLevel } from "../domain/economyOverrides";
 import type { JournalBody } from "../journal/parser";
 import type { Direction, EconomyPreference, SlotAvailability, SolverResult } from "../solver/solve";
 
@@ -38,6 +39,18 @@ export interface PlannerFormState {
    * input). Non-empty => per-body placement mode (see `solve.ts`'s `SolverInput.bodies`) — `slots`
    * above still gets kept in sync as the aggregate total for display/fallback purposes. */
   bodies: JournalBody[];
+  /** The system's resource level (real in-game `ReserveLevel` — Pristine/Major/Common/Low/Depleted),
+   * feeding `economyOverrides.ts`'s Extraction/Industrial/Refinery boost-decrease and `solve.ts`'s
+   * `economy_synergy` term. Always has a value (defaults to `"pristine"` — most colonizable systems
+   * actually are, per real-game observation; only some inner-bubble systems differ) rather than
+   * `null`/"unknown", since a manually-editable best-effort guess is more useful than blocking on
+   * data Spansh/Journal don't always provide (a system can have no per-body `reserveLevel` at all —
+   * e.g. no ringed body was scanned closely enough, or Spansh's dump simply omits it even for a
+   * system with a real scanned belt). `JournalImportPanel`'s `applySystem` seeds this from real
+   * per-body detection (`systemResourceLevel(bodies)`) when present, falling back to `"pristine"`
+   * otherwise; freely editable afterward via the System facilities panel's dropdown. Only meaningful
+   * once `bodies` is non-empty, same per-body-mode-only scope as `economyPreferences` below. */
+  systemResourceLevel: ResourceLevel;
   /** Which saved journal system `bodies` came from — set by `JournalImportPanel`'s "Apply" button
    * alongside `bodies`/`slots`/`systemConfigured`. Lets the System facilities panel's own "Save"
    * button write already-built-facility edits back into `persistence/journalSystems.ts`'s store
@@ -90,6 +103,7 @@ export interface PlannerFormState {
 export const INITIAL_FORM_STATE: PlannerFormState = {
   slots: { space: 0, ground: 0, asteroid: 0 },
   bodies: [],
+  systemResourceLevel: "pristine",
   systemAddress: null,
   starSystem: "",
   ravenColonialSkeleton: undefined,
@@ -233,7 +247,21 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
       // Same shim style for `economyPreferences` (added after `bodies`): a plan saved before it
       // existed just has no preferences set, not a broken/undefined lookup target.
       const economyPreferences = action.state.economyPreferences ?? {};
-      return { ...action.state, bodies, systemConfigured, systemAddress, starSystem, economyPreferences };
+      // Same shim style for `systemResourceLevel` (added after `bodies`): re-run the same
+      // detect-from-real-scan-data-or-default-to-Pristine resolution `JournalImportPanel`'s
+      // `applySystem` does on a fresh import, rather than silently reverting to "unknown" (which
+      // this field's whole point was to move away from) or blindly overriding real per-body data a
+      // pre-existing plan already has.
+      const resourceLevel = action.state.systemResourceLevel ?? systemResourceLevel(bodies) ?? "pristine";
+      return {
+        ...action.state,
+        bodies,
+        systemConfigured,
+        systemAddress,
+        starSystem,
+        economyPreferences,
+        systemResourceLevel: resourceLevel,
+      };
     }
     case "reset":
       return INITIAL_FORM_STATE;

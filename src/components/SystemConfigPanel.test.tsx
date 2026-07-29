@@ -34,10 +34,18 @@ describe("SystemConfigPanel's Primary station field emphasis", () => {
     expect(screen.getAllByText(/The station you already have \(or plan to build first\)/)[1]).toBeInTheDocument();
   });
 
-  it("wraps both the Primary station and On body fields in the same highlighted box", () => {
+  it("wraps the Primary station, On body, and System resource level fields in the same highlighted box", () => {
     renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
     const box = screen.getByLabelText("Primary station *").closest(".field-highlight");
     expect(box).toBeInTheDocument();
-    expect(box).toContainElement(screen.getByLabelText("On body"));
+    expect(box).toContainElement(screen.getByLabelText("On body *"));
+    expect(box).toContainElement(screen.getByLabelText("System resource level"));
+  });
+});
+
+describe("SystemConfigPanel's primary station body requirement", () => {
+  it("On body defaults to unselected, requiring an explicit choice", () => {
+    renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)], firstStationBuilding: "Coriolis" });
+    expect(screen.getByLabelText("On body *")).toHaveValue("");
   });
 });
