@@ -70,7 +70,7 @@ import {
   isPortRole,
   SUBSEQUENT_FACILITY_REDUCTION,
 } from "../data/buildings";
-import { computeBoostDecrease, facilityBaseEconomies } from "../domain/economyOverrides";
+import { applyManualResourceLevel, computeBoostDecrease, facilityBaseEconomies, type ResourceLevel } from "../domain/economyOverrides";
 import { WEAK_LINK_CONTRIBUTION, type BuildingPlacement } from "../domain/links";
 import {
   applyPrimaryReservation,
@@ -205,6 +205,14 @@ export interface SolverInput {
    * degrade pattern as `SolverBody.economy` itself. See this file's `economy_preference`/Forbid/Must
    * block (search "economyPreferences") for exactly how each value is enforced. */
   economyPreferences?: Partial<Record<EconomyType, EconomyPreference>>;
+  /** Manual "System resource level" override (`PlannerFormState.systemResourceLevel`) feeding
+   * `economy_synergy`'s Extraction/Industrial/Refinery boost-decrease, same scope as `economy
+   * Preferences` above (only meaningful when `bodies` is present). Absent/undefined defaults to
+   * `"pristine"` here — same backward-compatible degrade pattern as `SolverBody.economy` itself, so
+   * an existing caller that never sets this (e.g. `solve.test.ts` fixtures predating this field)
+   * keeps getting real detected per-body data when present, or Pristine otherwise, never "unknown".
+   * See `domain/economyOverrides.ts`'s `applyManualResourceLevel` for the injection mechanism. */
+  systemResourceLevel?: ResourceLevel;
 }
 
 /** One of five states a user can set per `EconomyType` in `ObjectivePanel`'s "Economy preferences"
@@ -607,9 +615,13 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   systemScores.economy_synergy = exprConst(0);
   systemScores.economy_preference = exprConst(0);
   if (input.bodies && input.bodies.length > 0) {
-    const allEconomyBodies: JournalBody[] = input.bodies
+    const rawEconomyBodies: JournalBody[] = input.bodies
       .map((b) => b.economy)
       .filter((b): b is JournalBody => b !== undefined);
+    // Real per-body detected data always wins; only fills the gap (a system with no per-body
+    // `reserveLevel` at all) with the manual override, defaulting to Pristine when the caller
+    // doesn't set one — see `SolverInput.systemResourceLevel`'s doc comment.
+    const allEconomyBodies = applyManualResourceLevel(rawEconomyBodies, input.systemResourceLevel ?? "pristine");
 
     const knownPortBodyIds = new Set<number>(
       presentSplit.hard.filter((f) => isPortRole(f.building)).map((f) => f.bodyId),

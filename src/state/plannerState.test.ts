@@ -116,6 +116,35 @@ describe("plannerReducer", () => {
     expect(state.economyPreferences).toEqual({});
   });
 
+  it("load defaults systemResourceLevel to 'pristine' for a plan saved before it existed", () => {
+    const { systemResourceLevel: _drop, ...withoutResourceLevel } = INITIAL_FORM_STATE;
+    const state = plannerReducer(INITIAL_FORM_STATE, {
+      type: "load",
+      state: withoutResourceLevel as PlannerFormState,
+    });
+    expect(state.systemResourceLevel).toBe("pristine");
+  });
+
+  it("load re-detects systemResourceLevel from real per-body reserveLevel data for a plan saved before the field existed", () => {
+    const ringedBody: JournalBody = {
+      bodyName: "Test 1",
+      bodyId: 1,
+      kind: "planet",
+      landable: false,
+      parents: [],
+      rings: [{ name: "r", ringClass: "eRingClass_MetalRich", massMT: 1 }],
+      reserveLevel: "MajorResources",
+      slots: { space: 1, ground: 0, asteroid: 0 },
+      raw: {},
+    };
+    const { systemResourceLevel: _drop, ...withoutResourceLevel } = { ...INITIAL_FORM_STATE, bodies: [ringedBody] };
+    const state = plannerReducer(INITIAL_FORM_STATE, {
+      type: "load",
+      state: withoutResourceLevel as PlannerFormState,
+    });
+    expect(state.systemResourceLevel).toBe("major");
+  });
+
   it("reset restores the initial state", () => {
     const changed = plannerReducer(INITIAL_FORM_STATE, { type: "patch", patch: { allowCriminal: false } });
     expect(plannerReducer(changed, { type: "reset" })).toEqual(INITIAL_FORM_STATE);

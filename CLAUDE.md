@@ -289,6 +289,54 @@ an inference this project made itself, not something the source stated verbatim:
   0.4 per boost/decrease condition, 0.4–1.2 full strong-link tier contribution) so one preferred
   building's pull is comparable to a single real link-boost, not negligible or overwhelming.
 
+## Manual "System resource level" override
+
+`domain/economyOverrides.ts#systemResourceLevel` only ever learns a system's real `ReserveLevel`
+(Pristine/Major/Common/Low/Depleted) by scanning every body's `reserveLevel` field for one that
+classifies — a real-in-game system-wide fact reported on a ringed body's own Scan event (see the
+Update 3 section above). Some real systems have no per-body `reserveLevel` at all — no ringed body
+was scanned closely enough via Journal, or Spansh's `/dump` response simply omits it even for a
+system with a real scanned belt/ring (confirmed: `spansh-jsons/swoilz-eg-i-b2-3-dump.json` has a
+real star belt but zero `reserveLevel` occurrences anywhere in the dump) — which used to report
+"unknown," silently zeroing the Extraction/Industrial/Refinery boost-decrease. Most colonizable
+systems are actually Pristine (real-game observation; exceptions cluster in the inner bubble), so a
+manually-editable "System resource level" dropdown (`SystemConfigPanel.tsx`'s "Actual facilities in
+the system" panel, gated by the same `locked`/`hasBodies` per-body-mode-only pattern as the panel's
+other fields) defaults to Pristine instead of blocking on missing data — same "calibrate, don't
+block" precedent as this file's other best-effort constants, though this one is a user-editable
+field, not a hardcoded constant.
+
+- **`ResourceLevel` type** (`"pristine" | "major" | "common" | "low" | "depleted"`,
+  `domain/economyOverrides.ts`) — `"common"` is a real, neutral, confirmed reading, DISTINCT from
+  `null` ("no data scanned at all"); `classifyReserveLevel` used to conflate the two (a real latent
+  bug, fixed alongside this feature), which would have made a real "Common" reading show the same
+  "unknown" messaging as no data at all.
+- **`PlannerFormState.systemResourceLevel`** always has a value (default `"pristine"`, never
+  `null`/optional at the form-state layer). `JournalImportPanel.tsx`'s `applySystem` seeds it from
+  real per-body detection (`systemResourceLevel(system.bodies) ?? "pristine"`) on every import/
+  apply — matching "auto-set when the import has the data, default otherwise" — then it's freely
+  user-editable afterward. `plannerState.ts`'s `"load"` action re-runs the same detect-or-default
+  resolution for an old saved plan that predates this field, rather than silently reverting to
+  "unknown" or blindly overriding real per-body data a pre-existing plan already has.
+- **Threading into scoring without new function parameters**: `domain/economyOverrides.ts#
+  applyManualResourceLevel(bodies, manualLevel)` returns `bodies` completely unchanged when real
+  per-body detection already finds a level (real scan data always wins) — otherwise returns a
+  shallow copy with the manual level injected onto exactly one body's `reserveLevel` field (the
+  same "smeared system-wide fact, doesn't matter which body carries it" simplification
+  `systemResourceLevel` itself already applies to real data, not a new one). This lets every
+  existing `systemResourceLevel`-scanning call site (`computeBoostDecrease`, `computeEconomyRatios`,
+  `computeColonyEconomyBreakdown`, `computeStrongLinkBreakdown`, and `links.ts`'s
+  `computeSystemLinks`) pick it up with zero signature changes — callers instead wrap their
+  `JournalBody[]` once at the point they already assemble one: `solve.ts` wraps `allEconomyBodies`
+  right where `economySynergyCoefficient` builds it (new optional `SolverInput.systemResourceLevel`,
+  defaulting to `"pristine"` when omitted — same backward-compatible degrade pattern as
+  `SolverBody.economy` itself), and `SystemConfigPanel.tsx`/`SolvedSystemPanel.tsx` each wrap the
+  `formState.bodies` they'd otherwise pass as `allBodies`/into `computePresentSystemLinks`/
+  `computeSolvedSystemLinks` into one memoized `effectiveBodies`, used everywhere in place of the
+  raw array (harmless for the many other places in those components that don't care about
+  `reserveLevel` at all — the wrapped copy differs from the original only in that one field on one
+  body).
+
 ## Per-economy Must/Want/Don't want/Forbid preference controls
 
 `ObjectivePanel`'s "Economy preferences" section (a foldable sub-section, collapsed by default,

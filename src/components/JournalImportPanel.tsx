@@ -1,5 +1,6 @@
 import { type Dispatch, useEffect, useRef, useState } from "react";
 import { ALL_SLOTS, type SlotKind } from "../data/buildings";
+import { systemResourceLevel } from "../domain/economyOverrides";
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import { estimateBodySlots } from "../journal/eligibility";
 import {
@@ -294,6 +295,11 @@ export function JournalImportPanel({
       patch: {
         slots: computeSystemSlotTotals(system),
         bodies: system.bodies,
+        // Seeds the "System resource level" dropdown from real per-body Scan/Spansh data when this
+        // import actually has it, otherwise defaults to Pristine (most colonizable systems are —
+        // see economyOverrides.ts's `systemResourceLevel`/`ResourceLevel` doc comments) rather than
+        // leaving it "unknown".
+        systemResourceLevel: systemResourceLevel(system.bodies) ?? "pristine",
         systemConfigured: true,
         systemAddress: system.systemAddress,
         starSystem: system.starSystem,

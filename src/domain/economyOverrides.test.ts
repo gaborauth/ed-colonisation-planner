@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { JournalBody } from "../journal/parser";
 import {
+  applyManualResourceLevel,
   computeBodyEconomyOverrides,
   computeBoostDecrease,
   computeColonyEconomyBreakdown,
@@ -194,6 +195,15 @@ describe("computeBoostDecrease", () => {
     expect(result.reasons.some((r) => r.includes("geologicals presence unknown"))).toBe(true);
   });
 
+  it("reports Common resources as neutral, distinct from unknown", () => {
+    const body = makeBody({ planetClass: "Rocky body", reserveLevel: "Common" });
+    const result = computeBoostDecrease(body, [body], ["Extraction"]);
+    expect(result.boosted).toEqual([]);
+    expect(result.decreased).toEqual([]);
+    expect(result.reasons.some((r) => r.includes("common resources"))).toBe(true);
+    expect(result.reasons.some((r) => r.includes("system resource level unknown"))).toBe(false);
+  });
+
   it("has no decrease conditions for HighTech or Tourism (Nil, per the source table)", () => {
     const body = makeBody({ planetClass: "Icy body" }); // would decrease Agriculture, but not these
     const result = computeBoostDecrease(body, [body], ["HighTech", "Tourism"]);
@@ -294,13 +304,44 @@ describe("systemResourceLevel", () => {
     expect(systemResourceLevel([makeBody({ reserveLevel: "Depleted" })])).toBe("depleted");
   });
 
-  it("treats an unrecognized/'Common' level as null (known, but neither boosts nor decreases)", () => {
-    expect(systemResourceLevel([makeBody({ reserveLevel: "Common" })])).toBeNull();
+  it("classifies 'Common' as its own real, neutral level, distinct from null/unknown", () => {
+    expect(systemResourceLevel([makeBody({ reserveLevel: "Common" })])).toBe("common");
+    expect(systemResourceLevel([makeBody({ reserveLevel: "CommonResources" })])).toBe("common");
+  });
+
+  it("treats a genuinely unrecognized string as null", () => {
+    expect(systemResourceLevel([makeBody({ reserveLevel: "SomeUnknownWording" })])).toBeNull();
   });
 
   it("is null when no body in the system has reported a reserve level at all", () => {
     expect(systemResourceLevel([makeBody({ rings: [{ name: "r", ringClass: "x", massMT: 1 }] })])).toBeNull();
     expect(systemResourceLevel([makeBody({ rings: [] })])).toBeNull();
+  });
+});
+
+describe("applyManualResourceLevel", () => {
+  it("injects the manual level onto the first body when no real per-body data is present", () => {
+    const bodies = [makeBody({ planetClass: "Rocky body" }), makeBody({ planetClass: "Icy body" })];
+    const result = applyManualResourceLevel(bodies, "major");
+    expect(systemResourceLevel(result)).toBe("major");
+    // Only the injected reserveLevel changed — every other field on that body stays intact.
+    expect(result[0]).toEqual({ ...bodies[0], reserveLevel: "major" });
+    expect(result[1]).toBe(bodies[1]);
+  });
+
+  it("leaves bodies untouched when real per-body detection already finds a level", () => {
+    const ringedBody = makeBody({
+      rings: [{ name: "r", ringClass: "eRingClass_MetalRich", massMT: 1 }],
+      reserveLevel: "Depleted",
+    });
+    const bodies = [makeBody({ planetClass: "Rocky body" }), ringedBody];
+    const result = applyManualResourceLevel(bodies, "pristine");
+    expect(result).toBe(bodies);
+    expect(systemResourceLevel(result)).toBe("depleted");
+  });
+
+  it("returns an empty array unchanged", () => {
+    expect(applyManualResourceLevel([], "pristine")).toEqual([]);
   });
 });
 

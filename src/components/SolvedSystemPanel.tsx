@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { isPortRole, toPrintable } from "../data/buildings";
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
+import { applyManualResourceLevel } from "../domain/economyOverrides";
 import type { SystemLinksResult } from "../domain/links";
 import { getOrderingFromResult } from "../domain/ordering";
 import type { StrongLinkedInstance } from "../domain/presentLinks";
@@ -208,9 +209,17 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
   const hasBodies = formState.bodies.length > 0;
   const [rcExportWarnings, setRcExportWarnings] = useState<string[]>([]);
 
+  // Injects the manual "System resource level" dropdown value wherever real per-body detection
+  // finds nothing (see `applyManualResourceLevel`'s doc comment) — used for the link topology and
+  // "i" icon economy hovers below, matching what `SystemConfigPanel.tsx`'s own tree already shows.
+  const effectiveBodies = useMemo(
+    () => applyManualResourceLevel(formState.bodies, formState.systemResourceLevel),
+    [formState.bodies, formState.systemResourceLevel],
+  );
+
   const { solved, orderError, linksResult } = useMemo(() => {
     if (!hasBodies || !result) return { solved: null, orderError: null, linksResult: null };
-    const links = computeSolvedSystemLinks(formState.bodies, result);
+    const links = computeSolvedSystemLinks(effectiveBodies, result);
     try {
       const newBuildOrder = getOrderingFromResult(toPlanResult(formState, result), true, false);
       return { solved: computeSolvedPlacements(formState.bodies, result, newBuildOrder), orderError: null, linksResult: links };
@@ -218,7 +227,7 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
       return { solved: null, orderError: (e as Error).message, linksResult: links };
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps -- formState.bodies/firstStation* + result together identify a solve; re-deriving formState identity every render would defeat the memo
-  }, [formState, result, hasBodies]);
+  }, [formState, result, hasBodies, effectiveBodies]);
 
   const hierarchyRoot = hasBodies ? buildBodyHierarchy(formState.starSystem, formState.bodies) : null;
 
@@ -300,7 +309,7 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
       {hierarchyRoot && solved && linksResult && (
         <div className="facility-tree">
           <div className="facility-tree-root">
-            {hierarchyRoot.body && <BodyInfoIcon body={hierarchyRoot.body} allBodies={formState.bodies} />}
+            {hierarchyRoot.body && <BodyInfoIcon body={hierarchyRoot.body} allBodies={effectiveBodies} />}
             {formState.starSystem || "System"}
           </div>
           {hierarchyRoot.body && (
@@ -308,7 +317,7 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
               <SlotLeaves
                 body={hierarchyRoot.body}
                 slots={solved.byBody.get(hierarchyRoot.body.bodyId) ?? { space: [], ground: [] }}
-                allBodies={formState.bodies}
+                allBodies={effectiveBodies}
                 linksResult={linksResult}
                 firstStationBuilding={formState.firstStationBuilding}
               />
@@ -321,7 +330,7 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
               starSystem={formState.starSystem}
               firstStationBuilding={formState.firstStationBuilding}
               byBody={solved.byBody}
-              allBodies={formState.bodies}
+              allBodies={effectiveBodies}
               linksResult={linksResult}
             />
           ))}

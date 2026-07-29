@@ -44,6 +44,7 @@ describe("App", () => {
 
     await importAndApplyJournal(user);
     await user.selectOptions(screen.getByLabelText(/Primary station/), "Coriolis");
+    await user.selectOptions(screen.getByLabelText(/On body/), "Test System A 1");
 
     await user.click(screen.getByRole("button", { name: /solve for a system/i }));
 
@@ -70,6 +71,7 @@ describe("App", () => {
     // System A: the journal fixture ("Test System A").
     await importAndApplyJournal(user);
     await user.selectOptions(screen.getByLabelText(/Primary station/), "Coriolis");
+    await user.selectOptions(screen.getByLabelText(/On body/), "Test System A 1");
     await user.click(screen.getByRole("button", { name: /solve for a system/i }));
     await screen.findByText("First station", {}, { timeout: 20000 });
     expect(screen.getByText("Build order")).toBeInTheDocument();
@@ -185,6 +187,7 @@ describe("App", () => {
     await user.type(screen.getByLabelText(/minimum security/i), "1000");
     await importAndApplyJournal(user);
     await user.selectOptions(screen.getByLabelText(/Primary station/), "Coriolis");
+    await user.selectOptions(screen.getByLabelText(/On body/), "Test System A 1");
     await user.click(screen.getByRole("button", { name: /solve for a system/i }));
 
     expect(await screen.findByText(/no possible system arrangement/i, {}, { timeout: 20000 })).toBeInTheDocument();

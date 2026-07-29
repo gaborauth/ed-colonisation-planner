@@ -78,6 +78,8 @@ export function buildSolverInput(formState: PlannerFormState): SolverInput {
     // doc comment) — solve.ts silently ignores it otherwise, so no need to gate the pass-through
     // here on `hasBodies` too.
     economyPreferences: formState.economyPreferences,
+    // Only actually meaningful when `bodies` is non-empty, same as `economyPreferences` above.
+    systemResourceLevel: formState.systemResourceLevel,
   };
 }
 

@@ -158,25 +158,27 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
     });
   }, [formState.objectiveMode, formState.simpleScore, formState.customExpression, formState.customDirection]);
 
+  // Once a per-body layout is applied, the primary station also needs a body assignment — required
+  // for real placement/link display, so it's a hard prerequisite here too, same as
+  // `firstStationBuilding` itself. Aggregate mode (no bodies) has no body to assign, so it's not
+  // gated on this at all.
+  const missingPrimaryBody = formState.bodies.length > 0 && formState.firstStationBodyId === undefined;
+  const canSolve = !!formState.firstStationBuilding && !missingPrimaryBody;
+  const blockedReason = !formState.firstStationBuilding
+    ? 'Pick a primary station in "Actual facilities in the system" first'
+    : missingPrimaryBody
+      ? 'Pick the primary station\'s body in "Actual facilities in the system" first'
+      : undefined;
+
   return (
     <section className="panel">
       <div className="panel-header">
         <h2>Objective</h2>
-        <button
-          type="button"
-          className="primary"
-          onClick={onSolve}
-          disabled={solving || !formState.firstStationBuilding}
-          title={!formState.firstStationBuilding ? "Pick a primary station in Actual facilities in the system first" : undefined}
-        >
+        <button type="button" className="primary" onClick={onSolve} disabled={solving || !canSolve} title={blockedReason}>
           {solving ? "Solving…" : "Solve for a system"}
         </button>
       </div>
-      {!formState.firstStationBuilding && (
-        <p className="panel-hint panel-hint-accent">
-          Pick a primary station in "Actual facilities in the system" before you can solve.
-        </p>
-      )}
+      {!canSolve && <p className="panel-hint panel-hint-accent">{blockedReason} before you can solve.</p>}
       <div className="row-grid">
         <label>
           <input
