@@ -36,7 +36,12 @@
   color: var(--text);
   background: var(--bg);
   font-family: var(--font-body);
-  font-size: 15px;
+  /* Base app font size — 2026-07-28 user first-impressions feedback ("slightly larger... in
+   * general"). Every other font-size in this file is expressed in rem (relative to this value, at
+   * its own previous 15px baseline) specifically so this one bump rescales the whole app uniformly
+   * instead of only the root text — see the "Accessibility/readability pass" backlog item in
+   * TASKS.md for the fixed-default-vs-user-control tradeoff this was scoped against. */
+  font-size: 16px;
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
 }
@@ -68,7 +73,7 @@ h3 {
 }
 
 h1 {
-  font-size: 22px;
+  font-size: 1.4667rem;
   letter-spacing: 0.08em;
   color: var(--accent-text);
 }
@@ -100,7 +105,7 @@ h1 {
   background: none;
   color: var(--text-dim);
   font-family: var(--font-body);
-  font-size: 13px;
+  font-size: 0.8667rem;
   text-transform: none;
   letter-spacing: normal;
   text-decoration: none;
@@ -178,7 +183,7 @@ h1 {
 }
 
 h2 {
-  font-size: 14px;
+  font-size: 0.9333rem;
   letter-spacing: 0.12em;
   color: var(--text-dim);
   border-bottom: 1px solid var(--border);
@@ -217,7 +222,7 @@ h2 {
   cursor: pointer;
   font-family: var(--font-display);
   font-weight: 400;
-  font-size: 14px;
+  font-size: 0.9333rem;
   letter-spacing: 0.12em;
   text-transform: uppercase;
   color: var(--text-dim);
@@ -235,7 +240,7 @@ h2 {
   font-family: var(--font-mono);
   text-transform: none;
   letter-spacing: 0;
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--success);
   white-space: nowrap;
   overflow: hidden;
@@ -246,7 +251,7 @@ h2 {
   font-family: initial;
   text-transform: none;
   letter-spacing: 0;
-  font-size: 22px;
+  font-size: 1.4667rem;
   line-height: 1;
   flex-shrink: 0;
   transition: transform 0.15s ease;
@@ -272,7 +277,7 @@ h2 {
  * a real top-level title, reading as more important than they are (2026-07-28 user request):
  * smaller and tinted with the same yellow used for Tier 2 badges elsewhere, instead. */
 .panel-toggle-nested {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--tier2-yellow);
 }
 
@@ -299,7 +304,7 @@ h2 {
 }
 
 label {
-  font-size: 12px;
+  font-size: 0.8rem;
   letter-spacing: 0.04em;
   color: var(--text-dim);
 }
@@ -308,7 +313,7 @@ button {
   font-family: var(--font-display);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-size: 13px;
+  font-size: 0.8667rem;
   background: var(--bg-inset);
   color: var(--text);
   border: 1px solid var(--border-bright);
@@ -368,7 +373,7 @@ input.number-input {
 table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 13px;
+  font-size: 0.8667rem;
 }
 
 /* BuildingsTable renders one <table> per category (Star/Ground Port, Orbital Outpost, ...) rather
@@ -391,7 +396,7 @@ th {
   letter-spacing: 0.05em;
   font-weight: 400;
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 0.7333rem;
   text-transform: uppercase;
   border-bottom: 1px solid var(--border);
   padding: 6px 8px;
@@ -511,7 +516,7 @@ tbody tr:hover {
   margin-left: auto;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 13px;
+  font-size: 0.8667rem;
   color: var(--text-dim);
 }
 
@@ -562,7 +567,7 @@ select.toolbar-summary-system {
 .field-value {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 14px;
+  font-size: 0.9333rem;
   color: var(--text);
 }
 
@@ -591,7 +596,7 @@ select.toolbar-summary-system {
 }
 
 .system-scores-emphasized .field-value {
-  font-size: 17px;
+  font-size: 1.1333rem;
 }
 
 /* Built/free slot summary in "Actual facilities in the system" (SystemConfigPanel) — read-only,
@@ -603,7 +608,7 @@ select.toolbar-summary-system {
   gap: 2px;
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;
-  font-size: 14px;
+  font-size: 0.9333rem;
   color: var(--text);
 }
 
@@ -624,7 +629,7 @@ select.toolbar-summary-system {
   margin-left: 14px;
   padding-left: 8px;
   border-left: 1px solid var(--border-bright);
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text-dim);
 }
 
@@ -700,7 +705,7 @@ select.toolbar-summary-system {
   color: var(--danger);
   padding: 8px 12px;
   border-radius: 2px;
-  font-size: 13px;
+  font-size: 0.8667rem;
   margin-bottom: 16px;
 }
 
@@ -817,7 +822,7 @@ select.toolbar-summary-system {
   font-family: var(--font-display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 11px;
+  font-size: 0.7333rem;
   color: var(--accent-text);
   background: var(--bg-inset);
   padding: 4px 8px;
@@ -837,7 +842,7 @@ select.toolbar-summary-system {
   font-family: var(--font-display);
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--accent-text);
   margin-bottom: 6px;
 }
@@ -856,7 +861,7 @@ select.toolbar-summary-system {
   gap: 6px;
   font-family: var(--font-display);
   letter-spacing: 0.06em;
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text);
   padding: 6px 0;
 }
@@ -892,7 +897,7 @@ select.toolbar-summary-system {
 
 .facility-tree-slot-label {
   font-family: var(--font-mono);
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text-dim);
   min-width: 84px;
 }
@@ -900,7 +905,7 @@ select.toolbar-summary-system {
 .facility-info-icon {
   color: var(--accent-text);
   cursor: pointer;
-  font-size: 13px;
+  font-size: 0.8667rem;
   line-height: 1;
 }
 
@@ -917,7 +922,7 @@ select.toolbar-summary-system {
   font-family: var(--font-display);
   letter-spacing: 0.06em;
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: 0.6667rem;
   color: var(--accent-text);
   margin-bottom: 2px;
 }
@@ -935,7 +940,7 @@ select.toolbar-summary-system {
   margin-left: 10px;
   padding-left: 6px;
   border-left: 1px solid var(--border-bright);
-  font-size: 11px;
+  font-size: 0.7333rem;
   color: var(--text-dim);
 }
 
@@ -959,7 +964,7 @@ select.toolbar-summary-system {
 
 .facility-info-market-links-header {
   color: var(--text-dim);
-  font-size: 11px;
+  font-size: 0.7333rem;
 }
 
 /* Body-info hover's "Ports with a 'Colony' economy will start with the following:" disclaimer and
@@ -968,7 +973,7 @@ select.toolbar-summary-system {
  * so the table just sizes to its own content — `white-space: nowrap` on the bubble only affects
  * inline text nodes, not table layout. */
 .facility-body-info-disclaimer {
-  font-size: 11px;
+  font-size: 0.7333rem;
   font-style: italic;
   color: var(--text-dim);
   margin-bottom: 4px;
@@ -985,14 +990,14 @@ select.toolbar-summary-system {
 
 .facility-body-info-table {
   border-collapse: collapse;
-  font-size: 12px;
+  font-size: 0.8rem;
 }
 
 .facility-body-info-table th {
   font-family: var(--font-display);
   letter-spacing: 0.04em;
   text-transform: uppercase;
-  font-size: 10px;
+  font-size: 0.6667rem;
   color: var(--text-dim);
   text-align: left;
   padding: 0 10px 4px 0;
@@ -1036,7 +1041,7 @@ select.toolbar-summary-system {
 
 .facility-tree-name {
   width: 160px;
-  font-size: 12px;
+  font-size: 0.8rem;
 }
 
 .facility-tree-demolish,
@@ -1044,7 +1049,7 @@ select.toolbar-summary-system {
   display: flex;
   align-items: center;
   gap: 5px;
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text-dim);
   white-space: nowrap;
 }
@@ -1052,7 +1057,7 @@ select.toolbar-summary-system {
 /* SolvedSystemPanel.tsx's read-only tree — same `.facility-tree*` layout as "Actual facilities in
  * the system", just plain colored text per slot status instead of an editable `<select>`. */
 .panel-hint {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text-dim);
   margin: 0;
 }
@@ -1066,22 +1071,22 @@ select.toolbar-summary-system {
 }
 
 .solved-slot-empty {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text-faint);
 }
 
 .solved-slot-present {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--text-dim);
 }
 
 .solved-slot-new {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--success);
 }
 
 .solved-slot-demolished {
-  font-size: 12px;
+  font-size: 0.8rem;
   color: var(--danger);
   text-decoration: line-through;
 }
@@ -1104,12 +1109,12 @@ select.toolbar-summary-system {
 }
 
 .build-order-facility-meta {
-  font-size: 11px;
+  font-size: 0.7333rem;
   color: var(--text-dim);
 }
 
 .build-order-points {
-  font-size: 11px;
+  font-size: 0.7333rem;
   color: var(--text-dim);
   white-space: normal;
   min-width: 160px;
@@ -1182,7 +1187,7 @@ select.toolbar-summary-system {
 .cookie-consent-banner p {
   margin: 0;
   flex: 1 1 320px;
-  font-size: 13px;
+  font-size: 0.8667rem;
   color: var(--text-dim);
 }
 
@@ -1205,7 +1210,7 @@ select.toolbar-summary-system {
   padding: 12px 0;
   border-top: 1px solid var(--border);
   color: var(--text-faint);
-  font-size: 12px;
+  font-size: 0.8rem;
 }
 
 .app-footer a,

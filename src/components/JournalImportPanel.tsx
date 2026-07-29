@@ -459,7 +459,7 @@ export function JournalImportPanel({
 
           {activeTab === "journal" && (
             <div role="tabpanel" aria-label="Journal file import">
-              <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 10 }}>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-dim)", marginTop: 10 }}>
                 In-game, the automatic Discovery Scan ("honk") alone isn't enough — open the Full
                 Spectrum Scanner (throttle down to 0% in supercruise) and individually FSS-scan every
                 body in the system first. The more bodies scanned this way, the better the slot-count
@@ -470,7 +470,7 @@ export function JournalImportPanel({
                 </code>{" "}
                 — pick the most recent one from your current play session.
               </p>
-              <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 0 }}>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-dim)", marginTop: 0 }}>
                 The Journal doesn't report real slot counts — they vary per body and can't be derived from
                 scan data. Fields below are pre-filled with a <strong>best-effort, unverified</strong> guess;
                 check your in-game System Map and correct each body's numbers as needed.
@@ -522,7 +522,7 @@ export function JournalImportPanel({
 
           {activeTab === "spansh" && (
             <div role="tabpanel" aria-label="Spansh import">
-              <p style={{ fontSize: 12, color: "var(--text-dim)", marginTop: 10 }}>
+              <p style={{ fontSize: "0.8rem", color: "var(--text-dim)", marginTop: 10 }}>
                 Alternative to uploading a Journal file: search Spansh's public system database by
                 name and load a starting point directly, no journal file needed — useful for a
                 system you haven't personally scanned yet. Spansh's body data is generally close to
@@ -612,7 +612,7 @@ export function JournalImportPanel({
               {!applied && (
                 <>
                   <div className="row-grid">
-                    <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>
+                    <p style={{ fontSize: "0.8rem", color: "var(--text-dim)", margin: 0 }}>
                       Already tracking this system's construction in{" "}
                       <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">
                         Raven Colonial
