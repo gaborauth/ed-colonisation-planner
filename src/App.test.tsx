@@ -2,8 +2,10 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it } from "vitest";
-import App from "./App";
+import App, { buildSolverInput } from "./App";
 import FIXTURE from "./journal/fixtures/sample.jsonl?raw";
+import type { JournalBody } from "./journal/parser";
+import { INITIAL_FORM_STATE } from "./state/plannerState";
 
 // The "Actual facilities in the system" panel's slot fields are read-only (derived from a journal
 // import) now that "Enter slots manually" no longer exists — so every end-to-end test unlocks the
@@ -141,4 +143,22 @@ describe("App", () => {
 
     expect(await screen.findByText(/no possible system arrangement/i, {}, { timeout: 20000 })).toBeInTheDocument();
   }, 25000);
+});
+
+describe("buildSolverInput", () => {
+  function bodyOfKind(kind: JournalBody["kind"], bodyId: number): JournalBody {
+    return { bodyName: `Test ${kind} ${bodyId}`, bodyId, kind, landable: false, parents: [], rings: [], raw: {} };
+  }
+
+  // 2026-07-28 user report, direct in-game testing: a star belt's own dedicated synthetic body
+  // (`kind: "ring"`) is asteroid-exclusive; a ringed PLANET's own slot is not (see solve.ts's
+  // `SolverBody.asteroidExclusive` and CLAUDE.md's "Star belts vs. planet rings").
+  it("marks only a kind: \"ring\" body as asteroidExclusive, not a planet or star", () => {
+    const formState = { ...INITIAL_FORM_STATE, bodies: [bodyOfKind("ring", 1), bodyOfKind("planet", 2), bodyOfKind("star", 3)] };
+    const input = buildSolverInput(formState);
+    const byId = new Map(input.bodies!.map((b) => [b.bodyId, b]));
+    expect(byId.get(1)!.asteroidExclusive).toBe(true);
+    expect(byId.get(2)!.asteroidExclusive).toBe(false);
+    expect(byId.get(3)!.asteroidExclusive).toBe(false);
+  });
 });

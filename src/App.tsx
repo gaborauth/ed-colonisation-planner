@@ -50,6 +50,9 @@ export function buildSolverInput(formState: PlannerFormState): SolverInput {
           },
           // Feeds solve.ts's economy_synergy term — see SolverBody.economy's doc comment.
           economy: b,
+          // See SolverBody.asteroidExclusive's doc comment — only a star belt's own dedicated
+          // synthetic body (never a ringed planet's own slot) is Asteroid_Base-exclusive.
+          asteroidExclusive: b.kind === "ring",
         };
       })
     : undefined;
