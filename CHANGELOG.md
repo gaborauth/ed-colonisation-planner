@@ -1,3 +1,10 @@
+## [1.4.1](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.0...v1.4.1) (2026-07-29)
+
+### Bug Fixes
+
+* add manual system resource level override ([cee1519](https://github.com/gaborauth/ed-colonisation-planner/commit/cee151992a5745dbd9226b666f4bdb33e9a44106))
+* increase base font size for readability ([277c25b](https://github.com/gaborauth/ed-colonisation-planner/commit/277c25b9af79bcaaf87775a6a8955a7f36547ca1))
+
 ## [1.4.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.3.0...v1.4.0) (2026-07-29)
 
 ### Features
