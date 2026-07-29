@@ -114,3 +114,20 @@ describe("spanshDumpToJournalSystem — a star's own asteroid belts (belts vs ri
     expect(beltA.bodyId).not.toBe(beltB.bodyId);
   });
 });
+
+describe("spanshDumpToJournalSystem — a real system with no per-body reserveLevel at all", () => {
+  // Real fixture confirming the gap that motivated the "Manual System resource level override"
+  // feature (see CLAUDE.md): this system has a real star belt, but Spansh's dump reports zero
+  // `reserveLevel` occurrences anywhere — unlike swoilz-aw-c-d52-dump.json, which has one.
+  // `systemResourceLevel` correctly reports `null` here; the manual override/Pristine default
+  // (`applyManualResourceLevel`, `PlannerFormState.systemResourceLevel`) is what fills this gap.
+  const noReserveLevelRecord: SpanshDumpRecord = JSON.parse(
+    readFileSync(path.join(process.cwd(), "spansh-jsons", "swoilz-eg-i-b2-3-dump.json"), "utf-8"),
+  ).system;
+  const noReserveLevelSystem = spanshDumpToJournalSystem(noReserveLevelRecord);
+
+  it("has a real star belt but no detectable system resource level", () => {
+    expect(noReserveLevelSystem.bodies.some((b) => b.kind === "ring")).toBe(true);
+    expect(systemResourceLevel(noReserveLevelSystem.bodies)).toBeNull();
+  });
+});

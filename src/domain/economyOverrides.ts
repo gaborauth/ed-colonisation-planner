@@ -168,15 +168,22 @@ export function hasVolcanism(body: JournalBody): boolean | null {
   return typeof volcanism === "string" ? volcanism.length > 0 : null;
 }
 
+/** The real in-game `ReserveLevel` vocabulary, used both for what's actually detected from Scan
+ * data and for `PlannerFormState.systemResourceLevel`'s manual-override dropdown (see
+ * `applyManualResourceLevel` below). "Common" is a real, neutral reading — distinct from `null`
+ * ("genuinely never scanned"), which callers must still handle separately. */
+export type ResourceLevel = "pristine" | "major" | "common" | "low" | "depleted";
+
 /** Matches a raw `ReserveLevel` string case-insensitively by substring (Frontier's exact wording
  * — "Pristine" vs. "PristineResources" and similar — isn't confirmed, so this is robust to either).
- * "Common"/unrecognized values return `null`: a real, known, but non-boosting/non-decreasing
- * level, not something to treat as absent. */
-function classifyReserveLevel(raw: string | undefined): "major" | "pristine" | "low" | "depleted" | null {
+ * Returns `null` only for a genuinely unrecognized string — "Common" is a real, known, classified
+ * level (`"common"`), not the same as "no data at all". */
+function classifyReserveLevel(raw: string | undefined): ResourceLevel | null {
   if (!raw) return null;
   const lower = raw.toLowerCase();
   if (lower.includes("pristine")) return "pristine";
   if (lower.includes("major")) return "major";
+  if (lower.includes("common")) return "common";
   if (lower.includes("depleted")) return "depleted";
   if (lower.includes("low")) return "low";
   return null;
@@ -187,13 +194,27 @@ function classifyReserveLevel(raw: string | undefined): "major" | "pristine" | "
  * but is a system-wide fact in-game, not an independent per-body one — confirmed directly by the
  * user. Returns the first classified level found across every body in the system, treating it as
  * the whole system's resource level; `null` if no body has reported one (e.g. no ringed body was
- * scanned closely enough — reserve level isn't populated by a distant FSS/"honk" scan alone). */
-export function systemResourceLevel(bodies: JournalBody[]): "major" | "pristine" | "low" | "depleted" | null {
+ * scanned closely enough — reserve level isn't populated by a distant FSS/"honk" scan alone, and
+ * Spansh's `/dump` data can lack it entirely even for a system with a real scanned belt/ring). */
+export function systemResourceLevel(bodies: JournalBody[]): ResourceLevel | null {
   for (const body of bodies) {
     const level = classifyReserveLevel(body.reserveLevel);
     if (level) return level;
   }
   return null;
+}
+
+/** Injects `PlannerFormState.systemResourceLevel`'s manual dropdown value into a `JournalBody[]`
+ * array so every existing `systemResourceLevel`-scanning call site (`computeBoostDecrease` and
+ * friends) picks it up with no signature changes. Real detected per-body data always wins — this
+ * only ever fills the gap when `systemResourceLevel(bodies)` itself would otherwise return `null`
+ * (see this file's header comment: `ReserveLevel` is already treated as one system-wide fact
+ * smeared onto whichever body happens to report it, so injecting the manual value onto the first
+ * body is the same simplification, not a new one). Returns `bodies` unchanged when empty (nothing
+ * to attach the override to) or when real data is already present. */
+export function applyManualResourceLevel(bodies: JournalBody[], manualLevel: ResourceLevel): JournalBody[] {
+  if (bodies.length === 0 || systemResourceLevel(bodies) !== null) return bodies;
+  return [{ ...bodies[0], reserveLevel: manualLevel }, ...bodies.slice(1)];
 }
 
 export interface OverrideResult {
@@ -377,6 +398,8 @@ export function computeBoostDecrease(
     } else if (resourceLevel === "low" || resourceLevel === "depleted") {
       decrease("Extraction");
       reasons.push("Extraction decreased: system has low/depleted resources");
+    } else if (resourceLevel === "common") {
+      reasons.push("Extraction: system has common resources (no boost/decrease)");
     } else {
       reasons.push("Extraction: system resource level unknown (not derivable from Journal Scan data)");
     }
@@ -418,6 +441,8 @@ export function computeBoostDecrease(
     } else if (resourceLevel === "low" || resourceLevel === "depleted") {
       for (const t of industrialRefineryTargets) decrease(t);
       reasons.push(`${label} decreased: system has low/depleted resources`);
+    } else if (resourceLevel === "common") {
+      reasons.push(`${label}: system has common resources (no boost/decrease)`);
     } else {
       reasons.push(`${label}: system resource level unknown (not derivable from Journal Scan data)`);
     }
