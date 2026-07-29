@@ -285,7 +285,7 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
           {formState.ravenColonialSkeleton && solved ? (
             <>
               <div className="row-grid">
-                <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>
+                <p style={{ fontSize: "0.8rem", color: "var(--text-dim)", margin: 0 }}>
                   Download the solver's newly-proposed builds below as a Raven Colonial "plan" sites
                   JSON — upload it back into this system's project on{" "}
                   <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">

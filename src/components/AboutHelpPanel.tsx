@@ -56,7 +56,7 @@ export function AboutHelpPanel({ collapseSignal }: AboutHelpPanelProps) {
         </span>
       </button>
       {!collapsed && (
-        <div style={{ fontSize: 13, lineHeight: 1.5 }}>
+        <div style={{ fontSize: "0.8667rem", lineHeight: 1.5 }}>
           <p>
             This is a planner for colonising a system in Elite Dangerous: tell it what you can build
             (or upload a Journal file and let it estimate that from your scans), pick a goal, and it
