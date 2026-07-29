@@ -46,3 +46,25 @@ export interface RcSystem {
    * editable slot fields). */
   slots: Record<string, [number, number]>;
 }
+
+/** The FULL Raven Colonial "Export backup" JSON, kept verbatim — a superset of `RcSystem` above,
+ * which only types the narrow subset `adapter.ts`'s import actually reads. `export.ts` (the
+ * opposite direction: turning a solved plan back into an importable Raven Colonial file) needs the
+ * rest of these fields carried through unchanged, even though nothing here ever inspects them.
+ * `JournalImportPanel.tsx` stores the whole parsed upload as one of these on `JournalSystem.
+ * ravenColonialSkeleton` (typed there as a generic `Record<string, unknown>`, same "opaque blob"
+ * treatment as `JournalBody.raw` — this interface is the typed view used wherever that field is
+ * actually read/written, i.e. adapter.ts and export.ts). All the extra fields are optional so a
+ * hand-built `RcSystem` (e.g. in tests) still satisfies this type without needing them. */
+export interface RcSystemSkeleton extends RcSystem {
+  v?: number;
+  rev?: number;
+  architect?: string;
+  pos?: number[];
+  deleteIDs?: unknown[];
+  updateIDs?: unknown[];
+  pop?: unknown;
+  open?: boolean;
+  savedNames?: unknown[];
+  idxCalcLimit?: number | null;
+}

@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { isPortRole, toPrintable } from "../data/buildings";
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
 import type { SystemLinksResult } from "../domain/links";
@@ -7,11 +7,24 @@ import type { StrongLinkedInstance } from "../domain/presentLinks";
 import { computeSolvedPlacements, type SolvedBodySlots, type SolvedSlot } from "../domain/solvedPlacement";
 import { computeSolvedSystemLinks } from "../domain/solvedLinks";
 import type { JournalBody } from "../journal/parser";
+import { buildRavenColonialExport } from "../ravenColonial/export";
+import type { RcSystemSkeleton } from "../ravenColonial/types";
 import type { SolverResult } from "../solver/solve";
 import type { PlannerFormState } from "../state/plannerState";
 import { toPlanResult } from "../state/toPlanResult";
 import { BodyInfoIcon, facilityEconomyRatios, facilityMarketLinks, FacilityInfoIcon } from "./FacilityInfo";
 import { SystemScoresSummary } from "./SystemScoresSummary";
+
+/** Local-time "yyyymmdd-hhmm" stamp for the export filename — same format/purpose as
+ * `SystemPortabilityBar.tsx`'s own private helper of the same name (small enough, and different
+ * enough a use case, not worth sharing a module over). */
+function timestampForFilename(date: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return (
+    `${date.getFullYear()}${pad(date.getMonth() + 1)}${pad(date.getDate())}` +
+    `-${pad(date.getHours())}${pad(date.getMinutes())}`
+  );
+}
 
 interface SolvedSystemPanelProps {
   formState: PlannerFormState;
@@ -193,6 +206,7 @@ function Branch({ node, starSystem, firstStationBuilding, byBody, allBodies, lin
  * present. */
 export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps) {
   const hasBodies = formState.bodies.length > 0;
+  const [rcExportWarnings, setRcExportWarnings] = useState<string[]>([]);
 
   const { solved, orderError, linksResult } = useMemo(() => {
     if (!hasBodies || !result) return { solved: null, orderError: null, linksResult: null };
@@ -207,6 +221,23 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
   }, [formState, result, hasBodies]);
 
   const hierarchyRoot = hasBodies ? buildBodyHierarchy(formState.starSystem, formState.bodies) : null;
+
+  // Only offered for a system that's had a Raven Colonial backup imported at least once — the
+  // exported file needs `id64`/`pos`/`architect`/`v`/`rev`/etc. verbatim (see ravenColonial/
+  // export.ts's header comment), none of which have any other source in this app.
+  function handleExportRavenColonial(): void {
+    if (!formState.ravenColonialSkeleton || !solved) return;
+    const skeleton = formState.ravenColonialSkeleton as unknown as RcSystemSkeleton;
+    const { json, warnings } = buildRavenColonialExport(skeleton, formState.bodies, solved.byBody);
+    setRcExportWarnings(warnings);
+    const blob = new Blob([JSON.stringify(json, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `${formState.starSystem || "system"}-planned-${timestampForFilename(new Date())}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
 
   return (
     <section className="panel">
@@ -241,7 +272,30 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
               ? [{ label: "Objective value", value: Math.round(result.objectiveValue * 1000) / 1000, neutral: true }]
               : []),
           ]}
-        />
+        >
+          {formState.ravenColonialSkeleton && solved ? (
+            <>
+              <div className="row-grid">
+                <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>
+                  Download the solver's newly-proposed builds below as a Raven Colonial "plan" sites
+                  JSON — upload it back into this system's project on{" "}
+                  <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">
+                    Raven Colonial
+                  </a>{" "}
+                  to add them as planned constructions there, alongside what's already built.{" "}
+                  <strong>Beta, untested</strong> — check the imported result in Raven Colonial
+                  before relying on it.
+                </p>
+                <button type="button" onClick={handleExportRavenColonial} style={{ marginLeft: "auto" }}>
+                  Export Raven Colonial
+                </button>
+              </div>
+              {rcExportWarnings.length > 0 && (
+                <div className="status-banner">{rcExportWarnings.map((w) => <div key={w}>{w}</div>)}</div>
+              )}
+            </>
+          ) : null}
+        </SystemScoresSummary>
       )}
       {hierarchyRoot && solved && linksResult && (
         <div className="facility-tree">

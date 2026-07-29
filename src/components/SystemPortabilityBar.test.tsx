@@ -13,6 +13,12 @@ function star(bodyId: number): JournalBody {
 
 const SYSTEM_A: JournalSystem = { starSystem: "System A", systemAddress: 1, bodies: [star(0)] };
 const SYSTEM_B: JournalSystem = { starSystem: "System B", systemAddress: 2, bodies: [star(0)] };
+const SYSTEM_WITH_RC: JournalSystem = {
+  starSystem: "System RC",
+  systemAddress: 3,
+  bodies: [star(0)],
+  ravenColonialSkeleton: { name: "System RC", id64: 3, bodies: [], sites: [], slots: {} },
+};
 
 function formStateFor(system: JournalSystem): PlannerFormState {
   return {
@@ -93,6 +99,38 @@ describe("SystemPortabilityBar", () => {
       expect.objectContaining({
         type: "patch",
         patch: expect.objectContaining({ systemAddress: 1, starSystem: "System A", systemConfigured: true }),
+      }),
+    );
+  });
+
+  it("carries a saved system's Raven Colonial skeleton along when switching to it via the dropdown — regression for the skeleton silently disappearing after a switch/reload", async () => {
+    saveSystem(SYSTEM_A);
+    saveSystem(SYSTEM_WITH_RC);
+    const dispatch = vi.fn();
+    const user = userEvent.setup();
+    render(<SystemPortabilityBar formState={formStateFor(SYSTEM_A)} dispatch={dispatch} />);
+
+    const switcher = screen.getByRole("combobox", { name: "Switch system" });
+    await user.selectOptions(switcher, "3");
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "patch",
+        patch: expect.objectContaining({ systemAddress: 3, ravenColonialSkeleton: SYSTEM_WITH_RC.ravenColonialSkeleton }),
+      }),
+    );
+  });
+
+  it("carries a saved system's Raven Colonial skeleton along on mount-time auto-restore too", () => {
+    saveSystem(SYSTEM_WITH_RC);
+    setLastUsedSystemAddress(SYSTEM_WITH_RC.systemAddress);
+    const dispatch = vi.fn();
+    render(<SystemPortabilityBar formState={INITIAL_FORM_STATE} dispatch={dispatch} />);
+
+    expect(dispatch).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "patch",
+        patch: expect.objectContaining({ systemAddress: 3, ravenColonialSkeleton: SYSTEM_WITH_RC.ravenColonialSkeleton }),
       }),
     );
   });

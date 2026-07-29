@@ -137,7 +137,19 @@ export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): 
   }
 
   return {
-    system: { ...system, bodies, firstStationBuilding, firstStationBodyId, firstStationVariant, firstStationCustomName },
+    system: {
+      ...system,
+      bodies,
+      firstStationBuilding,
+      firstStationBodyId,
+      firstStationVariant,
+      firstStationCustomName,
+      // Stored verbatim (whatever extra fields the real upload had beyond what `RcSystem` itself
+      // types — `v`/`rev`/`architect`/`pos`/etc.) so `ravenColonial/export.ts` can round-trip them
+      // back out later. `rc`'s static type only declares `RcSystem`'s narrower field set, but the
+      // actual parsed object always carries everything the uploaded file had.
+      ravenColonialSkeleton: rc as unknown as Record<string, unknown>,
+    },
     warnings,
   };
 }

@@ -158,3 +158,34 @@ export const RC_BUILD_TYPE: Record<string, { building: string; slot: "space" | "
   vulcan: { building: "Industrial_Outpost", slot: "space", variant: "Vulcan" },
   zeus: { building: "Planetary_Port", slot: "ground", variant: "Zeus" },
 };
+
+// Reverse of the table above, for `export.ts`'s opposite direction: turning a newly solved
+// (building, variant) pair back into a Raven Colonial `buildType` string. Built once at module load
+// by inverting `RC_BUILD_TYPE`. Two lookup levels, same best-effort ambiguity the forward table's
+// own header comment already documents (e.g. "tellus"/"hestia" not round-tripping to a unique
+// choice): an exact `(building, variant)` match is preferred when both are known, falling back to
+// the FIRST buildType found for that building alone (declaration order above, i.e. alphabetical by
+// buildType key) whenever variant is unset or doesn't match any known variant for it — the common
+// case in practice, since a solver-proposed building has no variant chosen yet at all.
+const RC_BUILD_TYPE_BY_VARIANT = new Map<string, string>(); // `${building}:${variant}` -> buildType
+const RC_BUILD_TYPE_BY_BUILDING = new Map<string, string>(); // building -> first-seen buildType
+
+for (const [buildType, def] of Object.entries(RC_BUILD_TYPE)) {
+  if (!RC_BUILD_TYPE_BY_BUILDING.has(def.building)) {
+    RC_BUILD_TYPE_BY_BUILDING.set(def.building, buildType);
+  }
+  if (def.variant) {
+    RC_BUILD_TYPE_BY_VARIANT.set(`${def.building}:${def.variant}`, buildType);
+  }
+}
+
+/** `undefined` only when `building` isn't in `RC_BUILD_TYPE` at all — shouldn't happen in practice
+ * (the forward table covers all 54 buildings in `data/buildings.ts`), but never thrown; callers
+ * surface it as a warning instead (see `export.ts`). */
+export function reverseRcBuildType(building: string, variant: string | undefined): string | undefined {
+  if (variant) {
+    const exact = RC_BUILD_TYPE_BY_VARIANT.get(`${building}:${variant}`);
+    if (exact) return exact;
+  }
+  return RC_BUILD_TYPE_BY_BUILDING.get(building);
+}
