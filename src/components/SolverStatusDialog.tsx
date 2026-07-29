@@ -32,12 +32,12 @@ export function SolverStatusDialog({
 
   return (
     <div
-      className="solver-status-overlay"
+      className="modal-overlay"
       onClick={isError ? onDismiss : undefined}
       role="presentation"
     >
       <div
-        className="solver-status-dialog"
+        className="modal-dialog"
         role="dialog"
         aria-modal="true"
         aria-label={isError ? "Solver error" : "Solving"}
@@ -45,8 +45,8 @@ export function SolverStatusDialog({
       >
         {isError ? (
           <>
-            <p className="solver-status-dialog-message status-banner">{message}</p>
-            <div className="solver-status-dialog-actions">
+            <p className="modal-dialog-message status-banner">{message}</p>
+            <div className="modal-dialog-actions">
               <button type="button" className="primary" onClick={onDismiss}>
                 Close
               </button>
@@ -54,7 +54,7 @@ export function SolverStatusDialog({
           </>
         ) : (
           <>
-            <p className="solver-status-dialog-message status-banner loading">Running the solver…</p>
+            <p className="modal-dialog-message status-banner loading">Running the solver…</p>
             <div className="solver-progress-bar" aria-hidden="true">
               <div className="solver-progress-bar-fill" />
             </div>

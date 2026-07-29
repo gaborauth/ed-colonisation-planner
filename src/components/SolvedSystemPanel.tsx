@@ -240,7 +240,7 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
   }
 
   return (
-    <section className="panel">
+    <section id="solved-system-panel" className="panel">
       <h2>Solved system</h2>
       {!hasBodies && (
         <p className="panel-hint">

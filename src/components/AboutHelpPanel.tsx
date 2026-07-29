@@ -1,8 +1,16 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import { getStoredPanelCollapsed, setStoredPanelCollapsed } from "../persistence/panelCollapse";
 
 const PANEL_ID = "about-help";
+
+interface AboutHelpPanelProps {
+  /** Bumped by App.tsx's "Live Demo" button to force this panel closed — a first-time visitor who
+   * clicks Live Demo already has a live system in front of them and doesn't need the intro text
+   * still taking up space above it. Same "signal" pattern as JournalImportPanel's own
+   * `refreshToken`: only acts on a change AFTER mount, never on the initial value. */
+  collapseSignal?: number;
+}
 
 // Unfolded by default (unlike BuildingsTable/SavedPlansPanel) — this is a
 // first-time explainer meant to actually be seen on first load, not fine-tuning tools tucked away
@@ -10,7 +18,7 @@ const PANEL_ID = "about-help";
 // one really is meant to invite folding away once read. Collapsed state is remembered across
 // sessions via persistence/panelCollapse.ts — once a user folds it, it stays folded next time
 // instead of re-explaining itself every session.
-export function AboutHelpPanel() {
+export function AboutHelpPanel({ collapseSignal }: AboutHelpPanelProps) {
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(
     getStoredPanelCollapsed(PANEL_ID) ?? false,
   );
@@ -18,6 +26,20 @@ export function AboutHelpPanel() {
   useEffect(() => {
     setStoredPanelCollapsed(PANEL_ID, collapsed);
   }, [collapsed]);
+
+  // Compares against the LAST SEEN value rather than a plain "is this the first run" boolean flag
+  // — the latter breaks under React 18 StrictMode's dev-only double-invoke-on-mount (the ref flips
+  // to "seen" on the first of the two mount invocations, so the second one wrongly treats itself as
+  // a real change and folds the panel immediately on page load, before "Live Demo" was ever
+  // clicked). This form is safe under a double-invoke: both calls compare against the same
+  // untouched snapshot and agree nothing changed.
+  const lastCollapseSignal = useRef(collapseSignal);
+  useEffect(() => {
+    if (collapseSignal === lastCollapseSignal.current) return;
+    lastCollapseSignal.current = collapseSignal;
+    setCollapsed(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires only on collapseSignal changing, setCollapsed identity is stable
+  }, [collapseSignal]);
 
   return (
     <section className="panel">

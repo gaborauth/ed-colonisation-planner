@@ -59,6 +59,8 @@ describe("JournalImportPanel", () => {
     const user = userEvent.setup();
     render(<JournalImportPanel dispatch={vi.fn()} />);
 
+    // Spansh is the default active tab now — switch to Journal file first.
+    await user.click(screen.getByRole("tab", { name: "Journal file" }));
     const file = new File([journalLogFor(11, "System A", "System A A")], "Journal.log", { type: "text/plain" });
     await user.upload(screen.getByLabelText("Journal file"), file);
 
@@ -128,6 +130,8 @@ describe("JournalImportPanel", () => {
     const user = userEvent.setup();
     const { rerender } = render(<JournalImportPanel dispatch={dispatch} activeSystemAddress={null} />);
 
+    // Spansh is the default active tab now — switch to Journal file first.
+    await user.click(screen.getByRole("tab", { name: "Journal file" }));
     const file = new File([journalLogFor(11, "System A", "System A A")], "Journal.log", { type: "text/plain" });
     await user.upload(screen.getByLabelText("Journal file"), file);
     await screen.findByLabelText("System");
