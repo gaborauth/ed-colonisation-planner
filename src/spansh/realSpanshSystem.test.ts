@@ -23,7 +23,34 @@ const record: SpanshDumpRecord = JSON.parse(
   readFileSync(path.join(process.cwd(), "spansh-jsons", "swoilz-aw-c-d52-dump.json"), "utf-8"),
 ).system;
 
+interface JournalFixtureBody {
+  bodyName: string;
+  surfaceGravity?: number;
+}
+
+const journalFixture: { bodies: JournalFixtureBody[] } = JSON.parse(
+  readFileSync(path.join(process.cwd(), "jsons", "swoilz-aw-c-d52.json"), "utf-8"),
+);
+
 describe("real Spansh system: swoilz-aw-c-d52-dump.json", () => {
+  // Regression test for the m/s²-vs-G gravity unit bug: Spansh's `gravity` field is in G, but this
+  // app's own `surfaceGravity` convention is m/s² (inherited unconverted from real Journal Scan
+  // events — see FacilityInfo.tsx's g-display conversion and eligibility.ts's ground-slot gravity
+  // check, both of which assume m/s²). Cross-checks every body against the real Journal-derived
+  // export of the SAME system (`jsons/swoilz-aw-c-d52.json`), matched by name.
+  it("converts gravity to match the real Journal-derived export for the same system", () => {
+    const system = spanshDumpToJournalSystem(record);
+    const journalByName = new Map(journalFixture.bodies.map((b) => [b.bodyName, b]));
+    let checked = 0;
+    for (const body of system.bodies) {
+      const journalBody = journalByName.get(body.bodyName);
+      if (!journalBody || body.surfaceGravity === undefined || journalBody.surfaceGravity === undefined) continue;
+      checked++;
+      expect(body.surfaceGravity).toBeCloseTo(journalBody.surfaceGravity, 1);
+    }
+    expect(checked).toBeGreaterThan(30); // sanity: the cross-check actually ran against real bodies
+  });
+
   it("solves end-to-end after adaptation, never over-reports free capacity, and produces a valid build order + link topology", async () => {
     const system = spanshDumpToJournalSystem(record);
     // Mirrors JournalImportPanel's own pre-fill step (withDefaultSlots) — a freshly-loaded system
