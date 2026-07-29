@@ -24,7 +24,9 @@
 //    own separate, dedicated constructible location, far from the star itself, modeled as its own
 //    synthetic `JournalBody` with `kind: "ring"` (see `journal/parser.ts`'s `withRingBodies`, applied
 //    by both the Journal and Spansh import paths) — a star's OWN slot(s) are never themselves
-//    asteroid-eligible. A planet's or moon's own ring is different (still unconfirmed whether all
+//    asteroid-eligible. Real-game-confirmed (2026-07-28): unlike every other asteroid-eligible slot
+//    in this app, a belt's own dedicated slot can ONLY ever hold an Asteroid_Base — see
+//    `solve.ts`'s `SolverBody.asteroidExclusive`. A planet's or moon's own ring is different (still unconfirmed whether all
 //    ring classes support this, and whether multiple rings unlock more than one Asteroid_Base) — it
 //    keeps making that PLANET's/moon's own orbital slot(s) asteroid-eligible directly — deliberately
 //    NOT generalized to match the star's dedicated-body treatment above, since a planet's ring sits

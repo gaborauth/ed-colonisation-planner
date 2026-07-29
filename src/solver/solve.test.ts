@@ -253,16 +253,50 @@ describe("solve with per-body placement (input.bodies)", () => {
     expect(placement?.bodyId).toBe(2);
   }, 20000);
 
-  // 2026-07-27 user report: a synthetic `kind: "ring"` star-belt body (see `journal/parser.ts`'s
-  // `withRingBodies`) is an ordinary orbital slot that ADDITIONALLY qualifies for Asteroid_Base —
-  // not an Asteroid_Base-EXCLUSIVE slot (an earlier version of this fix wrongly restricted it that
-  // way, corrected after the user clarified it in-game). Same behavior a ring-eligible PLANET's own
-  // slot already had — no special-casing by `kind` needed in solve.ts at all.
-  it("still allows an ordinary building on a ring/belt-eligible body's slot, same as any other asteroid-eligible body", async () => {
-    const ringBody: JournalBody = {
-      bodyName: "Test A Belt",
+  // Real-game-confirmed (2026-07-28, "A/B/etc Belt's orbit only bear Asteroid station."): a star
+  // belt's own dedicated slot (`SolverBody.asteroidExclusive`, set from `JournalBody.kind ===
+  // "ring"` — see `journal/parser.ts`'s `withRingBodies`) can ONLY ever hold an Asteroid_Base. A
+  // ringed PLANET's own slot (asteroidExclusive unset) is unaffected — see the next test.
+  it("restricts a star belt's dedicated slot (asteroidExclusive) to Asteroid_Base only", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 1 }, asteroidExclusive: true }],
+        constraints: { atLeast: { Commercial_Outpost: 1 } },
+      }),
+    );
+    // The system's only space slot is asteroid-exclusive, so a forced Commercial_Outpost has
+    // nowhere to go — correctly infeasible, not silently placed there anyway.
+    expect(result.status).toBe("infeasible");
+  }, 20000);
+
+  it("still allows an Asteroid_Base itself on a star belt's dedicated (asteroidExclusive) slot", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [
+          { bodyId: 1, slots: { space: 1, ground: 0, asteroid: 1 }, asteroidExclusive: true },
+          // A bare belt-only system has no way to fund even the escalating port's cheapest T2 cost
+          // (an unbuilt Coriolis primary generates no flat T2 points on its own) — a second,
+          // ordinary body gives the solver room to build whatever it needs to afford the Asteroid
+          // Base, same as any other economically-grounded scenario.
+          { bodyId: 2, slots: { space: 0, ground: 3, asteroid: 0 } },
+        ],
+        constraints: { atLeast: { Asteroid_Base: 1 } },
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.placements).toContainEqual({ building: "Asteroid_Base", bodyId: 1, count: 1 });
+  }, 20000);
+
+  // A ringed PLANET's own slot (as opposed to a star belt's dedicated synthetic body) stays an
+  // ordinary orbital slot that merely additionally qualifies for Asteroid_Base — deliberately NOT
+  // generalized to the star belt's exclusive treatment (see CLAUDE.md's "Star belts vs. planet
+  // rings"). `asteroidExclusive` is left unset here, same as `App.tsx`'s `buildSolverInput` would
+  // for a `kind: "planet"` body.
+  it("still allows an ordinary building on a ringed PLANET's own slot (not asteroidExclusive)", async () => {
+    const ringedPlanet: JournalBody = {
+      bodyName: "Test Ringed Planet",
       bodyId: 2,
-      kind: "ring",
+      kind: "planet",
       landable: false,
       parents: [],
       rings: [],
@@ -270,7 +304,7 @@ describe("solve with per-body placement (input.bodies)", () => {
     };
     const result = await solve(
       baseInput({
-        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 1 }, economy: ringBody }],
+        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 1 }, economy: ringedPlanet }],
         constraints: { atLeast: { Commercial_Outpost: 1 } },
       }),
     );
