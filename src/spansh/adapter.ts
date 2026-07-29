@@ -86,7 +86,14 @@ function toJournalBody(body: SpanshDumpBody): JournalBody {
     starType: isStar ? mapStarType(body.subType) : undefined,
     planetClass: isStar ? undefined : mapPlanetClass(body.subType),
     landable: body.isLandable ?? false,
-    surfaceGravity: body.gravity,
+    // Spansh's `gravity` is in G; this app's OWN `surfaceGravity` convention is m/s² (inherited
+    // from real Journal `Scan` events' raw `SurfaceGravity` field, which `journal/parser.ts` keeps
+    // unconverted — see FacilityInfo.tsx's `METERS_PER_SECOND_SQUARED_PER_G`-based "g" display
+    // conversion and eligibility.ts's `GROUND_SLOT_MAX_GRAVITY_G` check, both of which assume this).
+    // Confirmed exactly against the real committed fixture: `spansh.gravity * 9.80665` matches
+    // `jsons/swoilz-aw-c-d52.json`'s real Journal-derived `surfaceGravity` for every one of its 36
+    // bodies (worst-case relative error ~0.004%, pure Spansh-side rounding).
+    surfaceGravity: body.gravity !== undefined ? body.gravity * 9.80665 : undefined,
     surfaceTemperature: body.surfaceTemperature,
     // Spansh reports radius in km, Journal (and eligibility.ts's thresholds) expect meters.
     radius: body.radius !== undefined ? body.radius * 1000 : undefined,

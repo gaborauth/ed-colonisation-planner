@@ -10,7 +10,9 @@
 //    user is expected to raise it per body from their System Map.
 //  - Ground slots: sourced from community research (CMDR Nyatto, Flynnvali, and others; see also
 //    the Raven Colonial tool for the most up-to-date version of this algorithm). A body gets ground
-//    slots only if its surface temperature is under 700K and its gravity is under 2.7g. The base
+//    slots only if its surface temperature is under 700K and its gravity is under 2.7g (2.7 * 9.80665
+//    ≈ 26.48 m/s² — see `GROUND_SLOT_MAX_GRAVITY_MS2` below for why the comparison itself needs the
+//    m/s² form, not 2.7 directly). The base
 //    count comes from radius (<1500km = 1, <3750km = 2, <6000km = 3, >=6000km = 4), then atmosphere
 //    adds 2, terraformability adds 1, and being a High Metal Content body adds 1, capped at 7
 //    overall. Geological signals also add 1 (up to that same cap of 7), from the Journal's
@@ -24,7 +26,9 @@
 //    own separate, dedicated constructible location, far from the star itself, modeled as its own
 //    synthetic `JournalBody` with `kind: "ring"` (see `journal/parser.ts`'s `withRingBodies`, applied
 //    by both the Journal and Spansh import paths) — a star's OWN slot(s) are never themselves
-//    asteroid-eligible. A planet's or moon's own ring is different (still unconfirmed whether all
+//    asteroid-eligible. Real-game-confirmed (2026-07-28): unlike every other asteroid-eligible slot
+//    in this app, a belt's own dedicated slot can ONLY ever hold an Asteroid_Base — see
+//    `solve.ts`'s `SolverBody.asteroidExclusive`. A planet's or moon's own ring is different (still unconfirmed whether all
 //    ring classes support this, and whether multiple rings unlock more than one Asteroid_Base) — it
 //    keeps making that PLANET's/moon's own orbital slot(s) asteroid-eligible directly — deliberately
 //    NOT generalized to match the star's dedicated-body treatment above, since a planet's ring sits
@@ -45,7 +49,16 @@ const GROUND_SLOT_RADIUS_THRESHOLDS = [
 
 const GROUND_SLOT_MAX = 7;
 const GROUND_SLOT_MAX_TEMPERATURE_K = 700;
-const GROUND_SLOT_MAX_GRAVITY_G = 2.7;
+
+/** `JournalBody.surfaceGravity` is in m/s² — real Journal `Scan` events' raw `SurfaceGravity` field,
+ * kept unconverted by `journal/parser.ts`. Exported so `FacilityInfo.tsx`'s own "Gravity: X g"
+ * display conversion shares this exact value instead of keeping an independent copy. */
+export const METERS_PER_SECOND_SQUARED_PER_G = 9.80665;
+
+/** The community-sourced ground-slot cutoff is "gravity under 2.7g" (see this file's header
+ * comment) — rescaled to m/s² here since that's what `body.surfaceGravity` is actually in. Exported
+ * so `eligibility.test.ts` can assert against the exact real cutoff rather than a magic number. */
+export const GROUND_SLOT_MAX_GRAVITY_MS2 = 2.7 * METERS_PER_SECOND_SQUARED_PER_G;
 
 export interface BodySlotEstimate {
   slots: Record<SlotKind, number>;
@@ -60,7 +73,7 @@ function groundSlotsForBody(body: JournalBody): number {
   if (!body.landable) return 0;
   const temperature = body.surfaceTemperature ?? 0;
   const gravity = body.surfaceGravity ?? 0;
-  if (temperature >= GROUND_SLOT_MAX_TEMPERATURE_K || gravity >= GROUND_SLOT_MAX_GRAVITY_G) return 0;
+  if (temperature >= GROUND_SLOT_MAX_TEMPERATURE_K || gravity >= GROUND_SLOT_MAX_GRAVITY_MS2) return 0;
 
   const radius = body.radius ?? 0;
   const tier = GROUND_SLOT_RADIUS_THRESHOLDS.find((t) => radius < t.maxRadiusMeters);

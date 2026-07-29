@@ -11,10 +11,21 @@
       "surfaceTemperature": 4582,
       "tidalLocked": false,
       "parents": [],
-      "rings": [],
+      "rings": [
+        {
+          "name": "Swoilz CD-E c1-1 A Belt",
+          "ringClass": "Rocky",
+          "massMT": 52421000000000
+        },
+        {
+          "name": "Swoilz CD-E c1-1 B Belt",
+          "ringClass": "Metallic",
+          "massMT": 12810000000000000
+        }
+      ],
       "raw": {},
       "slots": {
-        "space": 4,
+        "space": 1,
         "ground": 0,
         "asteroid": 0
       }
@@ -25,7 +36,7 @@
       "kind": "planet",
       "planetClass": "Sudarsky class III gas giant",
       "landable": false,
-      "surfaceGravity": 16.1014890384419,
+      "surfaceGravity": 157.90166747883626,
       "surfaceTemperature": 574.241089,
       "radius": 73209768,
       "tidalLocked": true,
@@ -49,7 +60,7 @@
       "reserveLevel": "Pristine",
       "raw": {},
       "slots": {
-        "space": 2,
+        "space": 1,
         "ground": 0,
         "asteroid": 1
       }
@@ -60,7 +71,7 @@
       "kind": "planet",
       "planetClass": "Rocky body",
       "landable": true,
-      "surfaceGravity": 0.158313041704905,
+      "surfaceGravity": 1.5525205904354067,
       "surfaceTemperature": 238.272995,
       "radius": 1331542.75,
       "tidalLocked": true,
@@ -96,7 +107,7 @@
       "kind": "planet",
       "planetClass": "Sudarsky class III gas giant",
       "landable": false,
-      "surfaceGravity": 24.4178189048639,
+      "surfaceGravity": 239.45700376338354,
       "surfaceTemperature": 771.319641,
       "radius": 69329552,
       "tidalLocked": false,
@@ -136,7 +147,7 @@
       "kind": "planet",
       "planetClass": "Rocky body",
       "landable": false,
-      "surfaceGravity": 0.137248292036301,
+      "surfaceGravity": 1.3459459630977912,
       "surfaceTemperature": 966.336853,
       "radius": 1160448,
       "atmosphere": "Hot thick Water",
@@ -171,7 +182,7 @@
       "kind": "planet",
       "planetClass": "Rocky body",
       "landable": false,
-      "surfaceGravity": 0.122258386866524,
+      "surfaceGravity": 1.1989452095645976,
       "surfaceTemperature": 250.590775,
       "radius": 1037676.7500000001,
       "tidalLocked": true,
@@ -194,7 +205,7 @@
         "Volcanism": "Major Rocky Magma"
       },
       "slots": {
-        "space": 2,
+        "space": 1,
         "ground": 0,
         "asteroid": 0
       }
@@ -205,7 +216,7 @@
       "kind": "planet",
       "planetClass": "Rocky body",
       "landable": true,
-      "surfaceGravity": 0.166938717242786,
+      "surfaceGravity": 1.6371095714489672,
       "surfaceTemperature": 231.708344,
       "radius": 1400595.375,
       "tidalLocked": true,
@@ -226,7 +237,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 3,
+        "space": 1,
         "ground": 1,
         "asteroid": 0
       }
@@ -237,7 +248,7 @@
       "kind": "planet",
       "planetClass": "Rocky body",
       "landable": true,
-      "surfaceGravity": 0.160053329254614,
+      "surfaceGravity": 1.5695869813347603,
       "surfaceTemperature": 209.302094,
       "radius": 1345263.25,
       "tidalLocked": true,
@@ -269,7 +280,7 @@
       "kind": "planet",
       "planetClass": "Sudarsky class III gas giant",
       "landable": false,
-      "surfaceGravity": 17.833869277047,
+      "surfaceGravity": 174.89051414575295,
       "surfaceTemperature": 580.036377,
       "radius": 72364232,
       "tidalLocked": false,
@@ -289,7 +300,7 @@
       "reserveLevel": "Pristine",
       "raw": {},
       "slots": {
-        "space": 3,
+        "space": 1,
         "ground": 0,
         "asteroid": 1
       }
@@ -300,7 +311,7 @@
       "kind": "planet",
       "planetClass": "Rocky body",
       "landable": true,
-      "surfaceGravity": 0.112346487203018,
+      "surfaceGravity": 1.1017426787294764,
       "surfaceTemperature": 176.095016,
       "radius": 956002.5,
       "tidalLocked": true,
@@ -317,7 +328,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 3,
+        "space": 1,
         "ground": 1,
         "asteroid": 0
       }
@@ -328,7 +339,7 @@
       "kind": "planet",
       "planetClass": "Rocky body",
       "landable": true,
-      "surfaceGravity": 0.113095645967166,
+      "surfaceGravity": 1.1090894165239082,
       "surfaceTemperature": 178.897049,
       "radius": 962196.875,
       "atmosphere": "Thin Carbon dioxide",
@@ -348,7 +359,7 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 2,
+        "space": 1,
         "ground": 3,
         "asteroid": 0
       }
@@ -359,7 +370,7 @@
       "kind": "planet",
       "planetClass": "Rocky body",
       "landable": true,
-      "surfaceGravity": 0.108844906699296,
+      "surfaceGravity": 1.067403904282651,
       "surfaceTemperature": 169.180359,
       "radius": 927018.9375,
       "atmosphere": "Thin Carbon dioxide",
@@ -390,7 +401,7 @@
       "kind": "planet",
       "planetClass": "Rocky ice body",
       "landable": true,
-      "surfaceGravity": 0.126739165901907,
+      "surfaceGravity": 1.2428866412919364,
       "surfaceTemperature": 122.160324,
       "radius": 1536944.625,
       "tidalLocked": true,
@@ -407,7 +418,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 2,
+        "space": 1,
         "ground": 2,
         "asteroid": 0
       }
@@ -418,7 +429,7 @@
       "kind": "planet",
       "planetClass": "Rocky ice body",
       "landable": true,
-      "surfaceGravity": 0.120164168451106,
+      "surfaceGravity": 1.1784079425410385,
       "surfaceTemperature": 116.904411,
       "radius": 1460347.875,
       "tidalLocked": true,
@@ -435,7 +446,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 2,
+        "space": 1,
         "ground": 1,
         "asteroid": 0
       }
@@ -446,7 +457,7 @@
       "kind": "planet",
       "planetClass": "Sudarsky class I gas giant",
       "landable": false,
-      "surfaceGravity": 2.51734995411441,
+      "surfaceGravity": 24.686769927516078,
       "surfaceTemperature": 120.414696,
       "radius": 68347944,
       "tidalLocked": false,
@@ -482,7 +493,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.0812175996737025,
+      "surfaceGravity": 0.7964725738401146,
       "surfaceTemperature": 86.459503,
       "radius": 1355096.125,
       "tidalLocked": false,
@@ -514,7 +525,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.0744522280004079,
+      "surfaceGravity": 0.7301269417202001,
       "surfaceTemperature": 83.664627,
       "radius": 1248591.75,
       "tidalLocked": true,
@@ -535,7 +546,7 @@
         "Volcanism": "Carbon Dioxide Geysers"
       },
       "slots": {
-        "space": 0,
+        "space": 1,
         "ground": 2,
         "asteroid": 0
       }
@@ -546,7 +557,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.0771646782910166,
+      "surfaceGravity": 0.7567269923625979,
       "surfaceTemperature": 82.810585,
       "radius": 1292745.875,
       "tidalLocked": true,
@@ -563,15 +574,9 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 0,
+        "space": 1,
         "ground": 1,
         "asteroid": 0
-      },
-      "presentFacilities": {
-        "space": [],
-        "ground": [
-          null
-        ]
       }
     },
     {
@@ -580,7 +585,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.07114448863057,
+      "surfaceGravity": 0.6976890994289793,
       "surfaceTemperature": 81.806396,
       "radius": 1194614.75,
       "tidalLocked": true,
@@ -597,7 +602,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 0,
+        "space": 1,
         "ground": 1,
         "asteroid": 0
       }
@@ -608,7 +613,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.13647619047619,
+      "surfaceGravity": 1.3383742333333286,
       "surfaceTemperature": 80.529144,
       "radius": 2233240,
       "tidalLocked": true,
@@ -625,7 +630,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 3,
+        "space": 1,
         "ground": 2,
         "asteroid": 0
       }
@@ -636,7 +641,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.0872123993066177,
+      "surfaceGravity": 0.8552614756602425,
       "surfaceTemperature": 79.673927,
       "radius": 1455439.375,
       "tidalLocked": true,
@@ -655,28 +660,9 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 2,
+        "space": 1,
         "ground": 1,
         "asteroid": 0
-      },
-      "presentFacilities": {
-        "space": [
-          {
-            "building": "Military_Outpost",
-            "demolishable": false,
-            "customName": "Curbeam Enterprise",
-            "variant": "Nemesis"
-          },
-          null
-        ],
-        "ground": [
-          {
-            "building": "Medium_Military_Settlement",
-            "demolishable": false,
-            "customName": "Sankoh Command Point",
-            "variant": "Polemos"
-          }
-        ]
       }
     },
     {
@@ -685,7 +671,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.0965596002855103,
+      "surfaceGravity": 0.9469262041398996,
       "surfaceTemperature": 79.223228,
       "radius": 1605562.875,
       "tidalLocked": true,
@@ -704,26 +690,9 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 0,
+        "space": 1,
         "ground": 2,
         "asteroid": 0
-      },
-      "presentFacilities": {
-        "space": [],
-        "ground": [
-          {
-            "building": "Medium_Industrial_Settlement",
-            "demolishable": false,
-            "customName": "Morfett-Jones's Castings",
-            "variant": "Meteope"
-          },
-          {
-            "building": "Medium_Industrial_Settlement",
-            "demolishable": false,
-            "customName": "Thompson's Creations",
-            "variant": "Meteope"
-          }
-        ]
       }
     },
     {
@@ -732,7 +701,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.214821657999388,
+      "surfaceGravity": 2.106680812419698,
       "surfaceTemperature": 78.543579,
       "radius": 3517750.25,
       "atmosphere": "Thin Argon",
@@ -752,38 +721,19 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 2,
+        "space": 1,
         "ground": 4,
         "asteroid": 0
       },
       "presentFacilities": {
-        "space": [],
-        "ground": [
+        "space": [
           {
-            "building": "Large_Scientific_Settlement",
+            "building": "Coriolis",
             "demolishable": false,
-            "customName": "Agu Genetics Institution",
-            "variant": "Chronos"
-          },
-          {
-            "building": "Large_Scientific_Settlement",
-            "demolishable": false,
-            "customName": "Prieto Biological Centre",
-            "variant": "Chronos"
-          },
-          {
-            "building": "Large_Industrial_Settlement",
-            "demolishable": false,
-            "customName": "Petrenko Manufacturing Hub",
-            "variant": "Gaea"
-          },
-          {
-            "building": "Large_Scientific_Settlement",
-            "demolishable": false,
-            "customName": "Miranda Research Assembly",
-            "variant": "Chronos"
+            "primary": true
           }
-        ]
+        ],
+        "ground": []
       }
     },
     {
@@ -792,7 +742,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": false,
-      "surfaceGravity": 1.86368624451922,
+      "surfaceGravity": 18.276518709814408,
       "surfaceTemperature": 66.801071,
       "radius": 17469152,
       "atmosphere": "Helium",
@@ -831,7 +781,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.0320778015703069,
+      "surfaceGravity": 0.31457577276945015,
       "surfaceTemperature": 89.518044,
       "radius": 546447.0625,
       "atmosphere": "Thin Methane",
@@ -851,7 +801,7 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 2,
+        "space": 1,
         "ground": 3,
         "asteroid": 0
       }
@@ -862,7 +812,7 @@
       "kind": "planet",
       "planetClass": "Icy body",
       "landable": true,
-      "surfaceGravity": 0.333248597940247,
+      "surfaceGravity": 3.268052362990723,
       "surfaceTemperature": 64.208778,
       "radius": 5184428.5,
       "atmosphere": "Thin Neon-rich",
@@ -888,13 +838,61 @@
       "raw": {},
       "slots": {
         "space": 1,
-        "ground": 5,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz CD-E c1-1 A Belt",
+      "bodyId": 1000000,
+      "kind": "ring",
+      "landable": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz CD-E c1-1 A Belt",
+          "ringClass": "Rocky",
+          "massMT": 52421000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz CD-E c1-1 B Belt",
+      "bodyId": 1000001,
+      "kind": "ring",
+      "landable": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz CD-E c1-1 B Belt",
+          "ringClass": "Metallic",
+          "massMT": 12810000000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
         "asteroid": 1
       }
     }
   ],
   "firstStationBuilding": "Coriolis",
-  "firstStationBodyId": 48,
-  "firstStationVariant": "Quad Truss",
-  "firstStationCustomName": "Burger Prospect"
+  "firstStationBodyId": 48
 }

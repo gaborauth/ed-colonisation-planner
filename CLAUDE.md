@@ -112,14 +112,17 @@ separate, dedicated constructible location physically far from the star — mode
 capacity on the star's own orbital slot(s). It shows up as its own row in `JournalImportPanel`'s
 table and its own leaf node in `domain/bodyHierarchy.ts`'s tree. `eligibility.ts`'s
 `estimateBodySlots` gives a star's own slot `asteroid: 0` unconditionally, and the ring body itself
-`{space: 1, ground: 0, asteroid: 1}`. The belt's slot is an ORDINARY orbital slot that additionally
-qualifies for `Asteroid_Base` — not an `Asteroid_Base`-exclusive slot — so `solve.ts` needed no
-special-casing: the pre-existing `Asteroid_Base <= 0 when slots.asteroid === 0` rule already covers
-it. A ringed PLANET's or moon's own slot, by contrast, keeps making that body's own orbital slot(s)
-asteroid-eligible directly (unchanged, since a planet's ring sits at the planet itself rather than
-being a separate far-away location) — deliberately NOT generalized to the star's dedicated-body
-treatment. The ring body's own `rings` field self-references its own ring, so a port built there
-still gets the "Has rings" Extraction economy override.
+`{space: 1, ground: 0, asteroid: 1}`. The belt's slot can ONLY ever hold an `Asteroid_Base`, not any
+other space building (real-game-confirmed, 2026-07-28) — `solve.ts`'s `SolverBody.asteroidExclusive`
+(set from `JournalBody.kind === "ring"` in `App.tsx`'s `buildSolverInput`) zeroes every
+non-`Asteroid_Base` building's upper bound on such a body, on top of the pre-existing
+`Asteroid_Base <= 0 when slots.asteroid === 0` rule. A ringed PLANET's or moon's own slot, by
+contrast, keeps making that body's own orbital slot(s)
+asteroid-eligible directly WITHOUT becoming exclusive (unchanged, since a planet's ring sits at the
+planet itself rather than being a separate far-away location) — deliberately NOT generalized to the
+star's dedicated-body treatment; `asteroidExclusive` is only ever set for a `kind: "ring"` body, never
+a ringed planet. The ring body's own `rings` field self-references its own ring, so a port built
+there still gets the "Has rings" Extraction economy override.
 
 **Deliberately deferred**: auto-detecting already-built facilities from Spansh's per-body
 `stations[]` list — the dump has real per-body station placement, but Spansh's station `type` string
@@ -725,3 +728,6 @@ exported system (`jsons/swoilz-aw-c-d52.json`) rather than just theoretical work
   actually touched by the change is enough signal in the moment — run the full file once, near the
   end of the session, and just retry on the documented worker-timeout flake rather than treating it
   as a regression to investigate.
+- **Comments for the actual code**: in the comments primarily explain the code actual state,
+  avoid historical comments ("this was before", "that is because it was", etc).
+

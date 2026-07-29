@@ -27,7 +27,10 @@ export interface SpanshDumpBody {
    * type ("Star"/"Planet"/"Null"), value = that parent's own `bodyId`. */
   parents?: Record<string, number>[];
   isLandable?: boolean;
-  /** Same "g" units as Journal's `SurfaceGravity` — confirmed against real fixture values. */
+  /** In G, NOT the same units as this app's own `JournalBody.surfaceGravity` (which is m/s²,
+   * inherited unconverted from real Journal `Scan` events — see adapter.ts's `toJournalBody`,
+   * which multiplies this field by 9.80665 to match). Confirmed against the real committed fixture:
+   * every body's value here, times 9.80665, matches the real Journal-derived export exactly. */
   gravity?: number;
   surfaceTemperature?: number;
   /** Kilometers — Journal's `Radius` is in meters, needs `* 1000` (see adapter.ts). */

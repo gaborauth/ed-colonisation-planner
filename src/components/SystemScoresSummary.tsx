@@ -4,6 +4,7 @@
 // `.stat-tile` grid. One shared component so both call sites render identically; they differ only
 // in which scores/extra numbers they pass in.
 
+import type { ReactNode } from "react";
 import { ALL_SCORES, toPrintable, type Score } from "../data/buildings";
 
 export interface SystemScoresSummaryField {
@@ -28,6 +29,11 @@ interface SystemScoresSummaryProps {
    * `SystemConfigPanel`'s pre-solve "current totals" view, which stays plain so the emphasis still
    * differentiates something instead of making every stat block look the same. */
   emphasized?: boolean;
+  /** Extra content rendered inside the same emphasized card, below the grid, separated by an `<hr>`
+   * — only meaningful when `emphasized` is set (only `SolvedSystemPanel` currently uses it, for its
+   * "Export Raven Colonial" button/hint). Ignored when `emphasized` is false, since the plain
+   * (non-card) rendering has no container to attach a visually-separated section to. */
+  children?: ReactNode;
 }
 
 function valueClass(value: number | string, neutral: boolean | undefined): string {
@@ -42,6 +48,7 @@ export function SystemScoresSummary({
   includeEconomySynergy = true,
   extraFields = [],
   emphasized = false,
+  children,
 }: SystemScoresSummaryProps) {
   const visibleScores = includeEconomySynergy ? ALL_SCORES : ALL_SCORES.filter((score) => score !== "economy_synergy");
   const grid = (
@@ -61,5 +68,16 @@ export function SystemScoresSummary({
       ))}
     </div>
   );
-  return emphasized ? <div className="system-scores-emphasized">{grid}</div> : grid;
+  if (!emphasized) return grid;
+  return (
+    <div className="system-scores-emphasized">
+      {grid}
+      {children && (
+        <>
+          <hr />
+          {children}
+        </>
+      )}
+    </div>
+  );
 }

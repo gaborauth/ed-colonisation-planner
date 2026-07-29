@@ -85,13 +85,24 @@ h1 {
   margin-bottom: 0;
 }
 
+.app-header-links {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
 .app-header-link {
   flex-shrink: 0;
   padding: 4px 12px;
   border: 1px solid var(--border-bright);
   border-radius: 4px;
+  background: none;
   color: var(--text-dim);
+  font-family: var(--font-body);
   font-size: 13px;
+  text-transform: none;
+  letter-spacing: normal;
   text-decoration: none;
   white-space: nowrap;
 }
@@ -99,6 +110,71 @@ h1 {
 .app-header-link:hover {
   color: var(--accent-text);
   border-color: var(--accent);
+}
+
+/* First-visit attention pulse on the "Live Demo" button (see App.tsx's `showLiveDemoAttention`) —
+ * a gentle, indefinitely-repeating glow rather than a one-shot animation, since there's no fixed
+ * "seen it" moment other than the user actually clicking the button (which removes this class for
+ * good, in this browser, via persistence/liveDemoHint.ts). Subtle by design — meant to catch the
+ * eye at a glance, not nag. */
+.app-header-link-attention {
+  border-color: var(--accent);
+  color: var(--accent-text);
+  transform-origin: bottom center;
+  animation:
+    app-header-link-pulse 2.2s ease-in-out infinite,
+    app-header-link-buzz 2.5s ease-in-out infinite;
+}
+
+@keyframes app-header-link-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(255, 158, 27, 0.45);
+  }
+  50% {
+    box-shadow: 0 0 0 5px rgba(255, 158, 27, 0);
+  }
+}
+
+/* A cartoon "bell ring" wobble — rotating around the bottom edge (see `transform-origin` above)
+ * like a bell swinging on its mount, rather than a plain side-to-side slide — filling the first
+ * ~40% of each 2.5s cycle (a full second of actual motion, easy to catch), then holds still for
+ * the rest. Reads as an actual "buzz" (like a phone going off) rather than shaking constantly,
+ * which would be distracting instead of just catching the eye. Disabled under
+ * prefers-reduced-motion below; the box-shadow pulse alone still carries the "notice me" cue. */
+@keyframes app-header-link-buzz {
+  0%,
+  40%,
+  100% {
+    transform: rotate(0deg);
+  }
+  5% {
+    transform: rotate(-14deg);
+  }
+  10% {
+    transform: rotate(12deg);
+  }
+  15% {
+    transform: rotate(-11deg);
+  }
+  20% {
+    transform: rotate(9deg);
+  }
+  25% {
+    transform: rotate(-6deg);
+  }
+  30% {
+    transform: rotate(4deg);
+  }
+  35% {
+    transform: rotate(-2deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-header-link-attention {
+    animation: app-header-link-pulse 2.2s ease-in-out infinite;
+  }
 }
 
 h2 {
@@ -671,10 +747,11 @@ select.toolbar-summary-system {
   color: var(--text-dim);
 }
 
-/* Blocking modal for the solve's "solving"/"error" states — see SolverStatusDialog.tsx. Above the
- * cookie consent banner's z-index (100), since a solve can legitimately run before that banner's
- * choice is made. */
-.solver-status-overlay {
+/* Generic blocking-modal shell — used by SolverStatusDialog.tsx (the solve's "solving"/"error"
+ * states) and LiveDemoHintDialog.tsx (the post-"Live Demo" orientation hint). Above the cookie
+ * consent banner's z-index (100), since a solve can legitimately run before that banner's choice
+ * is made. */
+.modal-overlay {
   position: fixed;
   inset: 0;
   z-index: 200;
@@ -685,7 +762,7 @@ select.toolbar-summary-system {
   padding: 16px;
 }
 
-.solver-status-dialog {
+.modal-dialog {
   background: var(--bg-panel);
   border: 1px solid var(--border-bright);
   border-radius: 3px;
@@ -695,11 +772,11 @@ select.toolbar-summary-system {
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
 }
 
-.solver-status-dialog-message {
+.modal-dialog-message {
   margin: 0;
 }
 
-.solver-status-dialog-actions {
+.modal-dialog-actions {
   display: flex;
   justify-content: flex-end;
   margin-top: 14px;

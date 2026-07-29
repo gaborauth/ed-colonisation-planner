@@ -148,6 +148,13 @@ export interface SolverBody {
    * 0 to `economy_synergy`, same backward-compatible degrade-to-today's-behavior pattern `bodies`
    * itself already follows when absent entirely. */
   economy?: JournalBody;
+  /** True only for a star belt's own dedicated synthetic body (`JournalBody.kind === "ring"` — see
+   * `journal/parser.ts`'s `withRingBodies`) — real-game-confirmed (2026-07-28): a belt's slot can
+   * ONLY ever hold an Asteroid Base, unlike a ringed PLANET's own slot, which stays an ordinary
+   * orbital slot that merely additionally qualifies for one (see the `bodyVars` loop below, and
+   * CLAUDE.md's "Star belts vs. planet rings" section). Absent/false for every other body,
+   * including a ringed planet — same backward-compatible degrade pattern as `economy` above. */
+  asteroidExclusive?: boolean;
 }
 
 export type ObjectiveInput =
@@ -357,12 +364,13 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       for (const b of input.bodies) {
         // Asteroid_Base is hard-restricted to ring/belt-eligible bodies here, replacing the old
         // system-wide `Asteroid_Base <= input.slots.asteroid` pseudo-pool entirely in this mode. A
-        // ring/belt-eligible body's slot (whether a ringed planet's own slot, or a star belt's
-        // dedicated synthetic `kind: "ring"` body — see `journal/parser.ts`'s `withRingBodies`)
-        // can ALSO host any ordinary building — a belt cluster slot isn't Asteroid_Base-exclusive,
-        // it's an ordinary orbital slot that additionally qualifies for Asteroid_Base. No further
-        // restriction needed here beyond the existing one.
-        const ub = name === "Asteroid_Base" && b.slots.asteroid === 0 ? 0 : DEFAULT_BUILDING_COUNT_CAP;
+        // ringed PLANET's own slot (as opposed to a star belt's dedicated synthetic `kind: "ring"`
+        // body — see `journal/parser.ts`'s `withRingBodies`) stays an ORDINARY orbital slot that
+        // merely additionally qualifies for Asteroid_Base, so it can also host any other building.
+        // A star belt's own slot is different — real-game-confirmed (2026-07-28) to be
+        // Asteroid_Base-EXCLUSIVE, not just Asteroid_Base-eligible — see `asteroidExclusive` below.
+        let ub = name === "Asteroid_Base" && b.slots.asteroid === 0 ? 0 : DEFAULT_BUILDING_COUNT_CAP;
+        if (b.asteroidExclusive && name !== "Asteroid_Base") ub = 0;
         const v = model.addVar(`${name}__body_${b.bodyId}`, "integer", 0, ub);
         bodyVars[name][b.bodyId] = v;
         bodySum = addExpr(bodySum, exprVar(v, 1));

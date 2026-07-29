@@ -136,6 +136,16 @@ export interface JournalSystem {
    * behavior, only display. */
   firstStationVariant?: string;
   firstStationCustomName?: string;
+  /** The full parsed Raven Colonial "Export backup" JSON, kept verbatim, set whenever a Raven
+   * Colonial file is overlaid onto this system (`ravenColonial/adapter.ts`'s
+   * `applyRavenColonialOverlay`) — undefined for a system that's never had one imported. Kept
+   * opaque here (same "raw blob" treatment as `JournalBody.raw` below) rather than importing
+   * `ravenColonial/types.ts`'s `RcSystemSkeleton` type directly, so this generic parsing module
+   * doesn't need to know about that feature-specific shape; `ravenColonial/adapter.ts` and
+   * `ravenColonial/export.ts` are the two places that actually read/write it typed as
+   * `RcSystemSkeleton`. Exists so `ravenColonial/export.ts` can later turn a solved plan back into
+   * a re-importable Raven Colonial file — see CLAUDE.md's "Raven Colonial import"/export notes. */
+  ravenColonialSkeleton?: Record<string, unknown>;
 }
 
 /** Natural/numeric name comparator, so "System A 2" sorts before "System A 10" — used everywhere
@@ -248,10 +258,11 @@ function ringBodyId(parentBodyId: number, ringIndex: number): number {
 
 /** A STAR's own asteroid belt is, in-game, its own separate constructible location with its own
  * dedicated orbital slot — NOT extra capacity on the star's own slot(s); a named belt shows up as
- * its own distinct point in the system map, physically far from the star. An Asteroid_Base can be
- * built there, but so can any ordinary building — it's an asteroid-eligible orbital slot like any
- * other, not Asteroid_Base-exclusive. The star's OWN slot(s), unlike the belt, are never themselves
- * asteroid-eligible. Synthesizes one extra `JournalBody` (kind `"ring"`) per named belt on every
+ * its own distinct point in the system map, physically far from the star. A belt's dedicated slot
+ * can ONLY ever hold an Asteroid_Base, not any other building (real-game-confirmed, 2026-07-28) —
+ * see `solve.ts`'s `SolverBody.asteroidExclusive`, set from this synthetic body's `kind: "ring"`.
+ * The star's OWN slot(s), unlike the belt, are never themselves asteroid-eligible. Synthesizes one
+ * extra `JournalBody` (kind `"ring"`) per named belt on every
  * scanned STAR only — appended after the real bodies, so it shows up as its own row in
  * `JournalImportPanel`'s table and its own node in `domain/bodyHierarchy.ts`'s tree.
  *

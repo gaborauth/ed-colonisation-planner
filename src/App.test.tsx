@@ -1,15 +1,20 @@
 // @vitest-environment jsdom
-import { render, screen, within } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { StrictMode } from "react";
 import { beforeEach, describe, expect, it } from "vitest";
-import App from "./App";
+import App, { buildSolverInput } from "./App";
 import FIXTURE from "./journal/fixtures/sample.jsonl?raw";
+import type { JournalBody } from "./journal/parser";
+import { INITIAL_FORM_STATE } from "./state/plannerState";
 
 // The "Actual facilities in the system" panel's slot fields are read-only (derived from a journal
 // import) now that "Enter slots manually" no longer exists — so every end-to-end test unlocks the
 // panel the same way a real user would, by uploading a journal and applying its (guessed) body
 // layout.
 async function importAndApplyJournal(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+  // Spansh is the default active tab now — switch to Journal file first.
+  await user.click(screen.getByRole("tab", { name: "Journal file" }));
   const file = new File([FIXTURE], "journal.log", { type: "text/plain" });
   await user.upload(screen.getByLabelText("Journal file"), file);
   // The Journal tab now mirrors the Spansh tab's pick-then-Load pattern (2026-07-27) — uploading
@@ -83,6 +88,49 @@ describe("App", () => {
     expect(screen.getByText(/solve the system to see the proposed layout/i)).toBeInTheDocument();
   }, 25000);
 
+  it("only folds About & Help / Import system, and only shows the orientation hint, once Live Demo is actually clicked", async () => {
+    // Regression test: a naive "skip the first effect run" ref guard for
+    // AboutHelpPanel/JournalImportPanel's `collapseSignal` prop breaks under React 18 StrictMode's
+    // dev-only double-invoke-on-mount, folding both panels immediately on page load rather than
+    // only after a real "Live Demo" click. Fixed by comparing against the last-seen value instead
+    // of a plain boolean flag (see each panel's own `collapseSignal` effect). Rendered inside a
+    // real StrictMode boundary (unlike this file's other tests) specifically to reproduce that
+    // double-invoke — the app's own real entry point (main.tsx) always renders under StrictMode,
+    // so this is the accurate reproduction, not an artificial one.
+    const user = userEvent.setup();
+    render(
+      <StrictMode>
+        <App />
+      </StrictMode>,
+    );
+
+    // "Import system" also names the sticky toolbar's plain file-picker trigger, which carries no
+    // `aria-expanded` at all — `expanded` here scopes the query to the actual panel-toggle button.
+    expect(screen.getByRole("button", { name: /about & help/i })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: /import system/i, expanded: true })).toBeInTheDocument();
+    expect(screen.queryByRole("dialog", { name: /live demo loaded/i })).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /live demo/i }));
+    // Unlike this file's other Live-Demo tests, nothing was imported/applied first here, so
+    // "Swoilz AW-C d52" isn't guaranteed to be unique on the page once applied (e.g. it can also
+    // show up as a body-picker option) — findAllByText just confirms it landed at all.
+    await screen.findAllByText("Swoilz AW-C d52");
+
+    // The fold itself is driven by a `useEffect` reacting to the `collapseSignal` prop change, a
+    // separate commit AFTER the one `findAllByText` above resolved on (the dispatch-driven system
+    // apply) — waitFor gives React room to flush that second commit instead of asserting too early.
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /about & help/i })).toHaveAttribute("aria-expanded", "false");
+    });
+    expect(screen.getByRole("button", { name: /import system/i, expanded: false })).toBeInTheDocument();
+    const hintDialog = screen.getByRole("dialog", { name: /live demo loaded/i });
+    expect(hintDialog).toHaveTextContent(/objective/i);
+    expect(hintDialog).toHaveTextContent(/solve for a system/i);
+
+    await user.click(screen.getByRole("button", { name: "Got it" }));
+    expect(screen.queryByRole("dialog", { name: /live demo loaded/i })).not.toBeInTheDocument();
+  }, 25000);
+
   it("re-syncs the Journal file tab's shared body table when switching systems via the toolbar dropdown", async () => {
     // Regression test (2026-07-27 user report): "Import system"'s body/slot table didn't change
     // when switching systems via the sticky toolbar's own System dropdown. Root cause:
@@ -141,4 +189,22 @@ describe("App", () => {
 
     expect(await screen.findByText(/no possible system arrangement/i, {}, { timeout: 20000 })).toBeInTheDocument();
   }, 25000);
+});
+
+describe("buildSolverInput", () => {
+  function bodyOfKind(kind: JournalBody["kind"], bodyId: number): JournalBody {
+    return { bodyName: `Test ${kind} ${bodyId}`, bodyId, kind, landable: false, parents: [], rings: [], raw: {} };
+  }
+
+  // 2026-07-28 user report, direct in-game testing: a star belt's own dedicated synthetic body
+  // (`kind: "ring"`) is asteroid-exclusive; a ringed PLANET's own slot is not (see solve.ts's
+  // `SolverBody.asteroidExclusive` and CLAUDE.md's "Star belts vs. planet rings").
+  it("marks only a kind: \"ring\" body as asteroidExclusive, not a planet or star", () => {
+    const formState = { ...INITIAL_FORM_STATE, bodies: [bodyOfKind("ring", 1), bodyOfKind("planet", 2), bodyOfKind("star", 3)] };
+    const input = buildSolverInput(formState);
+    const byId = new Map(input.bodies!.map((b) => [b.bodyId, b]));
+    expect(byId.get(1)!.asteroidExclusive).toBe(true);
+    expect(byId.get(2)!.asteroidExclusive).toBe(false);
+    expect(byId.get(3)!.asteroidExclusive).toBe(false);
+  });
 });

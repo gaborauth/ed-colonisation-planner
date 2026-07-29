@@ -11,7 +11,7 @@ import {
 } from "../journal/parser";
 import { getLastUsedSystemAddress, listSavedSystems, saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
 import { applyRavenColonialOverlay } from "../ravenColonial/adapter";
-import type { RcSystem } from "../ravenColonial/types";
+import type { RcSystemSkeleton } from "../ravenColonial/types";
 import { spanshDumpToJournalSystem } from "../spansh/adapter";
 import { fetchSpanshSystemDump, searchSystemNames } from "../spansh/api";
 import type { PlannerAction } from "../state/plannerState";
@@ -36,6 +36,10 @@ interface JournalImportPanelProps {
    * this panel's own Apply flow). Without this, switching systems via the toolbar would leave this
    * panel's body/slot table showing the PREVIOUS system. See the dedicated effect below. */
   activeSystemAddress?: number | null;
+  /** Bumped by App.tsx's "Live Demo" button to force this panel closed — same "signal" pattern as
+   * `refreshToken` (a different concern: that one re-reads the saved-systems store, this one only
+   * folds the panel), only acting on a change AFTER mount, never on the initial value. */
+  collapseSignal?: number;
 }
 
 const SLOT_KINDS = Object.keys(ALL_SLOTS) as SlotKind[];
@@ -107,6 +111,7 @@ export function JournalImportPanel({
   refreshToken,
   onSystemChanged,
   activeSystemAddress,
+  collapseSignal,
 }: JournalImportPanelProps) {
   // Purely backing data for the shared body/slot table below and `mergeBySystemAddress`'s
   // slot-preservation lookup — no longer seeded from `listSavedSystems()` at mount. It's
@@ -127,7 +132,7 @@ export function JournalImportPanel({
   const [applied, setApplied] = useState(false);
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(false);
 
-  const [activeTab, setActiveTab] = useState<ImportTab>("journal");
+  const [activeTab, setActiveTab] = useState<ImportTab>("spansh");
   const [spanshQuery, setSpanshQuery] = useState("");
   const [spanshCandidates, setSpanshCandidates] = useState<{ id64: number; name: string }[]>([]);
   const [spanshSelected, setSpanshSelected] = useState<{ id64: number; name: string } | null>(null);
@@ -261,9 +266,9 @@ export function JournalImportPanel({
     setRcImported(false);
     try {
       const text = await file.text();
-      let rc: RcSystem;
+      let rc: RcSystemSkeleton;
       try {
-        rc = JSON.parse(text) as RcSystem;
+        rc = JSON.parse(text) as RcSystemSkeleton;
       } catch {
         throw new Error("That doesn't look like a valid JSON file.");
       }
@@ -292,6 +297,7 @@ export function JournalImportPanel({
         systemConfigured: true,
         systemAddress: system.systemAddress,
         starSystem: system.starSystem,
+        ravenColonialSkeleton: system.ravenColonialSkeleton,
         // Restores whatever primary station was saved for this system (see SystemConfigPanel's
         // "Save" button) — blank/undefined for a system that's never had one chosen yet, which
         // correctly resets the field rather than leaving a previous system's choice behind.
@@ -354,6 +360,22 @@ export function JournalImportPanel({
       setApplied(false);
     }
   }, [refreshToken]);
+
+  // Forces this panel closed whenever `collapseSignal` changes (see the prop's doc comment) — a
+  // first-time visitor who clicks "Live Demo" already has a live system loaded and doesn't need
+  // this panel still open and taking up space above it. Compares against the LAST SEEN value
+  // rather than a plain "is this the first run" boolean flag — the latter breaks under React 18
+  // StrictMode's dev-only double-invoke-on-mount (the ref flips to "seen" on the first of the two
+  // mount invocations, so the second one wrongly treats itself as a real change and folds the panel
+  // immediately on page load, before "Live Demo" was ever clicked). This form is safe under a
+  // double-invoke: both calls compare against the same untouched snapshot and agree nothing changed.
+  const lastCollapseSignal = useRef(collapseSignal);
+  useEffect(() => {
+    if (collapseSignal === lastCollapseSignal.current) return;
+    lastCollapseSignal.current = collapseSignal;
+    setCollapsed(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- fires only on collapseSignal changing, setCollapsed identity is stable
+  }, [collapseSignal]);
 
   // Mirrors this panel's own `selectedAddress` to `formState.systemAddress` whenever THAT changes
   // out from under it — i.e. the toolbar switcher case above, not this panel's own Apply (which
@@ -577,43 +599,51 @@ export function JournalImportPanel({
 
           {selected && (
             <div style={{ marginTop: 10 }}>
-              <div className="row-grid">
-                <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>
-                  Already tracking this system's construction in{" "}
-                  <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">
-                    Raven Colonial
-                  </a>
-                  ? Upload its "Export backup" JSON file to overlay its slot counts and built
-                  facilities onto the system loaded above (its own body/orbital data is untouched).
-                  Raven Colonial's slot counts are manually entered by whoever tracks the project,
-                  same as this panel's own fields — check them the same way.
-                </p>
-                <input
-                  type="file"
-                  accept=".json,application/json"
-                  aria-label="Raven Colonial export backup file"
-                  disabled={rcLoading}
-                  style={{ marginLeft: "auto" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) void handleRavenColonialFile(file);
-                    e.target.value = "";
-                  }}
-                />
-              </div>
-              {rcError && <div className="status-banner">{rcError}</div>}
-              {rcImported && !rcError && (
-                <div className="status-banner" style={{ color: "var(--success)" }}>
-                  Raven Colonial file processed successfully — check "Apply slots and body layout"
-                  below to save it.
-                </div>
-              )}
-              {rcWarnings.length > 0 && (
-                <div className="status-banner">
-                  {rcWarnings.map((w) => (
-                    <div key={w}>{w}</div>
-                  ))}
-                </div>
+              {/* Hidden once the currently loaded system has no unapplied changes left — most
+               * notably right after "Apply slots and body layout" is clicked (`applied` flips back
+               * to `false` on the next edit/import, which brings this back). Keeps the panel from
+               * still prompting to import Raven Colonial data for a system that was just saved. */}
+              {!applied && (
+                <>
+                  <div className="row-grid">
+                    <p style={{ fontSize: 12, color: "var(--text-dim)", margin: 0 }}>
+                      Already tracking this system's construction in{" "}
+                      <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">
+                        Raven Colonial
+                      </a>
+                      ? Upload its "Export backup" JSON file to overlay its slot counts and built
+                      facilities onto the system loaded above (its own body/orbital data is
+                      untouched). Raven Colonial's slot counts are manually entered by whoever
+                      tracks the project, same as this panel's own fields — check them the same way.
+                    </p>
+                    <input
+                      type="file"
+                      accept=".json,application/json"
+                      aria-label="Raven Colonial export backup file"
+                      disabled={rcLoading}
+                      style={{ marginLeft: "auto" }}
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) void handleRavenColonialFile(file);
+                        e.target.value = "";
+                      }}
+                    />
+                  </div>
+                  {rcError && <div className="status-banner">{rcError}</div>}
+                  {rcImported && !rcError && (
+                    <div className="status-banner" style={{ color: "var(--success)" }}>
+                      Raven Colonial file processed successfully — check "Apply slots and body
+                      layout" below to save it.
+                    </div>
+                  )}
+                  {rcWarnings.length > 0 && (
+                    <div className="status-banner">
+                      {rcWarnings.map((w) => (
+                        <div key={w}>{w}</div>
+                      ))}
+                    </div>
+                  )}
+                </>
               )}
               <table style={{ marginTop: 10 }}>
                 <thead>
