@@ -1,3 +1,9 @@
+## [1.4.4](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.3...v1.4.4) (2026-07-30)
+
+### Bug Fixes
+
+* tighten default security score ([83b3e60](https://github.com/gaborauth/ed-colonisation-planner/commit/83b3e60c6e5aaf72b5231fe4047a646e863d5046))
+
 ## [1.4.3](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.2...v1.4.3) (2026-07-30)
 
 ### Bug Fixes
