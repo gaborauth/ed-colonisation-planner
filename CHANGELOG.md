@@ -1,3 +1,10 @@
+## [1.4.3](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.2...v1.4.3) (2026-07-30)
+
+### Bug Fixes
+
+* put the active system name in the url and title ([bcceb09](https://github.com/gaborauth/ed-colonisation-planner/commit/bcceb09c35f0450507bbc457f5fe5f987af2cedd))
+* rewrite objective panel preset and expression ([735ec60](https://github.com/gaborauth/ed-colonisation-planner/commit/735ec60b2822ca1721e11ac6d2050d928c64464c)), closes [#96](https://github.com/gaborauth/ed-colonisation-planner/issues/96)
+
 ## [1.4.2](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.1...v1.4.2) (2026-07-30)
 
 ### Bug Fixes
