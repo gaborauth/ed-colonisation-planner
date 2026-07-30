@@ -2,10 +2,11 @@
 import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { StrictMode } from "react";
-import { beforeEach, describe, expect, it } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import App, { buildSolverInput } from "./App";
 import FIXTURE from "./journal/fixtures/sample.jsonl?raw";
 import type { JournalBody } from "./journal/parser";
+import { BASE_TITLE } from "./persistence/urlSystemParam";
 import { INITIAL_FORM_STATE } from "./state/plannerState";
 
 // The "Actual facilities in the system" panel's slot fields are read-only (derived from a journal
@@ -36,6 +37,12 @@ describe("App", () => {
   // "found multiple elements").
   beforeEach(() => {
     localStorage.clear();
+    // Same leak concern as the localStorage.clear() above, but for the URL/tab title:
+    // `window.history`/`document.title` also persist across tests within this one jsdom instance,
+    // so a `?system=` param or title a later test sets must not survive into an earlier-running
+    // test's own fresh `render(<App />)`.
+    window.history.replaceState(null, "", "/");
+    document.title = BASE_TITLE;
   });
 
   it("solves a minimal system end-to-end with the real solver and renders results", async () => {
@@ -191,6 +198,76 @@ describe("App", () => {
     await user.click(screen.getByRole("button", { name: /solve for a system/i }));
 
     expect(await screen.findByText(/no possible system arrangement/i, {}, { timeout: 20000 })).toBeInTheDocument();
+  }, 25000);
+});
+
+describe("App's ?system= URL bookmarking", () => {
+  beforeEach(() => {
+    localStorage.clear();
+    window.history.replaceState(null, "", "/");
+    document.title = BASE_TITLE;
+  });
+
+  it("restores the system named by a ?system= URL param on mount, taking priority over the last-used system", async () => {
+    const user = userEvent.setup();
+    const first = render(<App />);
+
+    // System A (the journal fixture) becomes saved + last-used...
+    await importAndApplyJournal(user);
+    // ...then System B (Live Demo) becomes saved + last-used instead, superseding A.
+    await user.click(screen.getByRole("button", { name: /live demo/i }));
+    await screen.findAllByText("Swoilz AW-C d52");
+    first.unmount();
+
+    // A fresh mount with ?system=<System A's name> in the URL must restore A, not the actually
+    // last-used B.
+    window.history.replaceState(null, "", `/?system=${encodeURIComponent("Test System A")}`);
+    render(<App />);
+
+    expect(await screen.findByDisplayValue("Test System A")).toBeInTheDocument();
+    expect(screen.queryByDisplayValue("Swoilz AW-C d52")).not.toBeInTheDocument();
+  }, 25000);
+
+  it("falls back to the last-used system when the ?system= URL param doesn't match anything saved locally", async () => {
+    const user = userEvent.setup();
+    const first = render(<App />);
+
+    // Only System A is ever saved, so it's also the last-used one.
+    await importAndApplyJournal(user);
+    first.unmount();
+
+    // An unknown/stale name (e.g. a bookmark from a different browser, or a typo) must degrade
+    // gracefully to the existing last-used fallback, never crash or leave nothing applied.
+    window.history.replaceState(null, "", `/?system=${encodeURIComponent("Some Other System")}`);
+    render(<App />);
+
+    // Body names like "Test System A 1" show up in several places at once (the facility tree, the
+    // "On body" picker) once a system's applied, so a plain getByText would ambiguously match more
+    // than one — the sticky toolbar's own summary span is the single unambiguous place that names
+    // just the active SYSTEM itself, not any of its bodies.
+    await waitFor(() => {
+      expect(document.querySelector(".toolbar-summary-system")?.textContent).toBe("Test System A");
+    });
+  }, 25000);
+
+  it("keeps the ?system= URL param and browser tab title in sync with whichever system is actually active", async () => {
+    const user = userEvent.setup();
+    render(<App />);
+    expect(new URLSearchParams(window.location.search).get("system")).toBeNull();
+
+    await importAndApplyJournal(user);
+    expect(new URLSearchParams(window.location.search).get("system")).toBe("Test System A");
+    expect(document.title).toBe(`Test System A – ${BASE_TITLE}`);
+
+    await user.click(screen.getByRole("button", { name: /live demo/i }));
+    await screen.findAllByText("Swoilz AW-C d52");
+    expect(new URLSearchParams(window.location.search).get("system")).toBe("Swoilz AW-C d52");
+    expect(document.title).toBe(`Swoilz AW-C d52 – ${BASE_TITLE}`);
+
+    vi.spyOn(window, "confirm").mockReturnValue(true);
+    await user.click(screen.getByRole("button", { name: "Delete" }));
+    expect(new URLSearchParams(window.location.search).get("system")).toBeNull();
+    expect(document.title).toBe(BASE_TITLE);
   }, 25000);
 });
 

@@ -8,6 +8,7 @@ import {
   saveSystem,
   setLastUsedSystemAddress,
 } from "../persistence/journalSystems";
+import { getSystemNameFromUrl, syncActiveSystemToBrowser } from "../persistence/urlSystemParam";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
 import { SlotBar } from "./SlotBar";
 import { TierIcon } from "./TierIcon";
@@ -71,6 +72,7 @@ export function applyParsedSystem(
       ravenColonialSkeleton: parsed.ravenColonialSkeleton,
     },
   });
+  syncActiveSystemToBrowser(parsed.starSystem);
   onImported?.();
   onSystemChanged?.();
   return null;
@@ -159,20 +161,33 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
         ravenColonialSkeleton: system.ravenColonialSkeleton,
       },
     });
+    syncActiveSystemToBrowser(system.starSystem);
     onSystemChanged?.();
   }
 
-  // On first load, silently re-apply whichever system was last used, as long as it has bodies —
-  // "Actual facilities in the system" should already look "applied" without the user needing to
-  // pick it again every session. Switching to / restoring a known system is exclusively this
-  // toolbar's job (JournalImportPanel's own Journal-tab dropdown no longer browses already-saved
-  // systems at all), so the mount-time restore belongs here too, reusing `switchToSavedSystem` above
-  // rather than re-implementing the same dispatch/persistence shape a second time. Guarded on
-  // `formState.systemAddress` rather than running unconditionally, so it never clobbers a system
-  // that's already active by the time this mounts (e.g. in a future scenario where `formState`
-  // starts pre-filled).
+  // On first load, restore a system so "Actual facilities in the system" already looks "applied"
+  // without the user needing to pick it again every session. A `?system=<name>` URL param (see
+  // persistence/urlSystemParam.ts) takes priority when present and it matches a saved system's
+  // `starSystem` — a bookmark/shared link should win over whatever was last used in THIS browser.
+  // Falls back to the last-used system otherwise (no param, or an unknown/stale name that doesn't
+  // match anything saved locally — degrades gracefully rather than erroring, since this is fully
+  // client-side with no backend to validate against). Switching to / restoring a known system is
+  // exclusively this toolbar's job (JournalImportPanel's own Journal-tab dropdown no longer browses
+  // already-saved systems at all), so the mount-time restore belongs here too, reusing
+  // `switchToSavedSystem` above rather than re-implementing the same dispatch/persistence shape a
+  // second time. Guarded on `formState.systemAddress` rather than running unconditionally, so it
+  // never clobbers a system that's already active by the time this mounts (e.g. in a future
+  // scenario where `formState` starts pre-filled).
   useEffect(() => {
     if (formState.systemAddress !== null) return;
+    const urlSystemName = getSystemNameFromUrl();
+    if (urlSystemName !== null) {
+      const matchByUrl = savedSystems.find((s) => s.starSystem === urlSystemName);
+      if (matchByUrl) {
+        switchToSavedSystem(matchByUrl.systemAddress);
+        return;
+      }
+    }
     const lastUsedAddress = getLastUsedSystemAddress();
     if (lastUsedAddress === null) return;
     const system = savedSystems.find((s) => s.systemAddress === lastUsedAddress);
@@ -202,6 +217,7 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
     // longer in listSavedSystems()).
     onImported?.();
     dispatch({ type: "reset" });
+    syncActiveSystemToBrowser(undefined);
     onSystemChanged?.();
   }
 

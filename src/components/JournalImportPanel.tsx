@@ -11,6 +11,7 @@ import {
   type JournalSystem,
 } from "../journal/parser";
 import { getLastUsedSystemAddress, listSavedSystems, saveSystem, setLastUsedSystemAddress } from "../persistence/journalSystems";
+import { syncActiveSystemToBrowser } from "../persistence/urlSystemParam";
 import { applyRavenColonialOverlay } from "../ravenColonial/adapter";
 import type { RcSystemSkeleton } from "../ravenColonial/types";
 import { spanshDumpToJournalSystem } from "../spansh/adapter";
@@ -317,6 +318,7 @@ export function JournalImportPanel({
     setSelectedAddress(system.systemAddress);
     saveSystem(system);
     setLastUsedSystemAddress(system.systemAddress);
+    syncActiveSystemToBrowser(system.starSystem);
     setCollapsed(true);
     // Clear each tab's own in-progress pick/search state — not `systems`/`selectedAddress`, which
     // just got applied and should stay — so reopening the panel later starts clean instead of
