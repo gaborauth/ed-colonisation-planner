@@ -9,6 +9,7 @@ import { NumberInput } from "./NumberInput";
 
 const SCORE_CONSTRAINTS_PANEL_ID = "objective-score-constraints";
 const ECONOMY_PREFERENCES_PANEL_ID = "objective-economy-preferences";
+const EXPRESSION_ADVANCED_PANEL_ID = "objective-expression-advanced";
 
 interface ObjectivePanelProps {
   formState: PlannerFormState;
@@ -46,33 +47,28 @@ const PRESETS: ObjectivePreset[] = [
   {
     name: "Balance all stats",
     description:
-      "Moderate diminishing returns per stat (square root) — each stat matters a bit less the higher it already is, encouraging a well-rounded system over maxing out one thing. Also factors in security, standard of living, the solver's economy-fit estimate, and your economy preference choices.",
+      "Grows every stat together instead of maxing out just one, so the system ends up well-rounded (moderate diminishing returns per stat, via square root). Also factors in security, standard of living, economy fit, and your economy preference choices.",
     expression: "sqrt(i) + sqrt(m) + e + sqrt(t) + sqrt(w) + n + sqrt(d) + y + p",
   },
   {
     name: "Balance all stats, harder",
     description:
-      "Stronger diminishing returns than \"Balance all stats\" — harder to get ahead by dumping everything into one stat, pulling the system toward an even more even spread. Also factors in security, standard of living, the solver's economy-fit estimate, and your economy preference choices.",
+      "Pushes even harder toward an even spread across every stat, so it's harder to get ahead by dumping everything into just one (stronger diminishing returns than \"Balance all stats\"). Also factors in security, standard of living, economy fit, and your economy preference choices.",
     expression: "i^0.2 + m^0.2 + e + t^0.2 + w^0.2 + n + d^0.2 + y + p",
   },
   {
     name: "Balance all stats, hardest",
     description:
-      "Logarithmic diminishing returns — the strongest equalizing pull of the three balance presets, most resistant to any single stat dominating. Also factors in security, standard of living, the solver's economy-fit estimate, and your economy preference choices.",
+      "The most even spread of the three balance presets — hardest for any single stat to dominate (logarithmic diminishing returns, the strongest of the three). Also factors in security, standard of living, economy fit, and your economy preference choices.",
     expression: "ln(i) + ln(m) + e + ln(t) + ln(w) + n + ln(d) + y + p",
   },
   {
     name: "Wealth & tech, 2:1 ratio",
     description:
-      "Maximizes wealth and tech level together, while keeping them close to a 2:1 ratio between them. Also factors in the solver's economy-fit estimate and your economy preference choices.",
+      "Maximizes wealth and tech level together, while keeping them close to a 2:1 ratio between them. Also factors in economy fit and your economy preference choices.",
     expression: "2 * w + t - abs(w - 2 * t) + y + p",
   },
 ];
-
-// Raw formula-editing textarea, shown alongside the Presets dropdown in "Complex score" mode.
-// Kept as a flag (rather than inlined) so it can be hidden again later without touching the
-// underlying state/behavior if it turns out to read as too technical/confusing for most users.
-const SHOW_EXPRESSION_EDITOR = true;
 
 // Score/EconomyType names are snake_case (`toPrintable` just swaps underscores for spaces, e.g.
 // "standard_of_living" -> "standard of living") — sentence-casing just the first letter, not every
@@ -145,6 +141,17 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
   useEffect(() => {
     setStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID, economyPreferencesCollapse.collapsed);
   }, [economyPreferencesCollapse.collapsed]);
+
+  // The raw expression textarea is real formula-editor territory (short variable letters, function
+  // names) — tucked behind its own collapsed-by-default disclosure so a first-time user sees only
+  // the Presets dropdown, per 2026-07-28 first-impressions feedback. Same remembered-per-session
+  // pattern as the other two foldable sub-sections above.
+  const expressionAdvancedCollapse = useScrollAnchoredCollapse<HTMLButtonElement>(
+    getStoredPanelCollapsed(EXPRESSION_ADVANCED_PANEL_ID) ?? true,
+  );
+  useEffect(() => {
+    setStoredPanelCollapsed(EXPRESSION_ADVANCED_PANEL_ID, expressionAdvancedCollapse.collapsed);
+  }, [expressionAdvancedCollapse.collapsed]);
 
   // Remembers the objective selection across sessions — App.tsx's `useReducer` lazy initializer
   // (`applyStoredObjectivePreference`) restores it on the NEXT load; this effect is the write side,
@@ -239,25 +246,39 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
               {selectedPreset && <p className="panel-hint">{selectedPreset.description}</p>}
             </div>
           </div>
-          {SHOW_EXPRESSION_EDITOR && (
-            <div className="field" style={{ marginTop: 8 }}>
-              <label htmlFor="objective-expression">
-                Expression — variables: i m e t w n d c y p (initial/max pop, security, tech,
-                wealth, standard of living, development, cost, economy-fit estimate, economy
-                preference); functions: sqrt ln log exp abs, and ^ for a constant fractional power.
-                Security, standard of living, economy-fit, and economy preference can go negative —
-                avoid wrapping e, n, y, or p in sqrt/ln/^ (add them as plain terms instead).
-              </label>
-              <textarea
-                id="objective-expression"
-                rows={2}
-                style={{ width: "100%", resize: "vertical" }}
-                value={formState.customExpression}
-                onChange={(e) => dispatch({ type: "patch", patch: { customExpression: e.target.value } })}
-                placeholder="e.g. sqrt(i) + sqrt(w) + sqrt(n)"
-              />
-            </div>
-          )}
+          <div style={{ marginTop: 8 }}>
+            <button
+              ref={expressionAdvancedCollapse.buttonRef}
+              type="button"
+              className="panel-toggle panel-toggle-nested"
+              aria-expanded={!expressionAdvancedCollapse.collapsed}
+              onClick={() => expressionAdvancedCollapse.setCollapsed((c) => !c)}
+            >
+              <span className="panel-toggle-title">Advanced: write your own formula</span>
+              <span className="chevron" aria-hidden="true">
+                ▾
+              </span>
+            </button>
+            {!expressionAdvancedCollapse.collapsed && (
+              <div className="field" style={{ marginTop: 8 }}>
+                <label htmlFor="objective-expression">
+                  Combine these stats: i (initial population increase), m (max population increase), e
+                  (security), t (tech level), w (wealth), n (standard of living), d (development), c
+                  (construction cost), y (economy fit), p (economy preference). Functions: sqrt, ln, log,
+                  exp, abs — and ^ for a constant fractional power. e, n, y, and p can go negative, so add
+                  them as plain terms rather than wrapping them in sqrt/ln/^.
+                </label>
+                <textarea
+                  id="objective-expression"
+                  rows={2}
+                  style={{ width: "100%", resize: "vertical" }}
+                  value={formState.customExpression}
+                  onChange={(e) => dispatch({ type: "patch", patch: { customExpression: e.target.value } })}
+                  placeholder="e.g. sqrt(i) + sqrt(w) + sqrt(n)"
+                />
+              </div>
+            )}
+          </div>
         </div>
       )}
 
