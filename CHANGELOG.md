@@ -1,3 +1,9 @@
+## [1.4.2](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.1...v1.4.2) (2026-07-30)
+
+### Bug Fixes
+
+* show economy ratios as colored bar charts ([4c19931](https://github.com/gaborauth/ed-colonisation-planner/commit/4c199312b043819d1129937efebcf1da85328af0))
+
 ## [1.4.1](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.0...v1.4.1) (2026-07-29)
 
 ### Bug Fixes
