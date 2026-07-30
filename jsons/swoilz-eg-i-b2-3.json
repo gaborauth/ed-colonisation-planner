@@ -1,0 +1,1150 @@
+{
+  "starSystem": "Swoilz EG-I b2-3",
+  "systemAddress": 7271513728529,
+  "bodies": [
+    {
+      "bodyName": "Swoilz EG-I b2-3 A",
+      "bodyId": 2,
+      "kind": "star",
+      "starType": "M",
+      "landable": false,
+      "surfaceTemperature": 3388,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B",
+      "bodyId": 3,
+      "kind": "star",
+      "starType": "L",
+      "landable": false,
+      "surfaceTemperature": 1450,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz EG-I b2-3 B A Belt",
+          "ringClass": "Metallic",
+          "massMT": 24271000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 C",
+      "bodyId": 4,
+      "kind": "star",
+      "starType": "M",
+      "landable": false,
+      "surfaceTemperature": 2807,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Mining_Outpost",
+            "demolishable": false,
+            "customName": "Elst's Pride",
+            "variant": "Euthenia"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 A 1",
+      "bodyId": 5,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 1.0942119475017813,
+      "surfaceTemperature": 587.499207,
+      "radius": 789436.4375,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Coriolis",
+            "demolishable": false,
+            "customName": "Danjon's Pride",
+            "variant": "Quad Truss"
+          },
+          null
+        ],
+        "ground": [
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Elmore Sanctuary",
+            "variant": "Silenus"
+          },
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Zhukov City",
+            "variant": "Silenus"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 A 2",
+      "bodyId": 6,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 1.2717566109207676,
+      "surfaceTemperature": 506.051056,
+      "radius": 911487.5625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Bayley's Inheritance",
+            "variant": "Silenus"
+          },
+          {
+            "building": "Civilian_Planetary_Outpost",
+            "demolishable": false,
+            "variant": "Clotho",
+            "customName": "Biggs Outpost"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 A 3",
+      "bodyId": 7,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 1.035957026623843,
+      "surfaceTemperature": 430.46814,
+      "radius": 748410.125,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Moore Reach",
+            "variant": "Silenus"
+          },
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Weill Horizons",
+            "variant": "Silenus"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 A 4",
+      "bodyId": 8,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 1.0619051005353273,
+      "surfaceTemperature": 378.657227,
+      "radius": 766705.75,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {},
+      "slots": {
+        "space": 3,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Military_Outpost",
+            "demolishable": false,
+            "variant": "Nemesis",
+            "customName": "Swoilz EG-I b2-3",
+            "primary": true
+          }
+        ],
+        "ground": [
+          {
+            "building": "Medium_Military_Settlement",
+            "demolishable": false,
+            "customName": "Aithal Arms Encampment",
+            "variant": "Polemos"
+          },
+          {
+            "building": "Medium_Military_Settlement",
+            "demolishable": false,
+            "customName": "Teixeira Munitions Enterprise",
+            "variant": "Polemos"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 A 5",
+      "bodyId": 9,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 1.1910704906138516,
+      "surfaceTemperature": 315.861877,
+      "radius": 857393.125,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Nigh's Folly",
+            "variant": "Silenus"
+          },
+          {
+            "building": "Refinery_Hub",
+            "demolishable": false,
+            "customName": "Nilson Relay",
+            "variant": "Silenus"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 A 6",
+      "bodyId": 10,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 1.3949972124553933,
+      "surfaceTemperature": 290.573883,
+      "radius": 999360.625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 A 7",
+      "bodyId": 11,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 1.224037314025698,
+      "surfaceTemperature": 243.781906,
+      "radius": 880443.1875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 3,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B 1",
+      "bodyId": 18,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 0.8912731903997146,
+      "surfaceTemperature": 316.505585,
+      "radius": 646005.75,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {},
+      "slots": {
+        "space": 0,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Medium_Agricultural_Settlement",
+            "demolishable": false,
+            "customName": "Agu Cultivation Market",
+            "variant": "Picumnus"
+          },
+          {
+            "building": "Medium_Agricultural_Settlement",
+            "demolishable": false,
+            "customName": "Coulstock-Cockeram Nutrition Base",
+            "variant": "Picumnus"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B 2",
+      "bodyId": 19,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 0.8860883754461101,
+      "surfaceTemperature": 278.329773,
+      "radius": 642322.8125,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 0,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B 3",
+      "bodyId": 21,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 0.9634436146324055,
+      "surfaceTemperature": 250.472473,
+      "radius": 697181.3125,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 20
+        },
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Major Silicate Vapour Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B 4",
+      "bodyId": 22,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 0.9599377397573166,
+      "surfaceTemperature": 250.472473,
+      "radius": 694699.9375,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 20
+        },
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Major Silicate Vapour Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B 5",
+      "bodyId": 24,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 0.9808939918272634,
+      "surfaceTemperature": 224.956696,
+      "radius": 709529.125,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 23
+        },
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Rocky Magma"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B 6",
+      "bodyId": 25,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 0.9225090755888652,
+      "surfaceTemperature": 224.956696,
+      "radius": 668178.625,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 23
+        },
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Major Rocky Magma"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B 7",
+      "bodyId": 26,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 0.9543499391862951,
+      "surfaceTemperature": 204.577805,
+      "radius": 690744.0625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B 8",
+      "bodyId": 27,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 1.3925462999286211,
+      "surfaceTemperature": 190.015106,
+      "radius": 997661.375,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B 9",
+      "bodyId": 28,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 1.2239793160956491,
+      "surfaceTemperature": 162.064056,
+      "radius": 880401.6875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 AB 1",
+      "bodyId": 29,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 3.5403546445039233,
+      "surfaceTemperature": 48.993301,
+      "radius": 4707504.5,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 AB 2",
+      "bodyId": 31,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 3.3665038492505315,
+      "surfaceTemperature": 41.712246,
+      "radius": 4507465,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 30
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 AB 3",
+      "bodyId": 32,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 3.0898287238044215,
+      "surfaceTemperature": 41.71196,
+      "radius": 4182946.75,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 30
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {},
+      "slots": {
+        "space": 0,
+        "ground": 3,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Medium_Military_Settlement",
+            "demolishable": false,
+            "customName": "Adisa Arms Base",
+            "variant": "Polemos"
+          },
+          {
+            "building": "Medium_Military_Settlement",
+            "demolishable": false,
+            "customName": "Mendoza's Landing",
+            "variant": "Polemos"
+          },
+          {
+            "building": "Medium_Military_Settlement",
+            "demolishable": false,
+            "customName": "Shewayish Munitions Enterprise",
+            "variant": "Polemos"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 C 1",
+      "bodyId": 33,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 2.4822254092077056,
+      "surfaceTemperature": 112.588898,
+      "radius": 2938805.5,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Relay_Station",
+            "demolishable": false,
+            "customName": "Martel Landing",
+            "variant": "Enodia"
+          },
+          null
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 C 2",
+      "bodyId": 35,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 4.193859320877941,
+      "surfaceTemperature": 104.881226,
+      "radius": 4985304.5,
+      "atmosphere": "Thick Nitrogen",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 34
+        },
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Farm",
+            "demolishable": false,
+            "customName": "Marker's Inheritance",
+            "variant": "Demeter"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 C 3",
+      "bodyId": 36,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 3.0417154409707376,
+      "surfaceTemperature": 102.552872,
+      "radius": 4156696,
+      "atmosphere": "Nitrogen",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 34
+        },
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Farm",
+            "demolishable": false,
+            "customName": "Krylov Hub",
+            "variant": "Demeter"
+          },
+          {
+            "building": "Space_Farm",
+            "demolishable": false,
+            "customName": "Holberg Enterprise",
+            "variant": "Demeter"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 C 4",
+      "bodyId": 37,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 4.6879416870449635,
+      "surfaceTemperature": 159.951309,
+      "radius": 5956865.5,
+      "atmosphere": "Thick Methane-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 C 5",
+      "bodyId": 38,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 4.316139956673803,
+      "surfaceTemperature": 82.107079,
+      "radius": 5540143.5,
+      "atmosphere": "Thick Argon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 C 6",
+      "bodyId": 39,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 3.824182514668095,
+      "surfaceTemperature": 64.630333,
+      "radius": 5027809.5,
+      "atmosphere": "Thin Neon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 5,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz EG-I b2-3 B A Belt",
+      "bodyId": 1000300,
+      "kind": "ring",
+      "landable": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz EG-I b2-3 B A Belt",
+          "ringClass": "Metallic",
+          "massMT": 24271000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    }
+  ],
+  "firstStationBuilding": "Military_Outpost",
+  "firstStationBodyId": 8,
+  "firstStationVariant": "Nemesis",
+  "firstStationCustomName": "Swoilz EG-I b2-3"
+}
