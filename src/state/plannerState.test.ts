@@ -57,7 +57,7 @@ describe("plannerReducer", () => {
       value: 5,
     });
     expect(state.scoreMin).toEqual({ security: 5 });
-    expect(state.scoreMax).toEqual({});
+    expect(state.scoreMax).toEqual({ security: 20 }); // INITIAL_FORM_STATE's own default, untouched by this scoreMin-only action
 
     state = plannerReducer(state, {
       type: "setScoreBound",

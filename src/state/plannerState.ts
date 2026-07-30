@@ -119,15 +119,25 @@ export const INITIAL_FORM_STATE: PlannerFormState = {
   // Defaults to a custom expression combining ObjectivePanel's two presets ("Balance all stats" +
   // "Maximize wealth and tech, close to 2:1"), plus `y` (economy_synergy — see solve.ts's header
   // comment): a reasonable one-size-fits-most starting point for "propose the best layout," rather
-  // than a single arbitrary score. `scoreMin.security: 1` below keeps it a hard constraint, not
-  // just an objective term — user-reported reason: NPCs interdict during hauling once system
-  // security goes negative, so "positive security" is a real requirement, not just nice-to-have.
+  // than a single arbitrary score. `scoreMin.security: 0`/`scoreMax.security: 20` below keep both
+  // ends a hard constraint, not just an objective term. Floor: user-reported reason — NPCs
+  // interdict during hauling once system security goes negative, so non-negative security is a
+  // real requirement (0, not the previous 1, is the actual boundary that matters here; nothing
+  // about the interdiction behavior distinguishes 0 from 1). Ceiling: user-reported reason — real
+  // in-game High security is already reached around 10-15 points, so the solver's own linear,
+  // uncapped `e` objective term was observed proposing 200-300-point security layouts on real
+  // systems that provide no further real benefit past that, wasting construction cost/slots that
+  // could go toward stats that still help. 20 leaves headroom above the observed 10-15 range
+  // without being unbounded. Only `security` gets a default max here — no other score does. This
+  // is still an approximation (see TASKS.md's backlog item on security saturation): the underlying
+  // objective term itself stays a flat linear multiplier, unchanged; this only bounds the SOLVED
+  // outcome, it doesn't reshape the curve leading up to it.
   objectiveMode: "custom",
   simpleScore: "development_level",
   customExpression: DEFAULT_OBJECTIVE_EXPRESSION,
   customDirection: "maximize",
-  scoreMin: { security: 1 },
-  scoreMax: {},
+  scoreMin: { security: 0 },
+  scoreMax: { security: 20 },
   economyPreferences: {},
 };
 
