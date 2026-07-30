@@ -5,7 +5,7 @@
 // a single shared module rather than duplicated, since both panels need the exact same hover content.
 
 import { Fragment, type ReactNode } from "react";
-import { ALL_BUILDINGS, BASE_SCORES, isPortRole, toPrintable } from "../data/buildings";
+import { ALL_BUILDINGS, BASE_SCORES, ECONOMY_COLORS, isPortRole, toPrintable } from "../data/buildings";
 import {
   computeColonyEconomyBreakdown,
   computeEconomyRatios,
@@ -25,6 +25,7 @@ import type { MarketLinkLine, PortEconomyLine, SystemLinksResult } from "../doma
 import type { StrongLinkedInstance } from "../domain/presentLinks";
 import { METERS_PER_SECOND_SQUARED_PER_G } from "../journal/eligibility";
 import type { JournalBody } from "../journal/parser";
+import { EconomyMixBar } from "./EconomyMixBar";
 import { Tooltip } from "./Tooltip";
 
 /** A facility/port's full "Economy ratios" breakdown for the hover box: for a port-role building,
@@ -156,11 +157,13 @@ function facilityInfoContent({
       {economyRatios.length > 0 && (
         <>
           <div className="facility-info-section-header">Economy ratios</div>
+          {economyRatios.length > 1 && <EconomyMixBar ratios={economyRatios} />}
           {economyRatios.map((r) => {
             const hasLinkContribution = r.strongPercent > 0 || r.weakPercent > 0;
             return (
               <Fragment key={r.economy}>
-                <div>
+                <div className="facility-info-economy-row">
+                  <span className="economy-swatch" style={{ background: ECONOMY_COLORS[r.economy] }} />
                   {r.economy}: {r.totalPercent}%
                 </div>
                 {hasLinkContribution && (
@@ -184,7 +187,9 @@ function facilityInfoContent({
             <span className="facility-info-market-links-header">Weak link</span>
             {marketLinks.map((m) => (
               <Fragment key={m.economy}>
-                <span>{m.economy}</span>
+                <span>
+                  <span className="economy-swatch" style={{ background: ECONOMY_COLORS[m.economy] }} /> {m.economy}
+                </span>
                 <span>{numberOrDash(m.strongCount)}</span>
                 <span>{numberOrDash(m.weakCount)}</span>
               </Fragment>
@@ -288,7 +293,12 @@ function economyBreakdownTable(breakdown: EconomyBreakdown[]) {
             const isLast = i === block.lines.length - 1;
             return (
               <tr key={`${block.economy}-${i}`}>
-                {i === 0 && <td rowSpan={block.lines.length}>{block.economy}</td>}
+                {i === 0 && (
+                  <td rowSpan={block.lines.length}>
+                    <span className="economy-swatch" style={{ background: ECONOMY_COLORS[block.economy] }} />{" "}
+                    {block.economy}
+                  </td>
+                )}
                 <td className="facility-body-info-value">
                   {line.amount >= 0 ? "+" : ""}
                   {line.amount.toFixed(2)}

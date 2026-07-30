@@ -1,5 +1,5 @@
 import { useEffect, type Dispatch } from "react";
-import { ALL_ECONOMY_TYPES, ALL_SCORES, toPrintable, type Score } from "../data/buildings";
+import { ALL_ECONOMY_TYPES, ALL_SCORES, ECONOMY_COLORS, toPrintable, type Score } from "../data/buildings";
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import { getStoredPanelCollapsed, setStoredPanelCollapsed } from "../persistence/panelCollapse";
 import { setObjectivePreference } from "../persistence/objectivePreference";
@@ -399,7 +399,9 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
                     const current = formState.economyPreferences[economy] ?? "";
                     return (
                       <tr key={economy}>
-                        <td>{economy}</td>
+                        <td>
+                          <span className="economy-swatch" style={{ background: ECONOMY_COLORS[economy] }} /> {economy}
+                        </td>
                         {ECONOMY_PREFERENCE_OPTIONS.map((opt) => (
                           <td key={opt.label} style={{ textAlign: "center" }}>
                             <input

@@ -1,10 +1,13 @@
 # EDCPS: Elite Dangerous Colonisation Planner & Solver
 
-A stateless, client-only React web app that solves "what should I build in this colonisation
-system?" via a MILP solver (HiGHS, compiled to WASM) running entirely in the browser. No backend, no
-account — everything (solving, persistence) happens client-side. **One exception**: the "Spansh"
-import tab depends on a small self-hosted CORS proxy (see `src/spansh/` below) — Journal-file import
-remains fully backend-free either way.
+Agent-facing implementation notes: architecture map, non-obvious gotchas, testing conventions, and
+which constants are best-effort guesses vs. verbatim game rules. **See `README.md` for what this app
+does, how to use it, the full Update 3 link/economy rule set, and known limitations** — this file
+doesn't repeat that; it assumes you've already read it.
+
+Client-only React app; the solver (HiGHS, WASM) runs entirely in the browser. **One exception**: the
+"Spansh" import tab depends on a small self-hosted CORS proxy (see `src/spansh/` below) —
+Journal-file import remains fully backend-free either way.
 
 This codebase is a TypeScript/React rewrite of an earlier Python/Tkinter desktop tool. Some files
 carry "Ported from X.py" comments — accurate provenance, not stale references. The original Python
@@ -161,34 +164,11 @@ per-slot concept to attach a block to there), and there's no display change for 
 slot in the "Solved system" tree or Build order table (it already renders correctly as an ordinary
 empty slot).
 
-## Commands
+## Commands and releases
 
-```bash
-npm install
-npm run dev      # local dev server
-npm test         # vitest — several tests run the REAL HiGHS WASM solver, not mocks
-npm run build    # production build to dist/
-npx tsc -b       # typecheck only
-npx oxlint       # lint
-```
-
-Deploys to GitHub Pages on push to `main` via `.github/workflows/deploy.yml` (build → test → deploy).
-
-## Branching and releases
-
-Branch flow: feature branches → `development` → `main`. Versioning is fully automated via
-[semantic-release](https://semantic-release.gitbook.io/) (`.releaserc.json`,
-`.github/workflows/release.yml`), driven by Conventional Commits (`feat:`, `fix:`, `chore:`, etc.)
-via the `conventionalcommits` preset.
-
-- **Push to `main`**: a real release — computes the next semver bump from commit history,
-  regenerates `CHANGELOG.md`, bumps `package.json`'s `version`, commits both back
-  (`chore(release): x.y.z [skip ci]`), tags, and publishes a GitHub Release with generated notes.
-  `npmPublish` is disabled (`@semantic-release/npm` only bumps the local `version` field — this
-  package is `private` and never goes to the npm registry).
-- **Push to `development`**: dry-run only (`npx semantic-release --dry-run`) — logs what version
-  *would* be released and validates commit messages, but never tags, commits, or publishes anything.
-- First release (no prior tag) lands as `v1.0.0` regardless of the first-release commits' types.
+Same commands as README.md's Development section (`npm install`/`dev`/`test`/`build`, `npx tsc -b`,
+`npx oxlint`). Branch flow, semantic-release mechanics, and Dependabot are also covered there —
+`.releaserc.json` / `.github/workflows/release.yml` implement it.
 
 **Known open risk, not yet verified**: `main` is branch-protected (PRs required to merge into it).
 The `@semantic-release/git` step needs to push a commit directly to `main` after a merge lands; if
@@ -199,11 +179,6 @@ first, falling back to `secrets.GITHUB_TOKEN`, so the fix (if this happens) is a
 belonging to an account with bypass rights, saved as the `RELEASE_TOKEN` repo secret — or a
 branch-protection bypass entry for `github-actions[bot]`. Only confirmable by watching a real run in
 Actions.
-
-Dependency updates: Dependabot (`.github/dependabot.yml`) watches both `npm` and `github-actions`
-ecosystems weekly, opening PRs against `development` with a `chore` commit prefix — `chore:` doesn't
-trigger a semantic-release version bump on its own, keeping routine dependency bumps out of the
-changelog unless a human recharacterizes one as a real `fix`/`feat`.
 
 ## Explicitly unverified/best-effort constants — don't "fix" these without new evidence
 
@@ -291,20 +266,16 @@ an inference this project made itself, not something the source stated verbatim:
 
 ## Manual "System resource level" override
 
-`domain/economyOverrides.ts#systemResourceLevel` only ever learns a system's real `ReserveLevel`
-(Pristine/Major/Common/Low/Depleted) by scanning every body's `reserveLevel` field for one that
-classifies — a real-in-game system-wide fact reported on a ringed body's own Scan event (see the
-Update 3 section above). Some real systems have no per-body `reserveLevel` at all — no ringed body
-was scanned closely enough via Journal, or Spansh's `/dump` response simply omits it even for a
-system with a real scanned belt/ring (confirmed: `spansh-jsons/swoilz-eg-i-b2-3-dump.json` has a
-real star belt but zero `reserveLevel` occurrences anywhere in the dump) — which used to report
-"unknown," silently zeroing the Extraction/Industrial/Refinery boost-decrease. Most colonizable
-systems are actually Pristine (real-game observation; exceptions cluster in the inner bubble), so a
-manually-editable "System resource level" dropdown (`SystemConfigPanel.tsx`'s "Actual facilities in
-the system" panel, gated by the same `locked`/`hasBodies` per-body-mode-only pattern as the panel's
-other fields) defaults to Pristine instead of blocking on missing data — same "calibrate, don't
-block" precedent as this file's other best-effort constants, though this one is a user-editable
-field, not a hardcoded constant.
+See README.md's "Actual facilities in the system" step for what this dropdown does and why it
+defaults to Pristine. Mechanism: `domain/economyOverrides.ts#systemResourceLevel` only ever learns
+a system's real `ReserveLevel` by scanning every body's `reserveLevel` field for one that classifies
+— a real-in-game system-wide fact reported on a ringed body's own Scan event. Some real systems have
+no per-body `reserveLevel` at all (confirmed: `spansh-jsons/swoilz-eg-i-b2-3-dump.json` has a real
+star belt but zero `reserveLevel` occurrences anywhere in the dump), which used to report "unknown,"
+silently zeroing the Extraction/Industrial/Refinery boost-decrease — the dropdown (gated by the same
+`locked`/`hasBodies` per-body-mode-only pattern as the panel's other fields) defaults to Pristine
+instead, same "calibrate, don't block" precedent as this file's other best-effort constants, though
+this one is a user-editable field, not a hardcoded constant.
 
 - **`ResourceLevel` type** (`"pristine" | "major" | "common" | "low" | "depleted"`,
   `domain/economyOverrides.ts`) — `"common"` is a real, neutral, confirmed reading, DISTINCT from
@@ -541,133 +512,34 @@ the same per-body loop `solve.ts` already runs for `economy_synergy`.
 
 ## Data source
 
-Building stats/costs come from DaftMav's community "Colonization Construction v3" spreadsheet
-(currently v3.4.1). If it needs refreshing again: Google Sheets isn't reliably scrapable via
-automated web fetch — ask for an ODS export instead, which a plain Python `zipfile` + `xml.etree`
-script can parse directly against `content.xml` (no extra dependencies needed), reading the "Stats"
-tab for the master building table.
+See README.md for the source (DaftMav's spreadsheet). If it needs refreshing again: Google Sheets
+isn't reliably scrapable via automated web fetch — ask for an ODS export instead, which a plain
+Python `zipfile` + `xml.etree` script can parse directly against `content.xml` (no extra
+dependencies needed), reading the "Stats" tab for the master building table.
 
 ## Deliberate scope boundaries (not gaps to "complete")
 
-- **DaftMav/Scuffed community-tool text import/export** was dropped, not ported, when rewriting from
-  the original Python tool. A future EDDN-based import is the intended replacement path, not restoring
-  the old text format.
-- **Link topology + economy types are modeled; real commodity supply/demand is not.** See "Update 3
-  link/economy modeling" below for what's actually implemented. Exact tradeable quantities (what's
-  buyable/sellable, in what amount) are still never modeled — only the qualitative topology.
-- **No construction-progress tracking, and only a limited demolition mechanic.** The Journal
-  doesn't contain real build-progress events; this tool still answers "what should I build here",
-  not "what have I built so far" — there's no weekly-tick timing, no mission tracking, no
-  partial/in-progress construction. What *does* exist: the System facilities panel lets the user
-  mark an already-built facility "demolishable," and the solver may then choose to remove it
-  (refunding its stat/T2/T3 contribution and freeing its slot) if replacing it scores better — see
-  `domain/presentFacilities.ts` and `solve.ts`'s `presentKeepVars`. This is a deliberately narrow
-  slice of the real game's full demolition/cancellation mechanics (see below): no refund timing, no
-  mission deletion, and the 5 escalating-cost-curve port buildings (`isPort()`) are never
-  demolishable — unwinding the escalating T2/T3 cost curve's build-order dependence for a removable
-  port wasn't worth the complexity, and settlements/hubs/installations are the actually useful case
-  anyway.
+See README.md's "Known limitations" section for the full list and *why* each is out of scope
+(commodity supply/demand simulation, full construction-progress/demolition tracking, the dropped
+DaftMav/Scuffed text import format). The one implementation pointer worth keeping here: the
+demolition slice that *does* exist — the System facilities panel lets the user mark an already-built
+facility "demolishable," and the solver may then remove it (refunding its stat/T2/T3 contribution,
+freeing its slot) if replacing it scores better — lives in `domain/presentFacilities.ts` and
+`solve.ts`'s `presentKeepVars`. The 5 escalating-cost-curve port buildings (`isPort()`) are never
+demolishable — unwinding the T2/T3 cost curve's build-order dependence for a removable port wasn't
+worth the complexity.
 
 ## Update 3 link/economy modeling
 
-Sourced from official Frontier patch notes: the original Update 3 link/economy rework, a
-station-service activation-rules follow-up, the Type-11 update (demolition mechanics, see above),
-and the Dodec Update (sourced the `FIRST_STATION_BONUS`/`SUBSEQUENT_FACILITY_REDUCTION` numbers).
+**See README.md's "Update 3: links & economy" section for the full verbatim rule tables** (Ports
+vs Supporting Facilities, Strong vs Weak links, the strong-link boost/decrease table, the Colony
+economy override table, station service activation rules, population growth, demolition mechanics,
+Dodec Update score-weighting) — sourced from official Frontier patch notes (the original Update 3
+rework, a station-service activation-rules follow-up, the Type-11 update, and the Dodec Update).
 This is the basis for `data/buildings.ts`'s `FACILITY_ECONOMY_GUESS`/`PORT_ROLE_BUILDINGS`/
-`getPortTier` and all of `domain/economyOverrides.ts`, `domain/links.ts`.
-
-### Verbatim rules (implementation should match these exactly)
-
-**Ports vs Supporting Facilities**: Ports = Outposts, Coriolis/Orbis/Ocellus Stations, Asteroid
-Bases, Planetary Ports, Planetary Port Outposts. Supporting Facilities = Settlements, Installations,
-Hubs.
-
-**Strong vs Weak links**: Strong links form between a port and any facility on/around the same body,
-and between multiple ports on the same body (highest tier wins; ties broken by build order, earlier
-wins). If a body has both a planetary and a space-based port: planetary facilities strong-link to
-the planetary port, which passes those links onward to the orbital port (same tier/order priority).
-Weak links form between ports and facilities on *different* bodies in the same system. Both link
-types can coexist (one facility can supply several ports). Links only ever form port↔facility or
-port↔port — never facility↔facility. A port can carry multiple economy types at once; each
-additional type via a link proportionally introduces trade in that type.
-
-**Strong-link boost/decrease table** — only strong links are affected, weak links never are:
-| Economy | Boosted by | Decreased by |
-|---|---|---|
-| Agriculture | orbiting an ELW; on/orbiting a terraformable body; on/orbiting a body with organics | on/orbiting an icy body; a planet tidally locked to its star; a moon tidally locked to its planet whose parent chain up to the star is also tidally locked |
-| Extraction | system has major/pristine resources; on/orbiting a body with volcanism | system has low/depleted resources |
-| High Tech | orbiting an ammonia world; an ELW; on/orbiting a body with geologicals or organics | — |
-| Industrial & Refinery | system has major/pristine resources | system has low/depleted resources |
-| Tourism | ammonia world; system has a black hole; ELW; geologicals; organics; water world; system has a white dwarf or neutron star | — |
-
-Worked example from the source (reproduced as `links.test.ts`'s boost/decrease test): on a volcanic
-body, an Extraction facility's strong link to the port is boosted; an Agriculture facility's strong
-link on the same body is not.
-
-**Colony economy override table** — stacking, based on the body a port is on/around (every port
-defaults to "Colony" otherwise):
-| Body attribute | Adds economies |
-|---|---|
-| Black hole, neutron star, or white dwarf | HighTech, Tourism |
-| Brown dwarf or any other star type | Military |
-| Earth-like world | Agriculture, HighTech, Military, Tourism |
-| Water world | Agriculture, Tourism |
-| Ammonia world | HighTech, Tourism |
-| Gas giant | HighTech, Industrial |
-| High metal content / metal rich world | Extraction |
-| Rocky ice | Industrial, Refinery |
-| Rocky | Refinery |
-| Icy | Industrial |
-| Has rings (incl. stars with asteroid belts) | Extraction |
-| Has organics | Agriculture, Terraforming |
-| Has geologicals | Extraction, Industrial |
-
-**Population growth**: population grows significantly faster with a significantly higher cap;
-overall capacity is still determined by which port/facility types are built; growth happens on
-weekly maintenance ticks along a curve that's fast for the first month, then slows. Not otherwise
-modeled here (no population-growth simulation in this codebase).
-
-**Station service activation rules**, condensed. *Not currently implemented in code* — left here as
-reference in case this gap is worth closing later:
-- **Commodities Market**: all T2/T3 ports; all Settlements; Commercial/Industrial/Civilian Outposts
-  + (strong link to a Comms Installation or Relay Station, OR a Tourist/Bar Installation or Outpost
-  Hub anywhere in the system); Criminal/Scientific/Military Outposts + a strong link to any of
-  Comms/Relay/Tourist/Bar/Outpost Hub (strong link required for all five, unlike the civilian group).
-- **Shipyard** (always needs system tech level ≥ 35 — instantly granted by building a T2/T3 port):
-  T2/T3 port; or a Tier 1 Planetary Port + (strong link to Comms/Relay, OR Tourist/Bar/Outpost Hub
-  in system); or a strong link to a High Tech Hub, Military Installation, or Industrial Hub.
-- **Outfitting** (same tech-level gate): T2/T3 port; Military Outpost; Tier 1 Industrial Planetary
-  Port; any other T1 Outpost or non-Industrial T1 Planetary Port + (strong link to an Industrial
-  Hub, OR a Military Installation/High Tech Hub in system).
-- **Universal Cartographics**: T3 port; Scientific Outpost; T1/T2 port + (strong link to a
-  Satellite/Comms/Relay, OR a Scientific Installation/Exploration Hub in system); Research Bio
-  Settlements (not a port — out of this app's ports-only scope regardless).
-- **Vista Genomics**: T3 port; a Tier 1 Planetary Port or T2 port + (strong link to a
-  Satellite/Comms/Relay, OR a Medical Installation/Scientific Hub in system).
-- **Black Market**: Pirate Outpost (no exact building-name match — would map to `Criminal_Outpost`);
-  any port + a strong link to a Pirate Installation.
-- **Crew Lounge**: T2/T3 port; Criminal or Civilian Outposts; Tier 1 Civilian Planetary Ports; any
-  other T1 port + a Bar Installation built anywhere in the system.
-- **Pioneer Supplies**: every port, unconditionally (T1/T2/T3, all Outposts, T1 Planetary Port).
-- Station interiors additionally change weekly based on the highest-proportion economy present —
-  not modeled (no commodity-proportion simulation, per the scope boundary above).
-
-**Demolition/cancellation mechanics**: constructions and completed facilities can be marked for
-demolition, removed at the next weekly maintenance (cancelable before then); the primary/initial
-port can't be demolished; slots and construction points are refunded on demolition; a facility must
-be demolished before the prerequisite it depends on (unless another instance of that prerequisite
-remains); missions at a demolished facility are deleted; commodities already put into a cancelled
-construction effort are lost. Only a narrow slice of this is incorporated (see "Deliberate scope
-boundaries" above): a demolishable already-present facility's slot/stat/T2-T3 refund, computed
-instantly as part of the solve rather than modeled as a weekly-tick event. No mission tracking, no
-partial/in-progress construction, and the primary station and the 5 escalating-cost-curve port
-buildings are never demolishable.
-
-**Dodec Update score-weighting** — implemented as `FIRST_STATION_BONUS`/
-`SUBSEQUENT_FACILITY_REDUCTION` in `data/buildings.ts` (a general game rule, not solver-LP-specific,
-so `domain/currentSystemScores.ts` can reuse the same constants for its plain-number reweight):
-first station +40%/+40%/+40%/+20%/+40% (development level/security/standard of living/tech
-level/wealth); subsequent facilities −10%/−10%/−20%/−25%/−25% (same five, same order).
+`getPortTier` and all of `domain/economyOverrides.ts`, `domain/links.ts`; `FIRST_STATION_BONUS`/
+`SUBSEQUENT_FACILITY_REDUCTION` in `data/buildings.ts` implement the Dodec Update score-weighting
+(`domain/currentSystemScores.ts` reuses the same constants for its own plain-number reweight).
 
 ### Design notes
 
@@ -720,31 +592,20 @@ link topology, use `computeSolvedSystemLinks`, not `computeSystemLinks(bodies, r
 
 ### Per-facility economy ratio accumulation (System facilities panel hover — user-supplied, not verbatim source text)
 
-The System facilities panel's per-facility hover ("i" icon on a built slot) shows an "Economy
-ratios" block (per economy: total, then a body/strong-link/weak-link breakdown) and a "Market
-links" block (a 3-column Economy/Strong link/Weak link table of *counts*, not percentages) — this
-is entirely user-supplied real-game-testing rules, not from any official patch note text (which
-only ever says links "supply a proportion" of an economy, never a number). Implemented in
-`domain/links.ts`'s `computeSystemLinks` (`PortEconomyLine`/`MarketLinkLine`), consumed by
+See README.md's "Economy ratios"/"Market links" hover paragraph for the rule itself (strong-link
+tier contribution + boost/decrease delta; flat 5% weak link). Implemented in `domain/links.ts`'s
+`computeSystemLinks` (`PortEconomyLine`/`MarketLinkLine`), consumed by
 `facilityEconomyRatios`/`facilityMarketLinks` in `components/FacilityInfo.tsx` — shared by both
 "Actual facilities" (fed `domain/presentLinks.ts`'s present-only `SystemLinksResult`) and "Solved
-system" (fed `domain/solvedLinks.ts`'s solved one). Rules:
+system" (fed `domain/solvedLinks.ts`'s solved one). Two implementation subtleties not obvious from
+the rule text alone:
 
-- **Strong-link contribution** = `LINK_TIER_CONTRIBUTION_RATE[giver's tier]` (0.4/0.8/1.2 for
-  Tier 1/2/3) `+` that economy's own strong-link boost/decrease delta on the shared body —
-  regardless of what percentage the economy shows on the giving facility itself. Confirmed against
-  a real example: a Military Settlement's own Military value is 100%, but it only contributes 40%
-  to a linked port. "Tier" here is `getLinkContributionTier()` (`data/buildings.ts`) — a *different*
-  computation from `getPortTier()`'s official Tier 1/2/3 Port vocabulary, derived from whether a
-  building grants a flat T2 point (Tier 1), a flat T3 point (Tier 2, "flat" meaning non-escalating —
+- **"Tier" here is `getLinkContributionTier()` (`data/buildings.ts`) — a *different* computation
+  from `getPortTier()`'s official Tier 1/2/3 Port vocabulary**, derived from whether a building
+  grants a flat T2 point (Tier 1), a flat T3 point (Tier 2, "flat" meaning non-escalating —
   Coriolis/Asteroid_Base land here despite being "T2 ports" under `getPortTier()`, a coincidence of
   two unrelated computations), or neither (Tier 3 — only Orbis_or_Ocellus/Dodecahedron/
   Planetary_Port, whose own escalation currency IS T3 itself).
-- **Weak-link contribution** = a flat `WEAK_LINK_CONTRIBUTION` (5%, no tier-scaling, no
-  boost/decrease — consistent with the official "weak links are unaffected by that mechanic" rule),
-  from every strong-link giver system-wide to every OTHER body's representative port. "System-wide"
-  is literal: a facility on a body with no port at all still weak-links elsewhere even though it
-  can't strong-link locally.
 - **The ground->space forwarding hop is excluded from being its own additional weak-link giver**
   (`addStrongLink`'s `skipWeakGiver` option) — the ground-dominant port forwarding its
   already-locally-strong-linked economies onward to the space-dominant port must not ALSO
@@ -752,11 +613,9 @@ system" (fed `domain/solvedLinks.ts`'s solved one). Rules:
   its own original sources. A same-side non-dominant port (e.g. a tier-2 Coriolis losing dominance
   to a tier-3 Orbis on the same body) is NOT excluded this way — it still counts as its own
   independent weak-link giver.
-- The "Market links" table's counts are the number of contributing *building instances*, not a
-  weighted amount, summed per economy, with zero rendered as "-" in the UI.
 
-All of the above is validated end-to-end in `links.test.ts` against the exact numbers from a real
-exported system (`jsons/swoilz-aw-c-d52.json`) rather than just theoretical worked examples.
+Validated end-to-end in `links.test.ts` against the exact numbers from a real exported system
+(`jsons/swoilz-aw-c-d52.json`) rather than just theoretical worked examples.
 
 ## Workflow constraints
 
