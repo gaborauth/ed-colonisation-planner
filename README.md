@@ -32,15 +32,18 @@ Otherwise:
    against your in-game System Map. Clicking **Apply slots and body layout to Actual facilities in
    the system** switches the solver into *per-body placement* mode (real per-body slot capacity)
    instead of just aggregate totals.
-2. **Actual facilities in the system** — pick your primary station (required, and visually
-   highlighted until you do), then mark what's already built in each body's slots using the tree
-   below (one dropdown per physical orbital/ground slot). Flag an already-built facility
-   **Demolishable** to let the solver optionally remove it — refunding its stat/T2/T3 contribution
-   and freeing its slot — if replacing it scores better; ports can't be demolished. A genuinely
-   empty slot can instead be marked **Leave empty**, telling the solver to never place anything
-   there at all (distinct from just setting a body's slot count to 0). Your current T2/T3
+2. **Actual facilities in the system** — pick your primary station and which body it's on (both
+   required, and visually highlighted until you do), then mark what's already built in each body's
+   slots using the tree below (one dropdown per physical orbital/ground slot). Flag an already-built
+   facility **Demolishable** to let the solver optionally remove it — refunding its stat/T2/T3
+   contribution and freeing its slot — if replacing it scores better; ports can't be demolished. A
+   genuinely empty slot can instead be marked **Leave empty**, telling the solver to never place
+   anything there at all (distinct from just setting a body's slot count to 0). Your current T2/T3
    construction-point balance is derived automatically from what you mark here, not entered by hand.
-   Hit **Save** (top toolbar) to persist your already-built layout for next time.
+   The **System resource level** dropdown (Pristine/Major/Common/Low/Depleted, defaulting to
+   Pristine — most colonizable systems are, and it's auto-filled from a scanned ringed body when
+   your import has that data) feeds the Extraction/Industrial/Refinery boost-decrease below. Hit
+   **Save** (top toolbar) to persist your already-built layout for next time.
 3. **Objective** — maximize a single system score (construction cost is minimized instead), or write
    a custom expression (`sqrt(w) + sqrt(n)`, `2*w + t - abs(w - 2*t)`, etc.) over the score letters
    `i m e t w n d c`. Two optional, foldable sub-sections sit below it: **Score constraints** (min/max
@@ -66,30 +69,95 @@ Otherwise:
 
 Elite Dangerous's Update 3 (2025-04-27) reworked how colonised systems' economies work: completed
 constructions automatically link to each other, and those links determine what's tradeable at each
-port. In per-body mode (see step 1 above), this planner now shows that link network for whatever
-the solver recommends building:
+port. This section is the full verbatim rule set this planner is built from (official Frontier
+patch notes, plus the Type-11 and Dodec updates); source references for anything *not* stated
+verbatim by Frontier live in `CLAUDE.md` instead.
 
-- **Ports** (Outposts, Coriolis/Orbis/Ocellus/Dodecahedron stations, Asteroid Bases, Planetary
-  Ports) get **Strong links** from any facility on the same body, and **Weak links** (a smaller
-  boost) from ports/facilities on other bodies in the system. If a body has more than one port, the
-  highest-tier one gets the strong links.
-- Each port's economy type is normally "Colony," but gets overridden/added to depending on the body
-  it's on or orbiting — an Earth-like world adds Agriculture/HighTech/Military/Tourism, a ringed
-  body adds Extraction, an icy body adds Industrial, and so on.
-- Strong links (only) get a further boost or penalty from body/system characteristics — e.g. an
-  Extraction link is boosted on a volcanic body or in a resource-rich system, and an Agriculture
-  link is penalized on an icy or tidally-locked body.
-- In the **Actual facilities in the system** panel, hovering a built facility's "i" icon shows an
-  "Economy ratios" breakdown (total economy per type, broken down into body/strong-link/weak-link
-  sources) and a "Market links" table (how many strong- and weak-link building instances feed each
-  economy).
+**Ports vs Supporting Facilities**: Ports = Outposts, Coriolis/Orbis/Ocellus Stations, Asteroid
+Bases, Planetary Ports, Planetary Port Outposts. Supporting Facilities = Settlements,
+Installations, Hubs.
+
+**Strong vs Weak links**: Strong links form between a port and any facility on/around the same
+body, and between multiple ports on the same body (highest tier wins; ties broken by build order,
+earlier wins). If a body has both a planetary and a space-based port, planetary facilities
+strong-link to the planetary port, which passes those links onward to the orbital port (same
+tier/order priority). Weak links form between ports and facilities on *different* bodies in the
+same system. Both link types can coexist (one facility can supply several ports). Links only ever
+form port↔facility or port↔port — never facility↔facility. A port can carry multiple economy types
+at once; each additional type via a link proportionally introduces trade in that type.
+
+**Strong-link boost/decrease table** — only strong links are affected, weak links never are:
+
+| Economy | Boosted by | Decreased by |
+|---|---|---|
+| Agriculture | orbiting an ELW; on/orbiting a terraformable body; on/orbiting a body with organics | on/orbiting an icy body; a planet tidally locked to its star; a moon tidally locked to its planet whose parent chain up to the star is also tidally locked |
+| Extraction | system has major/pristine resources; on/orbiting a body with volcanism | system has low/depleted resources |
+| High Tech | orbiting an ammonia world; an ELW; on/orbiting a body with geologicals or organics | — |
+| Industrial & Refinery | system has major/pristine resources | system has low/depleted resources |
+| Tourism | ammonia world; system has a black hole; ELW; geologicals; organics; water world; system has a white dwarf or neutron star | — |
+
+**Colony economy override table** — stacking, based on the body a port is on/around (every port
+defaults to "Colony" otherwise):
+
+| Body attribute | Adds economies |
+|---|---|
+| Black hole, neutron star, or white dwarf | HighTech, Tourism |
+| Brown dwarf or any other star type | Military |
+| Earth-like world | Agriculture, HighTech, Military, Tourism |
+| Water world | Agriculture, Tourism |
+| Ammonia world | HighTech, Tourism |
+| Gas giant | HighTech, Industrial |
+| High metal content / metal rich world | Extraction |
+| Rocky ice | Industrial, Refinery |
+| Rocky | Refinery |
+| Icy | Industrial |
+| Has rings (incl. stars with asteroid belts) | Extraction |
+| Has organics | Agriculture, Terraforming |
+| Has geologicals | Extraction, Industrial |
+
+**"Economy ratios" and "Market links" hover** (the "i" icon on any built/proposed facility, in both
+the **Actual facilities** and **Solved system** panels): a strong link contributes 40%/80%/120% of
+its own economy to the linked port depending on the giving facility's tier, plus that economy's own
+boost/decrease delta on the shared body (e.g. a Military Settlement's own Military value is 100%,
+but it only contributes 40% to a linked port). A weak link always contributes a flat 5%, regardless
+of tier, from every strong-link-giving facility system-wide to every *other* body's representative
+port (a facility on a port-less body still weak-links elsewhere, even though it can't strong-link
+locally). The "Market links" table shows *counts* of contributing building instances per economy,
+not weighted amounts.
+
+**Station service activation rules** (official, but not modeled by this planner — this tool answers
+"what should I build," not "which services will each station end up with"): Commodities Market
+(all T2/T3 ports, all Settlements, or a civilian-type Outpost with the right link); Shipyard/
+Outfitting (need system tech level ≥ 35, granted by any T2/T3 port); Universal Cartographics; Vista
+Genomics; Black Market (needs a linked Pirate Installation); Crew Lounge; Pioneer Supplies (every
+port, unconditionally). Station interiors additionally shift weekly based on the highest-proportion
+economy present — also not modeled (no commodity-proportion simulation).
+
+**Population growth**: grows significantly faster with a significantly higher cap than pre-Update-3;
+overall capacity is still determined by which port/facility types are built; growth happens on
+weekly maintenance ticks along a curve that's fast for the first month, then slows. Not simulated
+by this planner.
+
+**Demolition/cancellation**: constructions and completed facilities can be marked for demolition,
+removed at the next weekly maintenance (cancelable before then); the primary/initial port can't be
+demolished; slots and construction points are refunded; a facility must be demolished before the
+prerequisite it depends on (unless another instance remains); missions at a demolished facility are
+deleted; commodities already committed to a cancelled construction are lost. This planner models a
+narrow slice: mark an already-built facility "demolishable" in **Actual facilities in the system**
+and the solver may remove it (refunding its stat/T2/T3 contribution, freeing its slot) if replacing
+it scores better — instantly, not on a weekly tick. No mission tracking, no partial/in-progress
+construction, and the primary station plus the 5 escalating-cost-curve port buildings (Coriolis,
+Asteroid Base, Orbis/Ocellus, Dodecahedron, Planetary Port) are never demolishable.
+
+**Dodec Update score-weighting**: the first station built gets +40%/+40%/+40%/+20%/+40%
+(development level/security/standard of living/tech level/wealth); every subsequent facility gets
+−10%/−10%/−20%/−25%/−25% (same five stats, same order).
 
 A few of the game's own trigger conditions (a body having organics, geologicals, or volcanism; a
 system's overall resource richness) aren't reported anywhere in the Elite Dangerous Journal files
 this tool reads — those are shown as "unknown" rather than silently assumed absent. This tool still
 doesn't simulate actual commodity supply/demand (what's buyable, in what quantity) — only the
-qualitative link topology and economy types above. See `CLAUDE.md` for the full verbatim rule
-tables this is built from, if you want to check the implementation against the source patch notes.
+qualitative link topology and economy types above.
 
 ## Known limitations
 
@@ -121,8 +189,10 @@ If you have more accurate numbers for any of these, they're all single, well-com
 edit.
 
 Also out of scope: real commodity supply/demand simulation (exact tradeable quantities) and
-construction-progress/demolition tracking — see [Update 3: links & economy](#update-3-links--economy)
-above for what *is* modeled from that patch.
+full construction-progress/demolition tracking — see [Update 3: links & economy](#update-3-links--economy)
+above for what *is* modeled from that patch. The DaftMav/Scuffed community-tool text import/export
+format from the original Python version of this tool was dropped, not ported, in the rewrite — a
+future EDDN-based import is the intended replacement path, not restoring the old text format.
 
 ## Development
 
@@ -131,10 +201,23 @@ npm install
 npm run dev      # local dev server
 npm test         # vitest — solver tests run the real HiGHS WASM solver, not mocks
 npm run build    # production build to dist/
+npx tsc -b       # typecheck only
+npx oxlint       # lint
 ```
 
 Deploys automatically to GitHub Pages on push to `main` via GitHub Actions
 (`.github/workflows/deploy.yml`).
+
+### Branching and releases
+
+Branch flow: feature branches → `development` → `main`. Versioning is fully automated via
+[semantic-release](https://semantic-release.gitbook.io/), driven by
+[Conventional Commits](https://www.conventionalcommits.org/) (`feat:`, `fix:`, `chore:`, etc.). A
+push to `main` computes the next semver bump from commit history, regenerates `CHANGELOG.md`, tags,
+and publishes a GitHub Release; a push to `development` only dry-runs the same process (validates
+commit messages, logs what version *would* ship, but never tags or publishes). This package is
+`private` and never published to the npm registry. Dependabot opens dependency-update PRs against
+`development` weekly with a `chore` prefix, which doesn't trigger a version bump on its own.
 
 ## Data source
 
