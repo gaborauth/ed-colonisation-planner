@@ -189,23 +189,30 @@ export function isPort(building: Building): boolean {
 }
 
 /** T2 cost of the (nbPreviousPorts+1)-th Tier-2-cost port (Coriolis/Asteroid_Base) built
- * system-wide: 3, 5, 7, 9, ... — confirmed against a real in-game system's already-built T2/T3
- * balance (see presentFacilities.ts's `computePresentPortsSeed`). Previously coded as
- * `max(3, 2n+1)` (3, 3, 5, 7, 9, ...), which undercounts every port after the first — a real bug,
- * not a recalibration of a flagged guess (this file's other placeholders are marked as such; this
- * one wasn't, and should have been caught sooner). `nbPreviousPorts` must count only OTHER
- * Tier-2-cost ports, never the primary/claim station (which is exempt from this cost entirely —
- * see solve.ts's `initialT2Points`) and never a Tier-3-cost port (Orbis/Ocellus/Dodecahedron/
+ * system-wide: 3, 5, 7, 9, ... — genuinely real-game-confirmed (2026-07-30, `jsons/
+ * swoilz-aw-c-d52.json`'s system): with the primary Coriolis (exempt, doesn't count) plus one
+ * already-built non-primary Coriolis (`nbPreviousPorts=0`, cost 3, consistent with either candidate
+ * sequence and therefore NOT the confirming data point on its own — an earlier version of this
+ * comment overclaimed exactly this alone as sufficient confirmation, before that mistake was caught),
+ * the in-game construction menu's cost preview for a SECOND non-primary Coriolis (`nbPreviousPorts=1`)
+ * read exactly 5 T2 points — matching this formula (`3 + 2*1`) and ruling out the once-considered
+ * alternate `3, 3, 5, 7, ...` sequence (which would have read 3). `nbPreviousPorts` must count only
+ * OTHER Tier-2-cost ports, never the primary/claim station (which is exempt from this cost entirely
+ * — see solve.ts's `initialT2Points`) and never a Tier-3-cost port (Orbis/Ocellus/Dodecahedron/
  * Planetary_Port have their own separate sequence via `getT3PortCost`, not a shared counter). */
 export function getT2PortCost(nbPreviousPorts: number): number {
   return 3 + 2 * nbPreviousPorts;
 }
 
 /** T3 cost of the (nbPreviousPorts+1)-th Tier-3-cost port (Orbis_or_Ocellus/Dodecahedron/
- * Planetary_Port) built system-wide: 6, 12, 18, 24, ... — same confirmation/correction as
- * `getT2PortCost` above (previously `max(6, 6n)`, i.e. 6, 6, 12, 18, ..., undercounting every port
- * after the first). `nbPreviousPorts` counts only OTHER Tier-3-cost ports — never the primary
- * station, and never a Tier-2-cost port (separate sequence, not shared). */
+ * Planetary_Port) built system-wide: 6, 12, 18, 24, ... — same real-game confirmation as
+ * `getT2PortCost` above, same system/date: with one already-built non-primary Orbis_or_Ocellus
+ * (`nbPreviousPorts=0`, cost 6, likewise consistent with either candidate sequence on its own), the
+ * in-game construction menu's cost preview for a Dodecahedron (`nbPreviousPorts=1`, since it shares
+ * this same Tier-3-cost sequence with Orbis_or_Ocellus/Planetary_Port) read exactly 12 T3 points —
+ * matching this formula (`6*(1+1)`) and ruling out the once-considered alternate `6, 6, 12, 18, ...`
+ * sequence (which would have read 6). `nbPreviousPorts` counts only OTHER Tier-3-cost ports — never
+ * the primary station, and never a Tier-2-cost port (separate sequence, not shared). */
 export function getT3PortCost(nbPreviousPorts: number): number {
   return 6 * (nbPreviousPorts + 1);
 }

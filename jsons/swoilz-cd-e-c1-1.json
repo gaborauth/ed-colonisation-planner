@@ -25,7 +25,7 @@
       ],
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 2,
         "ground": 0,
         "asteroid": 0
       }
@@ -60,7 +60,7 @@
       "reserveLevel": "Pristine",
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 2,
         "ground": 0,
         "asteroid": 1
       }
@@ -99,6 +99,18 @@
         "space": 1,
         "ground": 2,
         "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Small_Agricultural_Settlement",
+            "demolishable": false,
+            "customName": "Venegas Cultivation Hub",
+            "variant": "Consus"
+          },
+          null
+        ]
       }
     },
     {
@@ -205,7 +217,7 @@
         "Volcanism": "Major Rocky Magma"
       },
       "slots": {
-        "space": 1,
+        "space": 2,
         "ground": 0,
         "asteroid": 0
       }
@@ -237,7 +249,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 3,
         "ground": 1,
         "asteroid": 0
       }
@@ -300,7 +312,7 @@
       "reserveLevel": "Pristine",
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 3,
         "ground": 0,
         "asteroid": 1
       }
@@ -328,7 +340,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 3,
         "ground": 1,
         "asteroid": 0
       }
@@ -359,7 +371,7 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 2,
         "ground": 3,
         "asteroid": 0
       }
@@ -418,7 +430,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 2,
         "ground": 2,
         "asteroid": 0
       }
@@ -446,7 +458,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 2,
         "ground": 1,
         "asteroid": 0
       }
@@ -546,7 +558,7 @@
         "Volcanism": "Carbon Dioxide Geysers"
       },
       "slots": {
-        "space": 1,
+        "space": 0,
         "ground": 2,
         "asteroid": 0
       }
@@ -574,9 +586,15 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 0,
         "ground": 1,
         "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          null
+        ]
       }
     },
     {
@@ -602,7 +620,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 0,
         "ground": 1,
         "asteroid": 0
       }
@@ -630,7 +648,7 @@
       "rings": [],
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 3,
         "ground": 2,
         "asteroid": 0
       }
@@ -660,9 +678,28 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 2,
         "ground": 1,
         "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Military_Outpost",
+            "demolishable": false,
+            "customName": "Curbeam Enterprise",
+            "variant": "Nemesis"
+          },
+          null
+        ],
+        "ground": [
+          {
+            "building": "Medium_Military_Settlement",
+            "demolishable": false,
+            "customName": "Sankoh Command Point",
+            "variant": "Polemos"
+          }
+        ]
       }
     },
     {
@@ -690,9 +727,26 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 0,
         "ground": 2,
         "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Medium_Industrial_Settlement",
+            "demolishable": false,
+            "customName": "Morfett-Jones's Castings",
+            "variant": "Meteope"
+          },
+          {
+            "building": "Medium_Industrial_Settlement",
+            "demolishable": false,
+            "customName": "Thompson's Creations",
+            "variant": "Meteope"
+          }
+        ]
       }
     },
     {
@@ -721,7 +775,7 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 2,
         "ground": 4,
         "asteroid": 0
       },
@@ -730,10 +784,37 @@
           {
             "building": "Coriolis",
             "demolishable": false,
+            "variant": "Quad Truss",
+            "customName": "Burger Prospect",
             "primary": true
           }
         ],
-        "ground": []
+        "ground": [
+          {
+            "building": "Large_Scientific_Settlement",
+            "demolishable": false,
+            "customName": "Agu Genetics Institution",
+            "variant": "Chronos"
+          },
+          {
+            "building": "Large_Scientific_Settlement",
+            "demolishable": false,
+            "customName": "Prieto Biological Centre",
+            "variant": "Chronos"
+          },
+          {
+            "building": "Large_Industrial_Settlement",
+            "demolishable": false,
+            "customName": "Petrenko Manufacturing Hub",
+            "variant": "Gaea"
+          },
+          {
+            "building": "Large_Scientific_Settlement",
+            "demolishable": false,
+            "customName": "Miranda Research Assembly",
+            "variant": "Chronos"
+          }
+        ]
       }
     },
     {
@@ -801,7 +882,7 @@
       "hasGeologicalSignals": false,
       "raw": {},
       "slots": {
-        "space": 1,
+        "space": 2,
         "ground": 3,
         "asteroid": 0
       }
@@ -838,7 +919,7 @@
       "raw": {},
       "slots": {
         "space": 1,
-        "ground": 0,
+        "ground": 5,
         "asteroid": 1
       }
     },
@@ -894,5 +975,7 @@
     }
   ],
   "firstStationBuilding": "Coriolis",
-  "firstStationBodyId": 48
+  "firstStationBodyId": 48,
+  "firstStationVariant": "Quad Truss",
+  "firstStationCustomName": "Burger Prospect"
 }
