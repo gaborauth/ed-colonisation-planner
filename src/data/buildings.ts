@@ -425,6 +425,27 @@ export const ALL_ECONOMY_TYPES: EconomyType[] = [
   "Colony",
 ];
 
+/** Fixed per-economy color, user-supplied 2026-07-30 to match this economy's real in-game
+ * identity — not a computed/generated categorical palette. Used only by
+ * `components/EconomyRatioBar.tsx`'s "Economy ratios" hover meters, never for text (a colored mark
+ * beside the number carries identity; the number itself stays in the normal text color). `Colony`
+ * is intentionally a flat, desaturated gray — it's the economy's own actual neutral/no-special-
+ * bonus default, not an oversight. Tourism and Military sit next to each other in
+ * `ALL_ECONOMY_TYPES`' display order and are the closest pair for a red-green colorblind viewer;
+ * every row always shows its economy name and percentage as plain text right next to its bar, so
+ * identity never depends on distinguishing the two colors alone. */
+export const ECONOMY_COLORS: Record<EconomyType, string> = {
+  Agriculture: "rgb(128, 255, 0)",
+  Extraction: "rgb(255, 0, 0)",
+  HighTech: "rgb(0, 255, 255)",
+  Industrial: "rgb(255, 255, 0)",
+  Refinery: "rgb(255, 128, 0)",
+  Tourism: "rgb(102, 0, 229)",
+  Military: "rgb(229, 0, 229)",
+  Terraforming: "rgb(0, 255, 0)",
+  Colony: "rgb(128, 128, 128)",
+};
+
 /** Update 3's link-topology "Ports" bucket (14 buildings): Outposts, Coriolis/Orbis/Ocellus/
  * Dodecahedron, Asteroid Base, Planetary Port, and the Planetary Port Outposts — i.e.
  * `ALL_CATEGORIES["Star/Ground Port"]` (8) unioned with the 6 `*_Outpost` space buildings. This is

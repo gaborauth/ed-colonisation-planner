@@ -659,6 +659,48 @@ select.toolbar-summary-system {
   background: var(--danger);
 }
 
+/* The "Economy ratios" hover's combined mix bar for a multi-economy facility — see
+ * components/EconomyMixBar.tsx. `width: 100%` rather than a fixed size (unlike .slot-bar) — this is
+ * the section's headline visual, so it spans the full width of the tooltip bubble's content instead
+ * of sitting as an inline accent; safe against `.tooltip-bubble`'s own shrink-to-fit sizing since a
+ * percentage-width child doesn't feed back into that computation (the bubble's width is still set by
+ * its widest OTHER content, e.g. the Market links table). One segment per economy, separated by a
+ * `gap` in this element's own background rather than a border between them. */
+.economy-mix-bar {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  width: 100%;
+  height: 20px;
+  border-radius: 3px;
+  background: var(--bg-inset);
+  border: 1px solid var(--border);
+  overflow: hidden;
+  margin-bottom: 4px;
+}
+
+/* Sizing (flex-grow/flex-basis/min-width) is set inline per segment — see
+ * components/EconomyMixBar.tsx's doc comment for why plain percentage widths aren't used here. */
+.economy-mix-bar-fill {
+  display: block;
+  height: 100%;
+}
+
+/* Small per-economy color identifier before a row's own economy name — see
+ * `ECONOMY_COLORS`/`facilityInfoContent`/`economyBreakdownTable`'s call sites. Same color the mix
+ * bar above uses for that economy's segment, so the bar and the list read as one picture.
+ * `vertical-align: middle` matters for `economyBreakdownTable`'s plain-inline-text usage (its
+ * `facility-info-economy-row` usage above already centers it via flex `align-items`, so this is a
+ * no-op there). */
+.economy-swatch {
+  display: inline-block;
+  vertical-align: middle;
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+
 /* T2/T3 marker, styled after the game's own icons — see components/TierIcon.tsx. */
 .tier-icon {
   display: inline-grid;
@@ -931,6 +973,14 @@ select.toolbar-summary-system {
   margin-top: 8px;
   padding-top: 6px;
   border-top: 1px solid var(--border);
+}
+
+/* An economy ratio's headline row — the EconomyRatioBar meter beside the "{economy}: {total}%"
+ * text (see components/EconomyRatioBar.tsx). */
+.facility-info-economy-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
 }
 
 /* An economy ratio's "+ strong links" / "= total" rows — same indented/dimmed treatment as
