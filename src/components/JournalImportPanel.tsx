@@ -162,7 +162,7 @@ export function JournalImportPanel({
         .then((results) => setSpanshCandidates(results))
         .catch((e) => setSpanshError((e as Error).message))
         .finally(() => setSpanshSearching(false));
-    }, 300);
+    }, 1000);
     return () => clearTimeout(handle);
   }, [spanshQuery]);
 
