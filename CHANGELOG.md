@@ -1,3 +1,9 @@
+## [1.4.5](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.4...v1.4.5) (2026-07-31)
+
+### Bug Fixes
+
+* replace discrete economy preference states ([5f1cf75](https://github.com/gaborauth/ed-colonisation-planner/commit/5f1cf75a24a13415182bf61f98b9bc5bbe7888e5))
+
 ## [1.4.4](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.3...v1.4.4) (2026-07-30)
 
 ### Bug Fixes
