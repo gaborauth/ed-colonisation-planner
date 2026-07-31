@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { JournalBody } from "../journal/parser";
@@ -21,9 +21,9 @@ describe("ObjectivePanel's Economy preferences section", () => {
     // Fold state is persisted via persistence/panelCollapse.ts — clear so each test starts from a
     // clean slate, then explicitly force this section open. Economy preferences now defaults to
     // COLLAPSED (2026-07-28 user request — see "ObjectivePanel's foldable sub-sections" below for
-    // the dedicated tests on that default itself); these tests are about the section's own radio
-    // behavior once opened, not about the fold default, so they force it open rather than clicking
-    // through the toggle in every single test.
+    // the dedicated tests on that default itself); these tests are about the section's own
+    // checkbox/slider behavior once opened, not about the fold default, so they force it open
+    // rather than clicking through the toggle in every single test.
     localStorage.clear();
     setStoredPanelCollapsed("objective-economy-preferences", false);
   });
@@ -31,43 +31,126 @@ describe("ObjectivePanel's Economy preferences section", () => {
   it("is disabled (with an explanatory hint, no per-economy controls) when no per-body layout is applied", () => {
     renderPanel(INITIAL_FORM_STATE);
     expect(screen.getByText(/Requires a per-body system layout/)).toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: "Military: Forbid" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Military: enable preference" })).not.toBeInTheDocument();
   });
 
-  it("renders one row per EconomyType, defaulting to Dunno, once a per-body layout is applied", () => {
+  it("renders one row per EconomyType, defaulting to unchecked/unbiased, once a per-body layout is applied", () => {
     renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
-    expect(screen.getByRole("radio", { name: "Military: Dunno" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Military: Forbid" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Military: enable preference" })).not.toBeChecked();
+    // The slider stays a real, interactive control even while unchecked (see ObjectivePanel.tsx's
+    // comment on why it's never `disabled`) — dragging or clicking it is itself how a user opts in.
+    expect(screen.getByRole("slider", { name: /Military: preference/ })).toBeEnabled();
     // Spot-check a couple more of the 9 EconomyType rows are present too.
-    expect(screen.getByRole("radio", { name: "Agriculture: Dunno" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Colony: Dunno" })).toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Agriculture: enable preference" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Colony: enable preference" })).not.toBeChecked();
   });
 
-  it("reflects an already-set preference as the checked radio", () => {
+  it("reflects an already-set Forbid preference as a checked checkbox and slider value 0", () => {
     renderPanel({
       ...INITIAL_FORM_STATE,
       bodies: [star(0)],
       economyPreferences: { Military: "forbid" },
     });
-    expect(screen.getByRole("radio", { name: "Military: Forbid" })).toBeChecked();
-    expect(screen.getByRole("radio", { name: "Military: Dunno" })).not.toBeChecked();
+    expect(screen.getByRole("checkbox", { name: "Military: enable preference" })).toBeChecked();
+    expect(screen.getByRole("slider", { name: /Military: preference/ })).toHaveValue("0");
   });
 
-  it("dispatches setEconomyPreference with the picked value on click", async () => {
-    const user = userEvent.setup();
-    const dispatch = renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
-    await user.click(screen.getByRole("radio", { name: "Military: Forbid" }));
+  it("dispatches forbid when the slider is moved to 0", () => {
+    const dispatch = renderPanel({
+      ...INITIAL_FORM_STATE,
+      bodies: [star(0)],
+      economyPreferences: { Military: 100 },
+    });
+    fireEvent.change(screen.getByRole("slider", { name: /Military: preference/ }), { target: { value: "0" } });
     expect(dispatch).toHaveBeenCalledWith({ type: "setEconomyPreference", economy: "Military", value: "forbid" });
   });
 
-  it("dispatches value: undefined when clicking back to Dunno", async () => {
+  it("dispatches a numeric value when the slider is moved above 0, implicitly enabling it even from the unchecked/inactive state", () => {
+    const dispatch = renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    fireEvent.change(screen.getByRole("slider", { name: /Military: preference/ }), { target: { value: "150" } });
+    expect(dispatch).toHaveBeenCalledWith({ type: "setEconomyPreference", economy: "Military", value: 150 });
+  });
+
+  it("dispatches value: undefined when unchecking an already-enabled preference", async () => {
     const user = userEvent.setup();
     const dispatch = renderPanel({
       ...INITIAL_FORM_STATE,
       bodies: [star(0)],
-      economyPreferences: { Military: "want" },
+      economyPreferences: { Military: 100 },
     });
-    await user.click(screen.getByRole("radio", { name: "Military: Dunno" }));
+    await user.click(screen.getByRole("checkbox", { name: "Military: enable preference" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "setEconomyPreference", economy: "Military", value: undefined });
+  });
+
+  it("dispatches the neutral default (50) when checking the box from the unchecked default", async () => {
+    const user = userEvent.setup();
+    const dispatch = renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    await user.click(screen.getByRole("checkbox", { name: "Military: enable preference" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "setEconomyPreference", economy: "Military", value: 50 });
+  });
+
+  it("the number field beside the slider shows the same value, blank while unchecked", () => {
+    const { rerender } = render(
+      <ObjectivePanel
+        formState={{ ...INITIAL_FORM_STATE, bodies: [star(0)] }}
+        dispatch={vi.fn()}
+        onSolve={vi.fn()}
+        solving={false}
+      />,
+    );
+    expect(screen.getByRole("textbox", { name: "Military: preference number (0-200)" })).toHaveValue("");
+    rerender(
+      <ObjectivePanel
+        formState={{ ...INITIAL_FORM_STATE, bodies: [star(0)], economyPreferences: { Military: 120 } }}
+        dispatch={vi.fn()}
+        onSolve={vi.fn()}
+        solving={false}
+      />,
+    );
+    expect(screen.getByRole("textbox", { name: "Military: preference number (0-200)" })).toHaveValue("120");
+  });
+
+  it("typing a value into the number field dispatches it, implicitly enabling it from the unchecked state", () => {
+    const dispatch = renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    fireEvent.change(screen.getByRole("textbox", { name: "Military: preference number (0-200)" }), {
+      target: { value: "150" },
+    });
+    expect(dispatch).toHaveBeenCalledWith({ type: "setEconomyPreference", economy: "Military", value: 150 });
+  });
+
+  it("typing 0 into the number field dispatches forbid, mirroring the slider", () => {
+    const dispatch = renderPanel({
+      ...INITIAL_FORM_STATE,
+      bodies: [star(0)],
+      economyPreferences: { Military: 100 },
+    });
+    fireEvent.change(screen.getByRole("textbox", { name: "Military: preference number (0-200)" }), {
+      target: { value: "0" },
+    });
+    expect(dispatch).toHaveBeenCalledWith({ type: "setEconomyPreference", economy: "Military", value: "forbid" });
+  });
+
+  it("clicking the number field enables it at the neutral default (50) when unchecked, same as the checkbox", () => {
+    const dispatch = renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    fireEvent.click(screen.getByRole("textbox", { name: "Military: preference number (0-200)" }));
+    expect(dispatch).toHaveBeenCalledWith({ type: "setEconomyPreference", economy: "Military", value: 50 });
+  });
+
+  it("merely focusing (e.g. keyboard Tab-through) the number field does NOT enable it — only a real click or typed value does", () => {
+    const dispatch = renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    fireEvent.focus(screen.getByRole("textbox", { name: "Military: preference number (0-200)" }));
+    expect(dispatch).not.toHaveBeenCalled();
+  });
+
+  it("clearing the number field and blurring dispatches undefined, unchecking the box (NumberInput's own blank-on-blur convention)", () => {
+    const dispatch = renderPanel({
+      ...INITIAL_FORM_STATE,
+      bodies: [star(0)],
+      economyPreferences: { Military: 100 },
+    });
+    const field = screen.getByRole("textbox", { name: "Military: preference number (0-200)" });
+    fireEvent.change(field, { target: { value: "" } });
+    fireEvent.blur(field);
     expect(dispatch).toHaveBeenCalledWith({ type: "setEconomyPreference", economy: "Military", value: undefined });
   });
 });
@@ -123,7 +206,7 @@ describe("ObjectivePanel's foldable sub-sections", () => {
     expect(screen.getByRole("button", { name: /Score constraints/ })).toHaveAttribute("aria-expanded", "true");
     expect(screen.getByRole("button", { name: /Economy preferences/ })).toHaveAttribute("aria-expanded", "false");
     expect(screen.getByRole("textbox", { name: "Minimum security" })).toBeInTheDocument();
-    expect(screen.queryByRole("radio", { name: "Military: Dunno" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: "Military: enable preference" })).not.toBeInTheDocument();
   });
 
   it("folding Score constraints hides its table without affecting Economy preferences' own (collapsed) state", async () => {
@@ -140,7 +223,7 @@ describe("ObjectivePanel's foldable sub-sections", () => {
     renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
     await user.click(screen.getByRole("button", { name: /Economy preferences/ }));
     expect(screen.getByRole("button", { name: /Economy preferences/ })).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("radio", { name: "Military: Dunno" })).toBeInTheDocument();
+    expect(screen.getByRole("checkbox", { name: "Military: enable preference" })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Score constraints/ })).toHaveAttribute("aria-expanded", "true");
   });
 });

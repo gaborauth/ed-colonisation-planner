@@ -157,6 +157,37 @@ export type PlannerAction =
   | { type: "load"; state: PlannerFormState }
   | { type: "reset" };
 
+// A plan saved before `EconomyPreference` moved from a 5-value string enum
+// (`"must" | "want" | "dont_want" | "forbid"`) to `"forbid" | number` still has the old strings in
+// its `economyPreferences` map (`persistence/`-backed localStorage isn't schema-validated — see the
+// "load" case's other shims below). Remaps each old value onto a representative point on the new
+// 0-200 scale rather than silently dropping the user's existing preferences: `want` -> 100 (the
+// "Wish" band's own top), `dont_want` -> 25 (mid "Avoid"), `must` -> 175 (mid "Ludicrous boost",
+// since dropping the old hard `>= 1` guarantee means only a strong soft pull can stand in for it).
+// `forbid` is unchanged (still the same hard constraint), and any value already in the new shape
+// (a `"forbid"` literal or a `number`) passes through untouched.
+const LEGACY_ECONOMY_PREFERENCE_MAP: Record<string, EconomyPreference> = {
+  forbid: "forbid",
+  want: 100,
+  dont_want: 25,
+  must: 175,
+};
+
+function migrateEconomyPreferences(
+  raw: Partial<Record<EconomyType, EconomyPreference>> | undefined,
+): Partial<Record<EconomyType, EconomyPreference>> {
+  if (!raw) return {};
+  const next: Partial<Record<EconomyType, EconomyPreference>> = {};
+  for (const [economy, value] of Object.entries(raw) as [EconomyType, EconomyPreference][]) {
+    if (typeof value === "number" || value === "forbid") {
+      next[economy] = value;
+    } else if (typeof value === "string" && value in LEGACY_ECONOMY_PREFERENCE_MAP) {
+      next[economy] = LEGACY_ECONOMY_PREFERENCE_MAP[value];
+    }
+  }
+  return next;
+}
+
 function withMapEntry(
   map: Record<string, number>,
   name: string,
@@ -255,8 +286,11 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
       const systemAddress = action.state.systemAddress ?? null;
       const starSystem = action.state.starSystem ?? "";
       // Same shim style for `economyPreferences` (added after `bodies`): a plan saved before it
-      // existed just has no preferences set, not a broken/undefined lookup target.
-      const economyPreferences = action.state.economyPreferences ?? {};
+      // existed just has no preferences set, not a broken/undefined lookup target. Also migrates
+      // any old-shape values (see `migrateEconomyPreferences`'s own doc comment) — both concerns
+      // live in one pass since an absent map and a legacy-shaped one both need to reach the same
+      // current-shape `{}`-or-remapped result.
+      const economyPreferences = migrateEconomyPreferences(action.state.economyPreferences);
       // Same shim style for `systemResourceLevel` (added after `bodies`): re-run the same
       // detect-from-real-scan-data-or-default-to-Pristine resolution `JournalImportPanel`'s
       // `applySystem` does on a fresh import, rather than silently reverting to "unknown" (which
