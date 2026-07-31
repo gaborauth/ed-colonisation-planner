@@ -701,12 +701,12 @@ describe("solve with economy_synergy (input.bodies[].economy)", () => {
   }, 20000);
 });
 
-describe("solve with economyPreferences (Must/Want/Don't want/Forbid)", () => {
+describe("solve with economyPreferences (0-200 slider, Forbid)", () => {
   // Small_Military_Settlement is a leaf building (no `dependencies`) whose economy comes from
   // FACILITY_ECONOMY_GUESS (body-independent) — a real body still needs to be attached via
   // `economy` for solve.ts to evaluate `facilityBaseEconomies` at all (see SolverBody.economy's
-  // doc comment: no `economy` means no economy-based effect whatsoever, Forbid/Must/Want/Don't
-  // want included, same backward-compatible degrade `economy_synergy` already follows).
+  // doc comment: no `economy` means no economy-based effect whatsoever, Forbid/preference slider
+  // included, same backward-compatible degrade `economy_synergy` already follows).
   const plainBody: JournalBody = {
     bodyName: "Test 1",
     bodyId: 1,
@@ -736,50 +736,38 @@ describe("solve with economyPreferences (Must/Want/Don't want/Forbid)", () => {
     expect(withForbid.status).toBe("infeasible");
   }, 20000);
 
-  it("Must on an economy no candidate building can actually satisfy (zero physical capacity) returns a clean infeasible status, not a crash", async () => {
+  it("a high slider value never makes the solve infeasible, even with zero physical capacity for that economy (the old hard Must state was dropped for exactly this risk)", async () => {
     const result = await solve(
       baseInput({
         bodies: [{ bodyId: 1, slots: { space: 0, ground: 0, asteroid: 0 }, economy: plainBody }],
-        economyPreferences: { Military: "must" },
-      }),
-    );
-    expect(result.status).toBe("infeasible");
-  }, 20000);
-
-  it("Must is satisfied without erroring once a body can actually host a qualifying building", async () => {
-    const result = await solve(
-      baseInput({
-        bodies: [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 }, economy: plainBody }],
-        economyPreferences: { Military: "must" },
+        economyPreferences: { Military: 200 },
       }),
     );
     expect(result.status).toBe("optimal");
-    const militaryBuilt =
-      (result.toBuild.Small_Military_Settlement ?? 0) +
-      (result.toBuild.Medium_Military_Settlement ?? 0) +
-      (result.toBuild.Large_Military_Settlement ?? 0) +
-      (result.toBuild.Military_Hub ?? 0) +
-      (result.toBuild.Military_Outpost ?? 0);
-    expect(militaryBuilt).toBeGreaterThanOrEqual(1);
   }, 20000);
 
-  it("Want vs Don't want measurably shifts which buildings the solver picks (maximizing economy_preference alone)", async () => {
+  it("higher slider values pull more strongly toward an economy than lower ones (maximizing economy_preference alone)", async () => {
     const bodies = [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 }, economy: plainBody }];
     const objective: SolverInput["objective"] = { kind: "simple", score: "economy_preference" };
 
-    const wantResult = await solve(baseInput({ bodies, objective, economyPreferences: { Military: "want" } }));
-    const dontWantResult = await solve(
-      baseInput({ bodies, objective, economyPreferences: { Military: "dont_want" } }),
-    );
+    const boostResult = await solve(baseInput({ bodies, objective, economyPreferences: { Military: 150 } }));
+    const avoidResult = await solve(baseInput({ bodies, objective, economyPreferences: { Military: 25 } }));
 
-    expect(wantResult.status).toBe("optimal");
-    expect(dontWantResult.status).toBe("optimal");
-    const militaryCount = (r: typeof wantResult) =>
+    expect(boostResult.status).toBe("optimal");
+    expect(avoidResult.status).toBe("optimal");
+    const militaryCount = (r: typeof boostResult) =>
       (r.toBuild.Small_Military_Settlement ?? 0) +
       (r.toBuild.Medium_Military_Settlement ?? 0) +
       (r.toBuild.Large_Military_Settlement ?? 0);
-    expect(militaryCount(wantResult)).toBeGreaterThan(0);
-    expect(militaryCount(dontWantResult)).toBe(0);
+    expect(militaryCount(boostResult)).toBeGreaterThan(0);
+    expect(militaryCount(avoidResult)).toBe(0);
+  }, 20000);
+
+  it("50 is the slider's neutral crossing point — contributes 0 to economy_preference, same as omitting the economy entirely", async () => {
+    const bodies = [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 }, economy: plainBody }];
+    const neutral = await solve(baseInput({ bodies, economyPreferences: { Military: 50 } }));
+    const omitted = await solve(baseInput({ bodies }));
+    expect(neutral.scores.economy_preference).toBeCloseTo(omitted.scores.economy_preference, 6);
   }, 20000);
 
   it("economyPreferences omitted, {}, and every value explicitly undefined are byte-identical (backward-compat)", async () => {

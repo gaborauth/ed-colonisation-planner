@@ -439,6 +439,121 @@ td {
   margin: 2px 0;
 }
 
+/* ObjectivePanel's "Economy preferences" table gets extra breathing room for its slider column,
+ * unlike the compact radio-grid layout it replaced. */
+.economy-preferences-table td {
+  vertical-align: middle;
+}
+
+/* Shared flex layout for both the header row (band labels + a spacer matching the number field's own
+ * width, so the 4 colored columns below still line up under the slider, not the number field beside
+ * it) and every body row (slider + its number field). */
+.economy-preference-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* One label per 50-wide quarter of the 0-200 slider, sitting directly above every row's own pastel
+ * column background below (`.economy-preference-slider-track`), so the two align into what reads as
+ * 4 continuous colored columns running down the table, not a per-row repeated label. */
+.economy-preference-band-labels {
+  display: flex;
+  flex: 1 1 auto;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  font-weight: normal;
+  text-transform: none;
+}
+
+.economy-preference-band-labels span {
+  flex: 1 1 0;
+  text-align: center;
+}
+
+/* Matches `.number-input`'s own width (index.css's app-wide default) so the header's band labels
+ * above stay aligned with the slider column, not stretched over the number field beside it. */
+.economy-preference-number-spacer {
+  width: 7ch;
+  flex-shrink: 0;
+}
+
+.economy-preference-slider-wrap {
+  position: relative;
+  flex: 1 1 auto;
+  min-width: 240px;
+  height: 22px;
+}
+
+/* Four flat pastel 50-wide quarter-columns behind the actual `<input type="range">` (Avoid/Wish/
+ * Boost/Ludicrous boost, matching the header labels above) — see solve.ts's
+ * `ECONOMY_PREFERENCE_MAGNITUDE` doc comment for the one continuous linear formula underneath; the
+ * columns are cosmetic labeling only, no formula discontinuity at any of their boundaries. */
+.economy-preference-slider-track {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(
+    to right,
+    rgba(255, 140, 140, 0.3) 0%,
+    rgba(255, 140, 140, 0.3) 25%,
+    rgba(140, 224, 235, 0.28) 25%,
+    rgba(140, 224, 235, 0.28) 50%,
+    rgba(255, 196, 130, 0.28) 50%,
+    rgba(255, 196, 130, 0.28) 75%,
+    rgba(206, 160, 245, 0.3) 75%,
+    rgba(206, 160, 245, 0.3) 100%
+  );
+}
+
+.economy-preference-slider {
+  appearance: none;
+  -webkit-appearance: none;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: transparent;
+  margin: 0;
+  cursor: pointer;
+}
+
+/* Not the native `:disabled` state — this slider is always interactive (see the `economy-preference-
+ * slider-inactive` usage in ObjectivePanel.tsx for why), just dimmed until a real preference exists. */
+.economy-preference-slider-inactive {
+  opacity: 0.4;
+}
+
+.economy-preference-slider::-webkit-slider-runnable-track {
+  background: transparent;
+  height: 22px;
+}
+
+.economy-preference-slider::-moz-range-track {
+  background: transparent;
+  height: 22px;
+}
+
+.economy-preference-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 20px;
+  height: 20px;
+  margin-top: 1px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 2px solid var(--border-bright);
+  cursor: inherit;
+}
+
+.economy-preference-slider::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--text);
+  border: 2px solid var(--border-bright);
+  cursor: inherit;
+}
+
 tbody tr:hover {
   background: var(--bg-panel-alt);
 }
@@ -677,6 +792,35 @@ select.toolbar-summary-system {
   border: 1px solid var(--border);
   overflow: hidden;
   margin-bottom: 4px;
+}
+
+/* SolvedSystemPanel's system-wide economy ratio sum — doubled height so it reads as a headline
+ * summary figure rather than the same small accent every per-facility hover uses. */
+.economy-mix-bar-large {
+  height: 40px;
+}
+
+/* Tooltip's anchor defaults to `inline-block` (shrink-to-fit), which collapses `EconomyMixBar`'s own
+ * `width: 100%` to nothing — passed as `anchorClassName` wherever a full-width element needs a
+ * hover, same idea as the existing `td .tooltip-anchor` override above generalized for non-table
+ * use. Compounded with `.tooltip-anchor` (not a bare class selector) so its higher specificity wins
+ * regardless of the two stylesheets' relative load order (Tooltip.css is a separate JS-imported
+ * file, not part of this one). */
+.tooltip-anchor.economy-mix-bar-tooltip-anchor {
+  display: block;
+  width: 100%;
+}
+
+/* Tooltip.css's `.tooltip-anchor-pinned > :first-child` pinned halo assumes the anchor's first
+ * child is always a small circular icon glyph (true everywhere else it's used) — `border-radius:
+ * 50%` on a wide rectangular bar instead renders as a squashed oval, not a circle. Overrides it with
+ * the bar's own actual corner radius (matching `.economy-mix-bar`'s `border-radius: 3px`) so the
+ * halo box-shadow still cues "pinned open" without distorting the bar's shape. Three selectors
+ * (`.tooltip-anchor-pinned.economy-mix-bar-tooltip-anchor > :first-child`) beats the original rule's
+ * two on specificity, so this wins regardless of the two stylesheets' load order. */
+.tooltip-anchor-pinned.economy-mix-bar-tooltip-anchor > :first-child {
+  border-radius: 3px;
+  box-shadow: 0 0 0 3px var(--accent-dim);
 }
 
 /* Sizing (flex-grow/flex-basis/min-width) is set inline per segment — see

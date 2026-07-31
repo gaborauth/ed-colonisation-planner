@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { JournalBody } from "../journal/parser";
-import { computeSystemLinks, type BuildingPlacement } from "./links";
+import { computeSystemLinks, sumSystemEconomyRatios, type BuildingPlacement, type PortSummary } from "./links";
 
 function makeBody(bodyId: number, overrides: Partial<JournalBody> = {}): JournalBody {
   return {
@@ -266,5 +266,53 @@ describe("computeSystemLinks", () => {
     const portMarket = (economy: string) => planetaryPort.marketLinks.find((m) => m.economy === economy);
     expect(portMarket("Agriculture")).toEqual({ economy: "Agriculture", strongCount: 1, weakCount: 0 });
     expect(portMarket("Military")).toEqual({ economy: "Military", strongCount: 0, weakCount: 1 });
+  });
+});
+
+function makePort(bodyId: number, economyRatios: PortSummary["economyRatios"]): PortSummary {
+  return {
+    building: `Port ${bodyId}`,
+    bodyId,
+    tier: 1,
+    economies: economyRatios.map((r) => r.economy),
+    appliedOverrideRules: [],
+    unevaluatedOverrideRules: [],
+    isDominantOnBody: true,
+    economyRatios,
+    marketLinks: [],
+  };
+}
+
+describe("sumSystemEconomyRatios", () => {
+  it("sums the same economy's totalPercent across every port, keeping different economies separate", () => {
+    const ports = [
+      makePort(1, [
+        { economy: "Agriculture", ownPercent: 100, strongPercent: 0, weakPercent: 0, totalPercent: 100 },
+        { economy: "Military", ownPercent: 0, strongPercent: 0, weakPercent: 5, totalPercent: 5 },
+      ]),
+      makePort(2, [{ economy: "Agriculture", ownPercent: 0, strongPercent: 40, weakPercent: 0, totalPercent: 40 }]),
+    ];
+
+    const sum = sumSystemEconomyRatios(ports);
+
+    expect(sum).toEqual([
+      { economy: "Agriculture", ownPercent: 0, strongPercent: 0, weakPercent: 0, totalPercent: 140 },
+      { economy: "Military", ownPercent: 0, strongPercent: 0, weakPercent: 0, totalPercent: 5 },
+    ]);
+  });
+
+  it("sorts descending by summed totalPercent", () => {
+    const ports = [
+      makePort(1, [{ economy: "Military", ownPercent: 0, strongPercent: 0, weakPercent: 0, totalPercent: 200 }]),
+      makePort(2, [{ economy: "Agriculture", ownPercent: 0, strongPercent: 0, weakPercent: 0, totalPercent: 10 }]),
+    ];
+
+    const sum = sumSystemEconomyRatios(ports);
+
+    expect(sum.map((r) => r.economy)).toEqual(["Military", "Agriculture"]);
+  });
+
+  it("returns an empty array for an empty port list", () => {
+    expect(sumSystemEconomyRatios([])).toEqual([]);
   });
 });

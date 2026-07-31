@@ -256,13 +256,15 @@ an inference this project made itself, not something the source stated verbatim:
   variable, so "known port" here means "known before solving," a conservative approximation in both
   directions. If a future change makes exact link-graph-aware MILP scoring tractable, replace this
   with that instead of layering more approximation on top.
-- `ECONOMY_PREFERENCE_WEIGHT` (flat 0.5) in `src/solver/solve.ts` — the per-(building, body) pull of
-  a Want/Don't-want `economyPreferences` entry (`economy_preference`, objective letter `p`; see
-  "Per-economy Must/Want/Don't want/Forbid preference controls" below). Purely user-supplied, no
-  source at all — a direct preference nudge with no in-game equivalent to validate against. Chosen
-  to sit in the same order of magnitude as `economy_synergy`'s own deltas (0.05 weak-link trickle,
-  0.4 per boost/decrease condition, 0.4–1.2 full strong-link tier contribution) so one preferred
-  building's pull is comparable to a single real link-boost, not negligible or overwhelming.
+- `ECONOMY_PREFERENCE_MAGNITUDE` (`= BOOST_DECREASE_DELTA * 5`, 2.0) in `src/solver/solve.ts` — scales
+  an `economyPreferences` slider value (1-200) into the per-(building, body) pull added to
+  `economy_preference` (objective letter `p`; see "Per-economy economy preference slider" below):
+  `(value - 50) / 50 * ECONOMY_PREFERENCE_MAGNITUDE`. Originally plain `BOOST_DECREASE_DELTA` (0.4,
+  "100 on the slider = one real link-boost") for dimensional grounding against the real strong-link
+  boost/decrease magnitude (`domain/economyOverrides.ts`) — real-system testing (2026-07-31) found
+  that too faint to noticeably shift a solve (a -0.39 to +1.2 swing across the whole 1-200 range,
+  easily outweighed by everything else in the objective), so retuned `5x` wider (-1.96 to +6.0).
+  Still a user-chosen calibration, not a verbatim sourced number, and still not necessarily final.
 
 ## Manual "System resource level" override
 
@@ -308,36 +310,53 @@ this one is a user-editable field, not a hardcoded constant.
   `reserveLevel` at all — the wrapped copy differs from the original only in that one field on one
   body).
 
-## Per-economy Must/Want/Don't want/Forbid preference controls
+## Per-economy economy preference slider
 
 `ObjectivePanel`'s "Economy preferences" section (a foldable sub-section, collapsed by default,
 right after "Score constraints") lets the user steer *which* `EconomyType`s the solver favors or
-avoids, on top of the aggregate score-based objective — a 5-state per-`EconomyType` choice (Must /
-Want / Dunno / Don't want / Forbid) as a radio-button grid (one column per option, one row per
-economy). `PlannerFormState.economyPreferences` / `SolverInput.economyPreferences`
-(`Partial<Record<EconomyType, EconomyPreference>>`, absent per economy = "Dunno", the unbiased
-default). Reuses `domain/economyOverrides.ts#facilityBaseEconomies(buildingName, body.economy)` —
-the same per-(building, body) economy-set lookup `economy_synergy` already uses — to know which
-`bodyVars[name][bodyId]` decision variables carry a given economy; all four states are computed in
+avoids, on top of the aggregate score-based objective. Replaced a discrete 5-state radio grid
+(Must/Want/Dunno/Don't want/Forbid) with a "No preference" checkbox (checked by default — matches
+the old "Dunno"/absent-key default exactly) plus a 0-200 slider per economy, one row per economy.
+`PlannerFormState.economyPreferences` / `SolverInput.economyPreferences`
+(`Partial<Record<EconomyType, EconomyPreference>>`, `EconomyPreference = "forbid" | number`, absent
+per economy = "No preference", the unbiased default — the UI checkbox toggles between this absence
+and a live slider, never sending a literal `0` through this field for the neutral case). Reuses
+`domain/economyOverrides.ts#facilityBaseEconomies(buildingName, body.economy)` — the same
+per-(building, body) economy-set lookup `economy_synergy` already uses — to know which
+`bodyVars[name][bodyId]` decision variables carry a given economy; both cases below are computed in
 the same per-body loop `solve.ts` already runs for `economy_synergy`.
 
 - **Scoped to per-body mode only**, same as `economy_synergy`: `solve.ts` silently ignores
   `economyPreferences` when `input.bodies` is absent/empty; `ObjectivePanel`'s section shows a
   disabled explanatory hint instead of the per-economy table when `formState.bodies` is empty.
-- **Forbid** (hard): zeroes every `bodyVars[name][bodyId]` whose `facilityBaseEconomies` includes
-  the forbidden economy. The pre-existing `body_split_<name>` equality constraint means zeroing
-  every body's slot for a building automatically zeroes its port-slot variables too.
-- **Must** (hard): `sum(every qualifying bodyVar) >= 1` per Must economy. Does NOT offset against
-  already-present facilities already carrying the economy — a documented limitation, not an
-  oversight. An economy with zero eligible (building, body) pairs anywhere naturally reports
-  `status: "infeasible"` through HiGHS, same as every other hard constraint in this file.
-- **Want / Don't want** (soft): contribute `± ECONOMY_PREFERENCE_WEIGHT` into a **separate** derived
-  score, `economy_preference` (objective letter `p`) — deliberately NOT folded into `economy_synergy`
-  itself, so a user's manual preference bias can never silently distort `economy_synergy`'s
-  real-link-mechanic approximation. Applied unconditionally per qualifying (building, body) pair,
-  unlike `economy_synergy`'s boost/decrease table. `state/plannerState.ts`'s
-  `DEFAULT_OBJECTIVE_EXPRESSION` includes `+ p` alongside `+ y`, so Want/Don't want only actually
-  bias a solve when the active objective references `p`.
+- **`0` (Forbid, hard)**: the slider's one true guarantee, not a nudge — zeroes every
+  `bodyVars[name][bodyId]` whose `facilityBaseEconomies` includes the forbidden economy. The
+  pre-existing `body_split_<name>` equality constraint means zeroing every body's slot for a
+  building automatically zeroes its port-slot variables too. Since this loop covers every building
+  type (ports and supporting facilities alike), not just ports, Forbidding an economy blocks it from
+  ever entering the system's strong/weak link graph at all — there's no building left anywhere that
+  could originate it.
+- **`1-200` (soft)**: one continuous linear coefficient, `(value - 50) / 50 *
+  ECONOMY_PREFERENCE_MAGNITUDE`, added into a **separate** derived score, `economy_preference`
+  (objective letter `p`) — deliberately NOT folded into `economy_synergy` itself, so a user's manual
+  preference bias can never silently distort `economy_synergy`'s real-link-mechanic approximation.
+  `50` is the neutral crossing point (zero coefficient, so leaving a slider there once unchecked
+  biases nothing). Four cosmetic quarter-bands label the scale with no formula discontinuity at any
+  boundary: **Avoid** (0-50, negative), **Wish** (50-100, crosses zero up to `+1x`), **Boost**
+  (100-150, `+1x` to `+2x`), **Ludicrous boost** (150-200, `+2x` to `+3x` — a deliberate cameo name,
+  not a distinct mechanic). `state/plannerState.ts`'s `DEFAULT_OBJECTIVE_EXPRESSION` includes `+ p`
+  alongside `+ y`, so the slider only actually biases a solve when the active objective references
+  `p`.
+- **No hard "Must" state** (dropped, unlike the old grid): an economy with zero eligible (building,
+  body) pairs anywhere would make the whole solve report infeasible for what's more often a casual
+  "I want a lot of this" gesture than a deliberate hard requirement — a real risk a slider's own
+  "just crank it to max" affordance invites more than the old grid's explicit Must checkbox did. A
+  high slider value (Boost/Ludicrous boost) is a strong but still-soft pull instead.
+- **Migration**: a plan saved before this slider shipped still has the old string values
+  (`"must" | "want" | "dont_want" | "forbid"`) in its `economyPreferences` map —
+  `state/plannerState.ts`'s `"load"` action's `migrateEconomyPreferences` remaps each onto a
+  representative point on the new scale (`forbid` unchanged, `want` → 100, `dont_want` → 25, `must`
+  → 175) rather than silently discarding the user's existing preferences.
 - **Port-stacking caveat, surfaced in the UI, not hidden**: a generic port's Colony-derived economy
   set is body-attribute-driven and stacks (e.g. every port on an Earth-like world carries
   Agriculture + High Tech + Military + Tourism together, non-selectably) — Forbidding one of those
