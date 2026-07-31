@@ -76,11 +76,11 @@ describe("plannerReducer", () => {
     });
     expect(state.economyPreferences).toEqual({ Military: "forbid" });
 
-    state = plannerReducer(state, { type: "setEconomyPreference", economy: "Agriculture", value: "want" });
-    expect(state.economyPreferences).toEqual({ Military: "forbid", Agriculture: "want" });
+    state = plannerReducer(state, { type: "setEconomyPreference", economy: "Agriculture", value: 150 });
+    expect(state.economyPreferences).toEqual({ Military: "forbid", Agriculture: 150 });
 
     state = plannerReducer(state, { type: "setEconomyPreference", economy: "Military", value: undefined });
-    expect(state.economyPreferences).toEqual({ Agriculture: "want" });
+    expect(state.economyPreferences).toEqual({ Agriculture: 150 });
   });
 
   it("setSlotBlocked sets/clears/pads a body's blocked-slot array", () => {
@@ -114,6 +114,28 @@ describe("plannerReducer", () => {
       state: withoutPreferences as PlannerFormState,
     });
     expect(state.economyPreferences).toEqual({});
+  });
+
+  it("load migrates a plan saved with the old Must/Want/Don't want/Forbid string values onto the new 0-200 scale", () => {
+    const legacy = {
+      ...INITIAL_FORM_STATE,
+      economyPreferences: {
+        Military: "forbid",
+        Agriculture: "want",
+        Industrial: "dont_want",
+        Extraction: "must",
+        // Already-new-shape values (a plan saved after this migration shipped) pass through untouched.
+        Tourism: 175,
+      },
+    } as unknown as PlannerFormState;
+    const state = plannerReducer(INITIAL_FORM_STATE, { type: "load", state: legacy });
+    expect(state.economyPreferences).toEqual({
+      Military: "forbid",
+      Agriculture: 100,
+      Industrial: 25,
+      Extraction: 175,
+      Tourism: 175,
+    });
   });
 
   it("load defaults systemResourceLevel to 'pristine' for a plan saved before it existed", () => {

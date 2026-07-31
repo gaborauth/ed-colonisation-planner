@@ -312,8 +312,9 @@ export interface BoostDecreaseResult {
 /** Per-condition boost/decrease magnitude — community-sourced (`EconomicEffects.ods`'s "Strong
  * Link Modifiers" table), not an official Frontier-published number, but close to universal across
  * every row in that sheet regardless of which economy or condition. See CLAUDE.md's "Explicitly
- * unverified/best-effort constants" section. */
-const BOOST_DECREASE_DELTA = 0.4;
+ * unverified/best-effort constants" section. Exported for `solve.ts`'s `economyPreferences` slider,
+ * which reuses this exact magnitude as its `baseMagnitude` rather than an unrelated constant. */
+export const BOOST_DECREASE_DELTA = 0.4;
 
 /** The official patch notes (and `EconomicEffects.ods`'s "Strong Link Modifiers" sheet) both list a
  * Terraformable body as an Agriculture strong-link boost condition — but real-game testing against

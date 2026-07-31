@@ -13,6 +13,15 @@ interface NumberInputProps {
   ariaLabel?: string;
   id?: string;
   disabled?: boolean;
+  /** Fires on an actual mouse click, not keyboard focus — `ObjectivePanel`'s preference number
+   * field uses this to "activate" (enable) a preference on click, matching the slider's own
+   * click-anywhere-sets-a-value behavior. Deliberately `onClick`, not `onFocus`: focus also fires
+   * from keyboard Tab-navigation, which would silently activate every field a keyboard user tabs
+   * past just to reach something else — `onClick` only ever fires from an intentional pointer
+   * interaction (typing after a keyboard Tab still reaches `onChange` below, which activates a
+   * field the same way on any real value entered, so keyboard users aren't blocked, just not
+   * activated by focus alone). */
+  onClick?: () => void;
 }
 
 function isValidWhileTyping(text: string, allowNegative: boolean): boolean {
@@ -30,6 +39,7 @@ export function NumberInput({
   ariaLabel,
   id,
   disabled,
+  onClick,
 }: NumberInputProps) {
   const [text, setText] = useState(value === undefined ? "" : String(value));
 
@@ -64,6 +74,7 @@ export function NumberInput({
       disabled={disabled}
       onChange={(e) => handleChange(e.target.value)}
       onBlur={handleBlur}
+      onClick={onClick}
     />
   );
 }

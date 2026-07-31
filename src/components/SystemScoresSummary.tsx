@@ -24,15 +24,17 @@ interface SystemScoresSummaryProps {
   /** Non-score numbers shown after the score fields, in order — slots remaining, T2/T3 points,
    * first station, objective value, etc.; each caller decides which apply. */
   extraFields?: SystemScoresSummaryField[];
-  /** Wraps the block in a highlighted card — only `SolvedSystemPanel` opts in, since a solved
-   * plan's own totals are the actual payoff of running the solver, unlike
-   * `SystemConfigPanel`'s pre-solve "current totals" view, which stays plain so the emphasis still
-   * differentiates something instead of making every stat block look the same. */
+  /** Wraps the block in a highlighted (green) card. Both `SolvedSystemPanel` and
+   * `SystemConfigPanel` opt in — a solved plan's own totals are the actual payoff of running the
+   * solver, and "Actual facilities"'s current totals are just as central to that panel, so both
+   * get the same emphasis now (not a differentiator between the two panels the way it originally
+   * was when only one of them opted in). */
   emphasized?: boolean;
   /** Extra content rendered inside the same emphasized card, below the grid, separated by an `<hr>`
-   * — only meaningful when `emphasized` is set (only `SolvedSystemPanel` currently uses it, for its
-   * "Export Raven Colonial" button/hint). Ignored when `emphasized` is false, since the plain
-   * (non-card) rendering has no container to attach a visually-separated section to. */
+   * — only meaningful when `emphasized` is set. `SolvedSystemPanel` uses it for its
+   * "Export Raven Colonial" button/hint; both it and `SystemConfigPanel` also use it for
+   * `EconomyMixBar.tsx`'s `SystemEconomyRatioSumBar`. Ignored when `emphasized` is false, since the
+   * plain (non-card) rendering has no container to attach a visually-separated section to. */
   children?: ReactNode;
 }
 

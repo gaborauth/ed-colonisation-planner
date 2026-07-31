@@ -103,15 +103,23 @@ const SCORE_DESCRIPTIONS: Record<Score, string> = {
   economy_preference: "Your economy preference choices, turned into a score.",
 };
 
-// Ordered from most to least favorable (Must / Want / Dunno / Don't want / Forbid), matching how
-// strongly each option biases the solver toward or away from an economy.
-const ECONOMY_PREFERENCE_OPTIONS: { value: EconomyPreference | ""; label: string }[] = [
-  { value: "must", label: "Must" },
-  { value: "want", label: "Want" },
-  { value: "", label: "Dunno" },
-  { value: "dont_want", label: "Don't want" },
-  { value: "forbid", label: "Forbid" },
-];
+// Slider default once "No preference" is first unchecked for an economy — the scale's own neutral
+// crossing point (see `EconomyPreference`'s doc comment in solve.ts), so unchecking alone never
+// biases a solve until the user actually moves the slider.
+const ECONOMY_PREFERENCE_DEFAULT = 50;
+
+// One label per 50-wide quarter of the 0-200 slider (see solve.ts's `ECONOMY_PREFERENCE_MAGNITUDE`
+// doc comment for the underlying formula) — purely cosmetic column headers over one continuous
+// linear coefficient, not a change in behavior at each boundary.
+const ECONOMY_PREFERENCE_BAND_LABELS = ["Avoid", "Wish", "Boost", "Ludicrous boost"];
+
+// Shared by the slider and the number field beside it (both write the same
+// `PlannerFormState.economyPreferences` entry) — clamps to the slider's own 0-200 range and maps
+// the `0` endpoint onto the hard `"forbid"` literal, matching solve.ts's `EconomyPreference` type.
+function clampEconomyPreference(value: number): EconomyPreference {
+  const clamped = Math.min(200, Math.max(0, Math.round(value)));
+  return clamped === 0 ? "forbid" : clamped;
+}
 
 export function ObjectivePanel({ formState, dispatch, onSolve, solving }: ObjectivePanelProps) {
   // Which preset (if any) matches the CURRENT customExpression — drives the select's `value` for
@@ -365,16 +373,17 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
         )}
       </div>
 
-      {/* Per-EconomyType Must/Want/Dunno/Don't want/Forbid steering — lets the user steer WHICH
-       * economies the solver favors or avoids, on top of the aggregate score-based objective above.
-       * Same foldable placement as Score constraints above, right after it, since it's conceptually
-       * the same kind of control (bounding/steering what the solver picks). Requires a per-body
-       * layout: `facilityBaseEconomies` needs a real body's attributes to resolve a generic port's
-       * economy set (see solve.ts's SolverInput.economyPreferences doc comment) — aggregate-mode-only
-       * users get a disabled section with an explanation instead of a silently-inert control (still
-       * foldable either way, so the explanation itself can be tucked away once read). Preference
-       * picked via a radio-button grid (one column per option), not a per-row dropdown, since that
-       * reads better across this panel's full width than a narrow select per row. */}
+      {/* Per-EconomyType steering — lets the user steer WHICH economies the solver favors or avoids,
+       * on top of the aggregate score-based objective above. Same foldable placement as Score
+       * constraints above, right after it, since it's conceptually the same kind of control
+       * (bounding/steering what the solver picks). Requires a per-body layout: `facilityBaseEconomies`
+       * needs a real body's attributes to resolve a generic port's economy set (see solve.ts's
+       * SolverInput.economyPreferences doc comment) — aggregate-mode-only users get a disabled
+       * section with an explanation instead of a silently-inert control (still foldable either way,
+       * so the explanation itself can be tucked away once read). A "No preference" checkbox (checked
+       * by default, matching today's absent-key-means-no-bias convention) disables a 0-200 slider per
+       * economy — `0` is the one hard guarantee (Forbid), everywhere else is one continuous soft
+       * coefficient with four cosmetic color bands (Avoid/Wish/Boost/Ludicrous boost). */}
       <div style={{ marginTop: 14 }}>
         <button
           ref={economyPreferencesCollapse.buttonRef}
@@ -397,50 +406,102 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
           ) : (
             <>
               <p className="panel-hint">
-                Steers which economies the solver favors or avoids. Forbid/Must are hard requirements. A port's
-                body-derived economies stack (e.g. every port on an Earth-like world carries Agriculture, High
-                Tech, Military, and Tourism together, non-selectably) — Forbidding one can rule out every generic
-                port option on that body, not just that one economy; intended, not a bug. Want/Don't want are
-                soft nudges (the "economy preference" score) — like economy synergy, they only actually bias the
-                solve when the active objective includes it (the default expression does).
+                Steers which economies the solver favors or avoids. Leave the checkbox unchecked to leave an
+                economy unbiased (today's default) — check it or drag its slider to set one. The slider's `0` end
+                is Forbid — a hard requirement, the one real guarantee on this scale — everywhere else is a soft
+                nudge (the "economy preference" score), which only actually biases the solve when the active
+                objective includes it (the default expression does).
               </p>
-              <table>
+              <table className="economy-preferences-table">
                 <thead>
                   <tr>
                     <th>Economy</th>
-                    {ECONOMY_PREFERENCE_OPTIONS.map((opt) => (
-                      <th key={opt.label} style={{ textAlign: "center" }}>
-                        {opt.label}
-                      </th>
-                    ))}
+                    <th aria-hidden="true" />
+                    <th>
+                      <div className="economy-preference-cell">
+                        <div className="economy-preference-band-labels">
+                          {ECONOMY_PREFERENCE_BAND_LABELS.map((label) => (
+                            <span key={label}>{label}</span>
+                          ))}
+                        </div>
+                        <span className="economy-preference-number-spacer" aria-hidden="true" />
+                      </div>
+                    </th>
                   </tr>
                 </thead>
                 <tbody>
                   {ALL_ECONOMY_TYPES.map((economy) => {
-                    const current = formState.economyPreferences[economy] ?? "";
+                    const current = formState.economyPreferences[economy];
+                    const enabled = current !== undefined;
+                    const sliderValue = current === undefined ? ECONOMY_PREFERENCE_DEFAULT : current === "forbid" ? 0 : current;
                     return (
                       <tr key={economy}>
                         <td>
                           <span className="economy-swatch" style={{ background: ECONOMY_COLORS[economy] }} /> {economy}
                         </td>
-                        {ECONOMY_PREFERENCE_OPTIONS.map((opt) => (
-                          <td key={opt.label} style={{ textAlign: "center" }}>
-                            <input
-                              type="radio"
-                              name={`economy-preference-${economy}`}
-                              title={opt.label}
-                              aria-label={`${economy}: ${opt.label}`}
-                              checked={current === opt.value}
-                              onChange={() =>
+                        <td style={{ textAlign: "center" }}>
+                          <input
+                            type="checkbox"
+                            aria-label={`${economy}: enable preference`}
+                            checked={enabled}
+                            onChange={() =>
+                              dispatch({
+                                type: "setEconomyPreference",
+                                economy,
+                                value: enabled ? undefined : ECONOMY_PREFERENCE_DEFAULT,
+                              })
+                            }
+                          />
+                        </td>
+                        <td>
+                          <div className="economy-preference-cell">
+                            <div className="economy-preference-slider-wrap">
+                              <div className="economy-preference-slider-track" aria-hidden="true" />
+                              {/* Not `disabled` — dragging or clicking an "inactive" slider (see the CSS
+                               * modifier class below for the dimmed look) is itself how a user enables a
+                               * preference, alongside the checkbox; a real `disabled` attribute would
+                               * block that pointer/keyboard interaction outright. `enabled` here only
+                               * controls the dimmed styling, never whether the control responds. */}
+                              <input
+                                type="range"
+                                className={`economy-preference-slider${enabled ? "" : " economy-preference-slider-inactive"}`}
+                                min={0}
+                                max={200}
+                                step={1}
+                                value={sliderValue}
+                                aria-label={`${economy}: preference (0 = Forbid, 200 = Ludicrous boost)`}
+                                onChange={(e) =>
+                                  dispatch({
+                                    type: "setEconomyPreference",
+                                    economy,
+                                    value: clampEconomyPreference(Number(e.target.value)),
+                                  })
+                                }
+                              />
+                            </div>
+                            {/* Mirrors the slider's own value (blank when unchecked, matching the
+                             * checkbox-uncheck-clears-the-field rule) — clicking it enables the
+                             * preference at the neutral default, same as clicking the slider itself.
+                             * `onClick`, not `onFocus`: a keyboard user tabbing past this field to
+                             * reach something else shouldn't silently enable it too. */}
+                            <NumberInput
+                              value={current === undefined ? undefined : current === "forbid" ? 0 : current}
+                              ariaLabel={`${economy}: preference number (0-200)`}
+                              onClick={() => {
+                                if (!enabled) {
+                                  dispatch({ type: "setEconomyPreference", economy, value: ECONOMY_PREFERENCE_DEFAULT });
+                                }
+                              }}
+                              onChange={(value) =>
                                 dispatch({
                                   type: "setEconomyPreference",
                                   economy,
-                                  value: (opt.value || undefined) as EconomyPreference | undefined,
+                                  value: value === undefined ? undefined : clampEconomyPreference(value),
                                 })
                               }
                             />
-                          </td>
-                        ))}
+                          </div>
+                        </td>
                       </tr>
                     );
                   })}

@@ -469,3 +469,25 @@ export function computeSystemLinks(bodies: JournalBody[], placements: BuildingPl
 
   return { ports, strongLinks, weakLinks, warnings };
 }
+
+/** A system-wide "how much of each economy does this system carry in total" figure — every port's
+ * own `economyRatios.totalPercent` (its own + incoming strong + incoming weak, per economy), summed
+ * across EVERY port in the system (dominant or not, no de-duplication) rather than per-facility.
+ * This is a plain arithmetic sum, not a new percentage with its own normalized meaning — reuses the
+ * `PortEconomyLine` shape purely so the result can feed `EconomyMixBar` directly (which only ever
+ * reads `economy`/`totalPercent`); `ownPercent`/`strongPercent`/`weakPercent` are meaningless once
+ * summed across ports with different tiers/dominance, so they're always 0 here, not a real
+ * breakdown. Intended as a rough, easy-to-eyeball comparison point against the "Economy preferences"
+ * sliders (`ObjectivePanel`'s per-economy 0-200 scale), which are also whole-system, not per-port —
+ * NOT a claim about any single port's own displayed ratio. */
+export function sumSystemEconomyRatios(ports: PortSummary[]): PortEconomyLine[] {
+  const sums = new Map<EconomyType, number>();
+  for (const port of ports) {
+    for (const line of port.economyRatios) {
+      sums.set(line.economy, (sums.get(line.economy) ?? 0) + line.totalPercent);
+    }
+  }
+  return Array.from(sums.entries())
+    .map(([economy, totalPercent]) => ({ economy, ownPercent: 0, strongPercent: 0, weakPercent: 0, totalPercent }))
+    .sort((a, b) => b.totalPercent - a.totalPercent);
+}

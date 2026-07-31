@@ -2,7 +2,7 @@ import { useMemo, useState } from "react";
 import { isPortRole, toPrintable } from "../data/buildings";
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
 import { applyManualResourceLevel } from "../domain/economyOverrides";
-import type { SystemLinksResult } from "../domain/links";
+import { sumSystemEconomyRatios, type SystemLinksResult } from "../domain/links";
 import { getOrderingFromResult } from "../domain/ordering";
 import type { StrongLinkedInstance } from "../domain/presentLinks";
 import { computeSolvedPlacements, type SolvedBodySlots, type SolvedSlot } from "../domain/solvedPlacement";
@@ -13,6 +13,7 @@ import type { RcSystemSkeleton } from "../ravenColonial/types";
 import type { SolverResult } from "../solver/solve";
 import type { PlannerFormState } from "../state/plannerState";
 import { toPlanResult } from "../state/toPlanResult";
+import { SystemEconomyRatioSumBar } from "./EconomyMixBar";
 import { BodyInfoIcon, facilityEconomyRatios, facilityMarketLinks, FacilityInfoIcon } from "./FacilityInfo";
 import { SystemScoresSummary } from "./SystemScoresSummary";
 
@@ -229,6 +230,13 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
     // eslint-disable-next-line react-hooks/exhaustive-deps -- formState.bodies/firstStation* + result together identify a solve; re-deriving formState identity every render would defeat the memo
   }, [formState, result, hasBodies, effectiveBodies]);
 
+  // Cheap enough to just recompute (`SystemEconomyRatioSumBar` below does the same aggregation
+  // internally from `linksResult.ports`) — only needed here to decide whether `SystemScoresSummary`
+  // gets any `children` at all, so it doesn't render an orphan `<hr/>` divider above nothing.
+  const hasSystemEconomyRatioSum = linksResult
+    ? sumSystemEconomyRatios(linksResult.ports).some((r) => r.totalPercent > 0)
+    : false;
+
   const hierarchyRoot = hasBodies ? buildBodyHierarchy(formState.starSystem, formState.bodies) : null;
 
   // Only offered for a system that's had a Raven Colonial backup imported at least once — the
@@ -282,26 +290,31 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
               : []),
           ]}
         >
-          {formState.ravenColonialSkeleton && solved ? (
+          {hasSystemEconomyRatioSum || (formState.ravenColonialSkeleton && solved) ? (
             <>
-              <div className="row-grid">
-                <p style={{ fontSize: "0.8rem", color: "var(--text-dim)", margin: 0 }}>
-                  Download the solver's newly-proposed builds below as a Raven Colonial "plan" sites
-                  JSON — upload it back into this system's project on{" "}
-                  <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">
-                    Raven Colonial
-                  </a>{" "}
-                  to add them as planned constructions there, alongside what's already built.{" "}
-                  <strong>Beta, untested</strong> — check the imported result in Raven Colonial
-                  before relying on it.
-                </p>
-                <button type="button" onClick={handleExportRavenColonial} style={{ marginLeft: "auto" }}>
-                  Export Raven Colonial
-                </button>
-              </div>
-              {rcExportWarnings.length > 0 && (
-                <div className="status-banner">{rcExportWarnings.map((w) => <div key={w}>{w}</div>)}</div>
-              )}
+              {hasSystemEconomyRatioSum && linksResult && <SystemEconomyRatioSumBar ports={linksResult.ports} />}
+              {formState.ravenColonialSkeleton && solved ? (
+                <>
+                  <div className="row-grid">
+                    <p style={{ fontSize: "0.8rem", color: "var(--text-dim)", margin: 0 }}>
+                      Download the solver's newly-proposed builds below as a Raven Colonial "plan" sites
+                      JSON — upload it back into this system's project on{" "}
+                      <a href="https://ravencolonial.com/" target="_blank" rel="noreferrer">
+                        Raven Colonial
+                      </a>{" "}
+                      to add them as planned constructions there, alongside what's already built.{" "}
+                      <strong>Beta, untested</strong> — check the imported result in Raven Colonial
+                      before relying on it.
+                    </p>
+                    <button type="button" onClick={handleExportRavenColonial} style={{ marginLeft: "auto" }}>
+                      Export Raven Colonial
+                    </button>
+                  </div>
+                  {rcExportWarnings.length > 0 && (
+                    <div className="status-banner">{rcExportWarnings.map((w) => <div key={w}>{w}</div>)}</div>
+                  )}
+                </>
+              ) : null}
             </>
           ) : null}
         </SystemScoresSummary>

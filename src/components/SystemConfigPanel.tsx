@@ -3,7 +3,7 @@ import { ALL_CATEGORIES, isPort, isPortRole, ALL_BUILDINGS, toPrintable, getBuil
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
 import { computeCurrentSystemScores } from "../domain/currentSystemScores";
 import { applyManualResourceLevel, type ResourceLevel } from "../domain/economyOverrides";
-import type { SystemLinksResult } from "../domain/links";
+import { sumSystemEconomyRatios, type SystemLinksResult } from "../domain/links";
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import {
   deriveCurrentPoints,
@@ -18,6 +18,7 @@ import { computePresentSystemLinks, strongLinkedInstances } from "../domain/pres
 import { compareBodyNames, type JournalBody } from "../journal/parser";
 import type { SolverResult } from "../solver/solve";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
+import { SystemEconomyRatioSumBar } from "./EconomyMixBar";
 import { BodyInfoIcon, facilityEconomyRatios, facilityMarketLinks, FacilityInfoIcon } from "./FacilityInfo";
 import { SlotBar } from "./SlotBar";
 import { SystemScoresSummary } from "./SystemScoresSummary";
@@ -475,7 +476,12 @@ function HierarchyBranch({
 export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemConfigPanelProps) {
   const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(false);
   useEffect(() => {
-    if (justSolved) setCollapsed(true);
+    // `compensate: false` — this collapse isn't a button click the user is looking at, it's a
+    // side effect of solving while the page is about to scroll to "Solved system" (App.tsx's own
+    // `scrollIntoView`). The anchor-compensating `scrollBy` this hook normally does would otherwise
+    // race that scroll and land the viewport somewhere else entirely — see `useScrollAnchoredCollapse`'s
+    // doc comment for the full story.
+    if (justSolved) setCollapsed(true, { compensate: false });
     // setCollapsed has a stable identity (useScrollAnchoredCollapse wraps it in useCallback([])) —
     // listed here only to satisfy exhaustive-deps, doesn't change when this effect actually reruns.
   }, [justSolved, setCollapsed]);
@@ -516,6 +522,11 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
   // "Strong market link(s)" hover section below. Recomputed only when the underlying present-
   // facility/primary-station state actually changes, not on every render.
   const linksResult = useMemo(() => computePresentSystemLinks(effectiveBodies), [effectiveBodies]);
+  // Cheap enough to just recompute (`SystemEconomyRatioSumBar` below does the same aggregation
+  // internally from `linksResult.ports`) — only needed here to decide whether `SystemScoresSummary`
+  // gets any `children` at all, so it doesn't render an orphan `<hr/>` divider above nothing (e.g.
+  // a freshly-configured system with no facilities built yet).
+  const hasSystemEconomyRatioSum = sumSystemEconomyRatios(linksResult.ports).some((r) => r.totalPercent > 0);
 
   // The primary station shows up as a leaf under whichever body it's assigned to (see
   // HierarchyBranch/the root's own leaves below) — but if it's been picked without a body
@@ -682,7 +693,10 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
           { label: "T2 points", value: currentPoints.t2 },
           { label: "T3 points", value: currentPoints.t3 },
         ]}
-      />
+        emphasized
+      >
+        {hasSystemEconomyRatioSum && <SystemEconomyRatioSumBar ports={linksResult.ports} />}
+      </SystemScoresSummary>
 
       {hierarchyRoot && (
         <div className="facility-tree">
