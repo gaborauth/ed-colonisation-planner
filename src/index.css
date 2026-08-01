@@ -1424,3 +1424,18 @@ select.toolbar-summary-system {
   font: inherit;
   cursor: pointer;
 }
+
+.app-footer-proxy-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 2px;
+  background: var(--text-faint);
+}
+
+.app-footer-proxy-status--healthy {
+  background: var(--success);
+}
+
+.app-footer-proxy-status--unhealthy {
+  background: var(--danger);
+}

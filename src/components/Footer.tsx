@@ -1,5 +1,12 @@
 import pkg from "../../package.json";
+import { useSpanshProxyHealth } from "../hooks/useSpanshProxyHealth";
 import type { ConsentChoice } from "../persistence/consent";
+
+const PROXY_HEALTH_LABEL = {
+  checking: "checking…",
+  healthy: "reachable",
+  unhealthy: "unreachable",
+};
 
 export function Footer({
   cookieChoice,
@@ -8,6 +15,8 @@ export function Footer({
   cookieChoice: ConsentChoice | null;
   onOpenCookieSettings: () => void;
 }) {
+  const proxyHealth = useSpanshProxyHealth();
+
   return (
     <footer className="app-footer">
       <span>v{pkg.version}</span>
@@ -23,6 +32,12 @@ export function Footer({
       <button type="button" className="app-footer-link" onClick={onOpenCookieSettings}>
         Cookie settings{cookieChoice ? ` (${cookieChoice})` : ""}
       </button>
+      <span
+        className={`app-footer-proxy-status app-footer-proxy-status--${proxyHealth}`}
+        title={`Spansh CORS proxy: ${PROXY_HEALTH_LABEL[proxyHealth]}`}
+        aria-label={`Spansh CORS proxy: ${PROXY_HEALTH_LABEL[proxyHealth]}`}
+        role="img"
+      />
     </footer>
   );
 }

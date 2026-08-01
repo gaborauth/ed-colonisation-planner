@@ -35,3 +35,15 @@ export async function fetchSpanshSystemDump(id64: number): Promise<SpanshDumpRec
   const data = await getJson<{ system: SpanshDumpRecord }>(`/dump/${id64}`);
   return data.system;
 }
+
+/** Pings the proxy's own `/health` endpoint (a cheap, short-cached real Spansh call the proxy
+ * makes on the server side) to report proxy+upstream reachability for the footer's status dot —
+ * not used by any actual data-fetching path. */
+export async function checkSpanshProxyHealth(): Promise<boolean> {
+  try {
+    const response = await fetch(`${SPANSH_PROXY_BASE}/health`, { cache: "no-store" });
+    return response.ok;
+  } catch {
+    return false;
+  }
+}
