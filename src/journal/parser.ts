@@ -267,10 +267,10 @@ function ringBodyId(parentBodyId: number, ringIndex: number): number {
  * `JournalImportPanel`'s table and its own node in `domain/bodyHierarchy.ts`'s tree.
  *
  * **Deliberately star-only, not planets/moons**: a planet's or moon's own ring keeps making that
- * body's OWN orbital slot(s) asteroid-eligible instead, unchanged from this app's original
- * behavior — see `eligibility.ts`'s `estimateBodySlots`. This is an intentional asymmetry, not an
- * oversight: only a star's belt is far enough from the star itself to be its own separate location;
- * a planet's ring sits at the planet.
+ * body's OWN orbital slot(s) asteroid-eligible instead — see `eligibility.ts`'s
+ * `estimateBodySlots`. This is an intentional asymmetry, not an oversight: only a star's belt is
+ * far enough from the star itself to be its own separate location; a planet's ring sits at the
+ * planet.
  *
  * `rings: [ring]` (self-referencing) so `economyOverrides.ts`'s `hasRings()` still fires for a port
  * built here — an Asteroid_Base built in a belt should still get the "Has rings" Extraction bonus,

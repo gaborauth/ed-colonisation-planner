@@ -61,6 +61,17 @@ src/
                               adapter.ts (Spansh `/dump/{id64}` JSON -> this app's own
                               JournalSystem/JournalBody shape, so the rest of the app never knows
                               the difference), types.ts
+  ravenColonial/             — optional Raven Colonial overlay/export (see "Raven Colonial
+                              import/export" below): adapter.ts (overlays an uploaded RC backup
+                              file's slots/built-facilities onto an already-loaded system),
+                              export.ts (the reverse: a solved plan's new builds -> an
+                              RC-importable "plan" sites file), buildTypes.ts (RC layout-name ->
+                              this app's building/variant mapping), types.ts
+  hooks/                     — small reusable hooks: useCookieConsent (consent choice/banner
+                              state), useScrollAnchoredCollapse (fold/collapse that keeps its
+                              toggle button under the pointer as content above it resizes),
+                              useSpanshProxyHealth (polls the CORS proxy's `/health` endpoint for
+                              the footer's status dot)
   components/               — one component per UI panel, no component library; FacilityInfo.tsx
                               (the "i" info icons) and SystemScoresSummary.tsx (score/points/slots
                               readout) are shared between "Actual facilities" and "Solved system";
@@ -88,6 +99,13 @@ proxy on their own K8s cluster (`https://spansh-proxy.iotguru.dev`, not part of 
 forwards to `spansh.co.uk/api/...` and allowlists this app's real origins. `src/spansh/api.ts`
 hardcodes that proxy's public URL as `SPANSH_PROXY_BASE` — if the proxy ever moves, that's the one
 place to update.
+
+**Proxy liveness dot**: the proxy also serves a `/health` location (nginx-side, not part of this
+repo) that answers with a static `204` with no upstream Spansh call at all — a liveness-only check
+of the proxy pod itself, not of Spansh's own reachability through it (avoids spending Spansh's own
+rate limit on a heartbeat). `src/hooks/useSpanshProxyHealth.ts` polls it every 60s via
+`checkSpanshProxyHealth()` (`spansh/api.ts`) and `Footer.tsx` renders the result as a small
+green/red/grey square, independent of whether the Spansh import tab is currently open.
 
 **Two Spansh endpoints, two different jobs**: `GET /systems/field_values/name?q=...` is the real
 typeahead/autocomplete endpoint for the Spansh tab's search-as-you-type combobox (`/search` is a
@@ -148,6 +166,50 @@ summary (next to "Live Demo") becomes a real `<select>` once more than one syste
 switch between saved systems from either import tab without reopening the Import system panel.
 Mount-time last-used-system auto-restore also lives here (`switchToSavedSystem`), guarded so it
 never clobbers an already-active system.
+
+## Raven Colonial import/export
+
+[Raven Colonial](https://ravencolonial.com/) is a separate community tool some players use to
+track a colonization project's construction progress. `src/ravenColonial/` lets this app overlay
+an exported RC project onto a system already loaded here, and later export a solved plan's new
+builds back into RC — not a third import source/tab of its own, since RC's own per-system data has
+no body physical/orbital attributes at all (see below).
+
+**Overlay, not a standalone import**: `JournalImportPanel.tsx`'s "Import system" panel shows a file
+upload for RC's own "Export backup" JSON once a system is already loaded (from either the Journal
+or Spansh tab) — `handleRavenColonialFile` parses it and `ravenColonial/adapter.ts`'s
+`applyRavenColonialOverlay` merges its `slots`/`sites` (built facilities + primary station) onto
+that already-loaded `JournalSystem`. RC's own body data (`RcBody`'s subType/gravity/radius/etc.) is
+deliberately never read — the system this overlays onto already has that from its own Journal/
+Spansh source.
+
+**File upload, not a live API call, and deliberately so**: RC's export file is the same shape as
+its own `GET /api/v2/system/{id64}` response (`ravenColonial/types.ts`), so nothing is lost reading
+it from a file instead — unlike the Spansh import path, this app's author has no CORS-proxy
+arrangement with RC's operator, so this app never calls RC's API directly on a user's behalf.
+
+**`buildTypes.ts`'s layout-name mapping**: RC's per-site `buildType` string (e.g. `"quad_truss"`,
+`"picumnus"`) names a specific in-game construction LAYOUT, not this app's own building identifier
+— several buildings offer multiple interchangeable layouts, and RC's export records only one per
+site with no separate category field. `RC_BUILD_TYPE` maps every known layout name to this app's
+building/slotKind/variant, sourced from SrvSurvey's community-maintained
+`colonization-costs2.json` (the project RC itself builds on) — only 8 of its entries are
+cross-checked against a real RC export (`rc-jsons/swoilz-aw-c-d52.json`, matched by `customName`
+against the same system's real `jsons/swoilz-aw-c-d52.json`); the rest are best-effort/unverified,
+same treatment as this file's other community-sourced tables.
+
+**Export direction is narrow and one-way**: `ravenColonial/export.ts`'s `buildRavenColonialExport`
+(wired to `SolvedSystemPanel.tsx`'s "Export Raven Colonial" button, shown only once a system has
+had an RC backup imported at least once) takes `domain/solvedPlacement.ts`'s already-computed
+per-slot placements and only ever ADDS new `"plan"` sites for `"new"`/`"demolished-rebuilt"` slots
+— a solver-proposed DEMOLITION of an already-`"complete"` RC site has no representation at all (RC's
+own status vocabulary for "to be demolished" isn't confirmed anywhere sourced), a known, documented
+gap rather than a guess. Every other field of the stored `RcSystemSkeleton` (the full upload, kept
+verbatim on `JournalSystem.ravenColonialSkeleton`/`PlannerFormState.ravenColonialSkeleton`) is
+carried through unchanged, including `rev` — NOT incremented, since whether RC expects that on
+re-import isn't verified either way. The one exception is `slots`, regenerated from this app's own
+current per-body slot counts so in-app edits since the last RC import round-trip correctly. Labeled
+"Beta, untested" in the UI.
 
 ## Per-slot "leave empty" blocking
 
@@ -528,6 +590,13 @@ the same per-body loop `solve.ts` already runs for `economy_synergy`.
   into its `describe.each` since the input shape differs) both use it.
   `spansh-jsons/swoilz-aw-c-d52-query.json` (a `/systems/field_values/name` typeahead response) is
   also committed and used by the same tests.
+- **`rc-jsons/swoilz-aw-c-d52.json`** is a real Raven Colonial "Export backup" for the same real
+  system as the two fixtures above, committed for the same reason. `src/ravenColonial/adapter.test.ts`
+  and `src/ravenColonial/export.test.ts` both use it — the former cross-checks `buildTypes.ts`'s
+  layout-name mapping against real `customName` matches in `jsons/swoilz-aw-c-d52.json`.
+  `rc-jsons/swoilz-aw-c-d52-file.json`/`-planned.json` (two later real RC revisions of the same
+  system, `rev: 36`/`37`) are also committed but not currently read by any test — free to use the
+  same way if a future test needs a second real RC snapshot.
 
 ## Data source
 

@@ -122,8 +122,9 @@ export const INITIAL_FORM_STATE: PlannerFormState = {
   // than a single arbitrary score. `scoreMin.security: 0`/`scoreMax.security: 20` below keep both
   // ends a hard constraint, not just an objective term. Floor: user-reported reason — NPCs
   // interdict during hauling once system security goes negative, so non-negative security is a
-  // real requirement (0, not the previous 1, is the actual boundary that matters here; nothing
-  // about the interdiction behavior distinguishes 0 from 1). Ceiling: user-reported reason — real
+  // real requirement (0 is the actual boundary that matters here; nothing about the interdiction
+  // behavior distinguishes 0 from 1, so the floor is non-negative rather than strictly positive).
+  // Ceiling: user-reported reason — real
   // in-game High security is already reached around 10-15 points, so the solver's own linear,
   // uncapped `e` objective term was observed proposing 200-300-point security layouts on real
   // systems that provide no further real benefit past that, wasting construction cost/slots that

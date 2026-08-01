@@ -29,9 +29,12 @@ Otherwise:
    whoever last scanned that body in its own database, not necessarily your own play session).
    Either way, the slot-count estimate is a best-effort guess (see
    [Known limitations](#known-limitations)) and pre-fills editable fields — always sanity check it
-   against your in-game System Map. Clicking **Apply slots and body layout to Actual facilities in
-   the system** switches the solver into *per-body placement* mode (real per-body slot capacity)
-   instead of just aggregate totals.
+   against your in-game System Map. Already tracking this system's construction in
+   [Raven Colonial](https://ravencolonial.com/)? Upload its "Export backup" JSON file to overlay its
+   slot counts and built facilities onto the system loaded above (Raven Colonial's own body/orbital
+   data is never used — only its slots and built-facility list). Clicking **Apply slots and body
+   layout to Actual facilities in the system** switches the solver into *per-body placement* mode
+   (real per-body slot capacity) instead of just aggregate totals.
 2. **Actual facilities in the system** — pick your primary station and which body it's on (both
    required, and visually highlighted until you do), then mark what's already built in each body's
    slots using the tree below (one dropdown per physical orbital/ground slot). Flag an already-built
@@ -46,10 +49,14 @@ Otherwise:
    **Save** (top toolbar) to persist your already-built layout for next time.
 3. **Objective** — maximize a single system score (construction cost is minimized instead), or write
    a custom expression (`sqrt(w) + sqrt(n)`, `2*w + t - abs(w - 2*t)`, etc.) over the score letters
-   `i m e t w n d c`. Two optional, foldable sub-sections sit below it: **Score constraints** (min/max
-   bounds per score) and **Economy preferences** (per-body layout only) — a Must / Want / Dunno /
-   Don't want / Forbid choice per Update 3 economy type, letting you steer which economies the
-   solver favors or avoids on top of its aggregate scoring.
+   `i m e t w n d c y p` (population increase, security, tech level, wealth, standard of living,
+   development, construction cost, economy fit, and your economy preference choices below). Two
+   optional, foldable sub-sections sit below it: **Score constraints** (min/max bounds per score) and
+   **Economy preferences** (per-body layout only) — a "No preference" checkbox (the default) plus a
+   0-200 slider per Update 3 economy type, letting you steer which economies the solver favors or
+   avoids on top of its aggregate scoring. Unchecking the box and dragging the slider below 50 makes
+   the solver avoid that economy (a soft pull, stronger toward either end); dragging it to exactly 0
+   forbids that economy outright — a hard exclusion, not a nudge.
 4. **Buildings** — pin per-building Min/Max counts, and hover a building's total (after solving)
    to see its contribution to each score. The "Already present" column is only editable without a
    journal-imported body layout — with one, it's a read-only mirror of the Actual facilities in the
@@ -61,7 +68,11 @@ Otherwise:
    is automatically treated as a no-op rather than recommended as real (wasted) construction. The
    **Build order** panel below it lays out the whole plan as one numbered, color-coded table — every
    facility instance, already built, marked for demolition, or newly planned, in build order — with
-   a running T2/T3 point total per row and a Total row for the solver's own final numbers.
+   a running T2/T3 point total per row and a Total row for the solver's own final numbers. If this
+   system had a Raven Colonial backup imported (step 1), an **Export Raven Colonial** button appears,
+   downloading the solve's newly-proposed builds as Raven Colonial "plan" sites you can re-import
+   there (beta, untested — a solver-proposed demolition of an already-built site has no
+   representation in this export).
 6. **Saved plans** — save/load plans locally (browser storage), delete a saved system you no longer
    need, or export/import a plan as a file to move it between browsers.
 

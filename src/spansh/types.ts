@@ -50,7 +50,7 @@ export interface SpanshDumpBody {
 }
 
 /** `GET /dump/{id64}` response envelope — top-level key is `system`, not `record` (a different
- * shape than the now-unused `/system/{id64}` endpoint). */
+ * shape than Spansh's separate, unused `/system/{id64}` endpoint — see `api.ts`'s header comment). */
 export interface SpanshDumpRecord {
   name: string;
   id64: number;

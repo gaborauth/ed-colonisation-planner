@@ -41,13 +41,13 @@ interface TooltipProps {
   hoverPreview?: boolean;
 }
 
-/** Hover-to-preview, click-to-pin info bubble. Plain hover (`hovered`) is transient exactly like
- * before: the bubble shows while the pointer or focus is on the icon and disappears the instant it
- * leaves. When `pinnable`, clicking (or Enter/Space while focused) additionally toggles `pinned`,
- * which keeps the bubble open regardless of hover state.
+/** Hover-to-preview, click-to-pin info bubble. Plain hover (`hovered`) is always transient: the
+ * bubble shows while the pointer or focus is on the icon and disappears the instant it leaves,
+ * regardless of whether `pinnable` is set. When `pinnable`, clicking (or Enter/Space while
+ * focused) additionally toggles `pinned`, which keeps the bubble open regardless of hover state.
  *
- * Pinning exists because some bubble content now contains a real link (see SystemConfigPanel's
- * "Known issues" link) — without it, reaching the link meant crossing the visual gap between the
+ * Pinning exists because some bubble content contains a real link (see SystemConfigPanel's
+ * "Known issues" link) — without it, reaching the link means crossing the visual gap between the
  * icon and the bubble (it's positioned `bottom: calc(100% + 8px)` away, not flush against it), and
  * that gap isn't part of the anchor's hoverable DOM subtree: the pointer passes over an unrelated
  * page element mid-transit, firing the anchor's `mouseleave` before the link is ever reachable.

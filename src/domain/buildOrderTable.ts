@@ -309,9 +309,9 @@ export function computeBuildOrderTable(formState: PlannerFormState, result: Solv
       // Demolished facilities are never ports (see CLAUDE.md's scope-boundary note), so
       // `removeBuilding`'s flat, non-escalating subtraction is always correct here.
       replay.removeBuilding(building);
-      // NOT floored at 0 (an earlier version of this code did that, hiding the real number) —
-      // Delta and Total must stay honest with each other. Going negative here shouldn't happen in
-      // practice now: `scheduleDemolishAndPlanned` (below) only ever calls this once
+      // NOT floored at 0 — flooring would hide the real number, and Delta/Total must stay honest
+      // with each other. Going negative here shouldn't happen in practice: `scheduleDemolishAndPlanned`
+      // (below) only ever calls this once
       // `replay.canDemolish(building)` was confirmed true for the CURRENT state, deferring any
       // demolish that would otherwise force a real point deficit until a Planned row has grown the
       // balance back up first.

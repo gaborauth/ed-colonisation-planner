@@ -7,16 +7,15 @@
 //    performance boosted or decreased by the same kind of body/system characteristics
 //    (computeBoostDecrease). Weak links are unaffected by this mechanic, per the source.
 //
-// Every trigger condition is now confidently answerable when the underlying Journal data is
-// present: `Volcanism` is a plain field on every `Scan` event (not DSS-only, despite what an
-// earlier version of this comment claimed); organics/geologicals are confidently `false` (not
-// "unknown") for an unlandable body (gas giant, star) — there's no surface to have signals on — and
-// confidently readable for a landable one via the Journal's `FSSBodySignals` event (an ordinary
-// FSS/"honk" scan, no DSS needed — see `journal/parser.ts`'s `hasBiologicalSignals`/
-// `hasGeologicalSignals`), when that body was actually FSS-signal-scanned; `ReserveLevel` is a
-// top-level field on a ringed body's own `Scan` event (`JournalBody.reserveLevel` — confirmed
-// against a real journal line; an earlier version of this parser incorrectly looked for it nested
-// per-ring instead, where it's never actually populated) but represents a system-wide fact despite
+// Every trigger condition is confidently answerable when the underlying Journal data is present:
+// `Volcanism` is a plain field on every `Scan` event (not DSS-only); organics/geologicals are
+// confidently `false` (not "unknown") for an unlandable body (gas giant, star) — there's no
+// surface to have signals on — and confidently readable for a landable one via the Journal's
+// `FSSBodySignals` event (an ordinary FSS/"honk" scan, no DSS needed — see `journal/parser.ts`'s
+// `hasBiologicalSignals`/`hasGeologicalSignals`), when that body was actually FSS-signal-scanned;
+// `ReserveLevel` is a top-level field on a ringed body's own `Scan` event
+// (`JournalBody.reserveLevel`, confirmed against a real journal line — NOT nested per-ring, where
+// it's never actually populated) but represents a system-wide fact despite
 // living on one specific body — any ringed body in the system reporting one is read as the whole
 // system's resource level (`systemResourceLevel`). Every predicate below returns
 // `null` only when truly unknown (the relevant event/field was never seen), never a guessed
@@ -327,7 +326,7 @@ export const BOOST_DECREASE_DELTA = 0.4;
  * to the body-info hover's economy tables (see `SystemConfigPanel.tsx`'s `bodyInfoContent`), linking
  * to the full explanation on `public/known-issues.html` (`TERRAFORMABLE_AGRICULTURE_BUG_LINK` below)
  * rather than spelling it all out inline — the hover box uses a `white-space: nowrap` bubble
- * (`Tooltip.css`), so a long inline sentence used to force it absurdly wide instead of wrapping. See
+ * (`Tooltip.css`), so a long inline sentence would force it absurdly wide instead of wrapping. See
  * CLAUDE.md's "Explicitly unverified/best-effort constants" section. */
 export const TERRAFORMABLE_AGRICULTURE_BUG_NOTE = "Terraformable's Agriculture boost isn't applied (suspected game bug).";
 

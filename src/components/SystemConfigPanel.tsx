@@ -113,8 +113,8 @@ function PrimaryStationFields({
 
 /** The primary station shown as an immutable leaf, used only while it's picked but not yet
  * assigned to a body — once assigned, it occupies that body's first orbital slot instead (see
- * `BodySlotLeaves`'s `PrimaryStationSlotLeaf` below), consistent with it now actually consuming
- * real orbital capacity rather than floating in its own dedicated slot. */
+ * `BodySlotLeaves`'s `PrimaryStationSlotLeaf` below), consistent with it actually consuming real
+ * orbital capacity rather than floating in its own dedicated slot. */
 function PrimaryStationLeaf({
   firstStationBuilding,
   firstStationVariant,
@@ -252,9 +252,9 @@ function BodySlotLeaves({
         const blockedList = normalizeBlockedSlots(body.blockedSlots?.[kind], count);
         // The primary station's own reservation is only ever the first *orbital* slot (it's always
         // an orbital Port-role building, see SolverInput.firstStationBuilding) — ground slots are
-        // never affected, and this body's index 0 space slot is expected to stay empty in
-        // `presentFacilities` (the reservation is tracked flatly in the solver, not as a present
-        // facility entry) even though it's no longer offered here for editing.
+        // never affected, and this body's index 0 space slot stays empty in `presentFacilities`
+        // (the reservation is tracked flatly in the solver, not as a present facility entry) and
+        // isn't offered here for editing at all.
         const reserveFirstForPrimary = kind === "space" && isFirstStationBody && count > 0;
         // Claimed before the regular slot loop below (it's always physically slot 1) so it always
         // wins instance rank 0 for `firstStationBuilding` — see PrimaryStationSlotLeaf's own render
@@ -335,9 +335,9 @@ function BodySlotLeaves({
                 <select
                   className="facility-tree-variant"
                   aria-label={`${body.bodyName} ${label} slot ${index + 1} design variant`}
-                  // Falls back to the single option when there's only one — covers data saved
-                  // before this auto-pick existed (see the facility select's onChange above),
-                  // not just freshly-picked buildings.
+                  // Falls back to the single option when there's only one, whether `slot.variant`
+                  // was already auto-picked at select time (see the facility select's onChange
+                  // above) or is simply absent from an older saved plan.
                   value={slot.variant ?? (variants.length === 1 ? variants[0] : "")}
                   disabled={locked || variants.length === 1}
                   onChange={(e) => setSlot(kind, index, { ...slot, variant: e.target.value === "" ? undefined : e.target.value })}
