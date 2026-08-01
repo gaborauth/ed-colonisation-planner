@@ -84,11 +84,11 @@ function capitalize(text: string): string {
 // Score constraints table (see below). Every ALL_SCORES entry needs one (including the
 // derived/compound ones): missing an entry would silently show a blank hint rather than erroring, so
 // this is written as a full Record, not Partial, to make an omission a compile error instead. Capped
-// at 8 words each — the longer nuance these used to carry (e.g. "not a real in-game stat" for the
-// two derived scores) is conveyed instead by the Score constraints table's own divider (see
-// ALL_SCORES.map below) separating real system stats from
-// construction_cost/system_score_beta/economy_synergy/economy_preference, rather than by spelling
-// it out in every one of those rows' own text.
+// at 8 words each — the Score constraints table's own divider (see ALL_SCORES.map below) already
+// separates real system stats from
+// construction_cost/system_score_beta/economy_synergy/economy_preference, so an individual
+// description doesn't need to spell out that distinction itself (e.g. "not a real in-game stat"
+// for the two derived scores).
 const SCORE_DESCRIPTIONS: Record<Score, string> = {
   initial_population_increase: "How much starting population increases from this.",
   max_population_increase: "Maximum sustainable population increase for the system.",

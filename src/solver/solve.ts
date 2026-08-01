@@ -19,13 +19,11 @@
 //    optimizing over, it's a precondition. `firstStationBuilding` is now always required input.
 //
 // --- economy_synergy (Update 3 link/economy feeding the objective) -------------------------------
-// An earlier version of this project deliberately kept Update 3's link/economy modeling (see
-// CLAUDE.md) entirely post-solve/display-only, on the grounds that this tool doesn't model real
-// commodity supply/demand at all, so there was no existing score for link topology to feed into.
-// That approach was overridden: with Update 3+'s rules in place, a solve that never
-// considers *which body* a building's economy type actually suits isn't a useful recommendation
-// engine anymore game-wise, even without a full commodity model. `economy_synergy` is the result —
-// see `economySynergyCoefficient` below for exactly what it computes. It is deliberately NOT an
+// Update 3's link/economy modeling (see CLAUDE.md) needs to feed the objective, not stay purely
+// post-solve/display-only: a solve that never considers *which body* a building's economy type
+// actually suits isn't a useful recommendation engine game-wise, even without a full commodity
+// model. `economy_synergy` is the result — see `economySynergyCoefficient` below for exactly what
+// it computes. It is deliberately NOT an
 // attempt to model the full strong/weak-link graph inside the MILP (that would require knowing
 // which port is dominant on each body, which itself depends on the very placement decisions being
 // solved for — a circular, and likely intractable, thing to embed as linear objective
@@ -42,12 +40,11 @@
 //
 // One thing this term does NOT get to ignore: a strong link can only ever form on a body that
 // actually HAS a port (per CLAUDE.md's link topology — links only ever form port<->facility or
-// port<->port, never facility<->facility). An earlier version of this term applied the full
-// strong-link-style boost/decrease to every candidate body regardless, which made the solver
-// actively prefer dumping facilities onto port-less bodies purely to farm a boost that could never
-// really apply there — surfacing as `domain/links.ts`'s "has N facility type(s) but no port, they
-// can't form a strong link here" warning far more often post-solve than pre-economy_synergy.
-// `knownPortBodyIds` below is the fix: a body only gets the full
+// port<->port, never facility<->facility). Applying the full strong-link-style boost/decrease to
+// every candidate body regardless would make the solver actively prefer dumping facilities onto
+// port-less bodies purely to farm a boost that could never really apply there — surfacing as
+// `domain/links.ts`'s "has N facility type(s) but no port, they can't form a strong link here"
+// warning far more often post-solve. `knownPortBodyIds` below is the fix: a body only gets the full
 // strong-link-style delta if it's known (before solving, not decision-dependent) to have a port —
 // already has one present, or is the primary station's assigned body. Every other body instead
 // gets a small flat, body-attribute-INdependent trickle (`WEAK_LINK_CONTRIBUTION` per economy
@@ -128,10 +125,10 @@ export interface SlotAvailability {
  * `domain/economyOverrides.ts`), which solve.ts stays decoupled from.
  *
  * `slots.space`/`slots.ground` are the body's TOTAL physical slot counts (matching what
- * `eligibility.ts` estimates and what Journal Import's table edits) — NOT "remaining capacity" as
- * an earlier version of this doc comment said. `solve.ts` now computes remaining capacity itself:
- * total minus whatever `presentFacilities` occupies (see "--- Already-present facilities" below),
- * so the caller no longer needs to manually pre-subtract already-built stuff. */
+ * `eligibility.ts` estimates and what Journal Import's table edits) — NOT "remaining capacity".
+ * `solve.ts` computes remaining capacity itself: total minus whatever `presentFacilities` occupies
+ * (see "--- Already-present facilities" below), so the caller never needs to manually pre-subtract
+ * already-built stuff. */
 export interface SolverBody {
   bodyId: number;
   slots: SlotAvailability;
@@ -388,8 +385,9 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       bodyVars[name] = {};
       let bodySum: LPExpr = exprConst(0);
       for (const b of input.bodies) {
-        // Asteroid_Base is hard-restricted to ring/belt-eligible bodies here, replacing the old
-        // system-wide `Asteroid_Base <= input.slots.asteroid` pseudo-pool entirely in this mode. A
+        // Asteroid_Base is hard-restricted to ring/belt-eligible bodies here, in place of aggregate
+        // mode's own system-wide `Asteroid_Base <= input.slots.asteroid` pseudo-pool (see below) —
+        // this per-body constraint is the only one that applies once `input.bodies` is populated. A
         // ringed PLANET's own slot (as opposed to a star belt's dedicated synthetic `kind: "ring"`
         // body — see `journal/parser.ts`'s `withRingBodies`) stays an ORDINARY orbital slot that
         // merely additionally qualifies for Asteroid_Base, so it can also host any other building.
@@ -912,7 +910,7 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   // Aggregate mode's own formula is intentionally left untouched below (protected by
   // solve.test.ts's `bodies: []` vs. omitted byte-identical regression test) — `presentSplit`/
   // `presentKeepVars` are always empty there anyway, so the per-body-only terms below are all 0 and
-  // this reduces to exactly the old aggregate-mode formula.
+  // this reduces to exactly aggregate mode's own formula.
   const presentOccupiedSpace =
     presentSplit.hard.filter((f) => f.kind === "space").length +
     presentKeepVars.filter((d) => d.kind === "space" && Math.round(colValues[d.keepVar] ?? 1) === 1).length +
@@ -942,11 +940,11 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
 
   // Ring-eligible ("asteroid-eligible") orbital slots are a SUBSET of ordinary orbital slots (any
   // orbital slot on a body with slots.asteroid > 0), not a separate pool — see
-  // JournalBody.slots.asteroid's doc comment / computeSystemSlotTotals. An earlier version of this
-  // figure counted only NEW Asteroid_Base builds against the pool size, which undercounted
-  // occupancy by every OTHER building (present or new) sitting on a ring-eligible body's orbital
-  // slots — contradictorily reporting asteroid slots free while plain orbital slots (a superset)
-  // were already all used up. `bodySpaceOccupied` mirrors the per-body capacity constraint above
+  // JournalBody.slots.asteroid's doc comment / computeSystemSlotTotals. Counting only NEW
+  // Asteroid_Base builds against the pool size would undercount occupancy by every OTHER building
+  // (present or new) sitting on a ring-eligible body's orbital slots — contradictorily reporting
+  // asteroid slots free while plain orbital slots (a superset) were already all used up.
+  // `bodySpaceOccupied` avoids this by mirroring the per-body capacity constraint above
   // (new + present-hard [which already includes the primary's own synced entry, see
   // `applyPrimaryReservation`] + present-kept-demolishable) for one specific body.
   function bodySpaceOccupied(b: SolverBody): number {

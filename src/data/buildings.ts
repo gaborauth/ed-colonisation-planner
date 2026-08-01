@@ -221,11 +221,7 @@ export function getT3PortCost(nbPreviousPorts: number): number {
 // affects system development level, security, standard of living, tech level, and wealth." The
 // claim/first station's own contribution to these five scores is BOOSTED by FIRST_STATION_BONUS;
 // every other facility's contribution (already-present or newly built) is REDUCED by
-// SUBSEQUENT_FACILITY_REDUCTION. This replaced an earlier "unverified, best-known figures"
-// version of this constant that used a single full-weight-vs-fraction split with different
-// (guessed) magnitudes — the official numbers differ substantially for some scores (e.g.
-// development_level's subsequent-facility reduction is only -10%, not the previously-guessed -60%)
-// and add a first-station bonus the old version didn't model at all.
+// SUBSEQUENT_FACILITY_REDUCTION — official, verbatim per-score percentages, not a guess.
 // Population increase and construction cost are not listed as affected and stay full-weight.
 // These are general game rules, not specific to the solver's own LP formulation — that's why they
 // live here rather than in solve.ts: `domain/currentSystemScores.ts` reuses the exact same

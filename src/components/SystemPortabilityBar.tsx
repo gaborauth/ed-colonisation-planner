@@ -119,9 +119,9 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Same precondition as the old SystemConfigPanel "Save" button: a per-body layout must have
-  // been applied (from a journal import) before there's a `systemAddress` to key the saved-system
-  // store by — aggregate-only ("enter slots manually") configurations have nothing to save/export.
+  // A per-body layout must have been applied (from a journal import) before there's a
+  // `systemAddress` to key the saved-system store by — aggregate-only ("enter slots manually")
+  // configurations have nothing to save/export.
   const canSaveOrExport = formState.systemAddress !== null && formState.bodies.length > 0;
 
   // Same summary SystemConfigPanel shows (built/free slots, current T2/T3 points) — reused here so
@@ -172,10 +172,11 @@ export function SystemPortabilityBar({ formState, dispatch, onImported, onSystem
   // Falls back to the last-used system otherwise (no param, or an unknown/stale name that doesn't
   // match anything saved locally — degrades gracefully rather than erroring, since this is fully
   // client-side with no backend to validate against). Switching to / restoring a known system is
-  // exclusively this toolbar's job (JournalImportPanel's own Journal-tab dropdown no longer browses
-  // already-saved systems at all), so the mount-time restore belongs here too, reusing
-  // `switchToSavedSystem` above rather than re-implementing the same dispatch/persistence shape a
-  // second time. Guarded on `formState.systemAddress` rather than running unconditionally, so it
+  // exclusively this toolbar's job — JournalImportPanel's own Journal-tab dropdown only ever lists
+  // freshly-parsed-but-not-yet-applied upload candidates, never already-saved systems — so the
+  // mount-time restore belongs here too, reusing `switchToSavedSystem` above rather than
+  // re-implementing the same dispatch/persistence shape a second time. Guarded on
+  // `formState.systemAddress` rather than running unconditionally, so it
   // never clobbers a system that's already active by the time this mounts (e.g. in a future
   // scenario where `formState` starts pre-filled).
   useEffect(() => {

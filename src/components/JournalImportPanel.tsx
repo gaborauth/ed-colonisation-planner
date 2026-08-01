@@ -116,11 +116,10 @@ export function JournalImportPanel({
   collapseSignal,
 }: JournalImportPanelProps) {
   // Purely backing data for the shared body/slot table below and `mergeBySystemAddress`'s
-  // slot-preservation lookup — no longer seeded from `listSavedSystems()` at mount. It's
-  // repopulated automatically by the `activeSystemAddress`-sync effect further down the moment a
-  // real system becomes active (including the mount-time restore, which now lives in
-  // SystemPortabilityBar — see that component). Switching to / browsing already-saved systems is
-  // exclusively SystemPortabilityBar's toolbar switcher's job now, not this panel's.
+  // slot-preservation lookup. Repopulated by the `activeSystemAddress`-sync effect further down
+  // whenever a real system becomes active (including the mount-time restore, which lives in
+  // `SystemPortabilityBar` — see that component). Switching to/browsing already-saved systems is
+  // `SystemPortabilityBar`'s toolbar switcher's job, not this panel's.
   const [systems, setSystems] = useState<JournalSystem[]>([]);
   // Addresses parsed from the MOST RECENT Journal file upload — drives the Journal tab's own
   // candidate picker (`pickedAddress` below). `null` when nothing's been freshly uploaded this

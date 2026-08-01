@@ -27,8 +27,7 @@ interface SystemScoresSummaryProps {
   /** Wraps the block in a highlighted (green) card. Both `SolvedSystemPanel` and
    * `SystemConfigPanel` opt in — a solved plan's own totals are the actual payoff of running the
    * solver, and "Actual facilities"'s current totals are just as central to that panel, so both
-   * get the same emphasis now (not a differentiator between the two panels the way it originally
-   * was when only one of them opted in). */
+   * get the same visual emphasis. */
   emphasized?: boolean;
   /** Extra content rendered inside the same emphasized card, below the grid, separated by an `<hr>`
    * — only meaningful when `emphasized` is set. `SolvedSystemPanel` uses it for its
