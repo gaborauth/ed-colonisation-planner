@@ -1,3 +1,9 @@
+## [1.4.6](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.5...v1.4.6) (2026-08-01)
+
+### Bug Fixes
+
+* proxy status check ([c10dfa4](https://github.com/gaborauth/ed-colonisation-planner/commit/c10dfa48c7a0a98c709506ac508ead75b6a1304b))
+
 ## [1.4.5](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.4...v1.4.5) (2026-07-31)
 
 ### Bug Fixes
