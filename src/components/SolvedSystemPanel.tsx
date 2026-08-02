@@ -5,6 +5,7 @@ import { applyManualResourceLevel } from "../domain/economyOverrides";
 import { sumSystemEconomyRatios, type SystemLinksResult } from "../domain/links";
 import { getOrderingFromResult } from "../domain/ordering";
 import type { StrongLinkedInstance } from "../domain/presentLinks";
+import { computeForcedBuildingPriority } from "../domain/selfSufficiencyCombos";
 import { computeSolvedPlacements, type SolvedBodySlots, type SolvedSlot } from "../domain/solvedPlacement";
 import { computeSolvedSystemLinks } from "../domain/solvedLinks";
 import type { JournalBody } from "../journal/parser";
@@ -222,8 +223,16 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
     if (!hasBodies || !result) return { solved: null, orderError: null, linksResult: null };
     const links = computeSolvedSystemLinks(effectiveBodies, result);
     try {
-      const newBuildOrder = getOrderingFromResult(toPlanResult(formState, result), true, false);
-      return { solved: computeSolvedPlacements(formState.bodies, result, newBuildOrder), orderError: null, linksResult: links };
+      // Makes a checked self-sufficiency goal's forced combo land as early as possible in the build
+      // order, not wherever the generic tier/alphabetical-body ordering would otherwise put it — see
+      // domain/selfSufficiencyCombos.ts's `computeForcedBuildingPriority` doc comment.
+      const { buildingNames, bodyIds } = computeForcedBuildingPriority(formState.selfSufficiencyGoals, formState.bodies);
+      const newBuildOrder = getOrderingFromResult(toPlanResult(formState, result), true, false, buildingNames);
+      return {
+        solved: computeSolvedPlacements(formState.bodies, result, newBuildOrder, bodyIds),
+        orderError: null,
+        linksResult: links,
+      };
     } catch (e) {
       return { solved: null, orderError: (e as Error).message, linksResult: links };
     }

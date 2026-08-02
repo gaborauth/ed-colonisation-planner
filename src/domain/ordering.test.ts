@@ -16,6 +16,35 @@ describe("computeFeasibleOrder", () => {
     );
   });
 
+  it("prioritizes a `priorityBuildings` name over an earlier-listed, equally-buildable one", () => {
+    // Both are Tier 1 (T2-generating, no deps) and simultaneously buildable from a fresh state —
+    // without a priority set, insertion order (Commercial_Outpost first) wins.
+    const withoutPriority = computeFeasibleOrder(new SystemState(), { Commercial_Outpost: 1, Civilian_Planetary_Outpost: 1 }, []);
+    expect(withoutPriority[0]).toBe("Commercial_Outpost");
+
+    const withPriority = computeFeasibleOrder(
+      new SystemState(),
+      { Commercial_Outpost: 1, Civilian_Planetary_Outpost: 1 },
+      [],
+      undefined,
+      new Set(["Civilian_Planetary_Outpost"]),
+    );
+    expect(withPriority[0]).toBe("Civilian_Planetary_Outpost");
+  });
+
+  it("never lets `priorityBuildings` override state.canBuild's own feasibility gate", () => {
+    // Refinery_Hub (T2: -1) isn't affordable from a fresh state until something T2-positive is
+    // built first — prioritizing it must not skip that real requirement.
+    const order = computeFeasibleOrder(
+      new SystemState(),
+      { Commercial_Outpost: 1, Refinery_Hub: 1 },
+      [],
+      undefined,
+      new Set(["Refinery_Hub"]),
+    );
+    expect(order).toEqual(["Commercial_Outpost", "Refinery_Hub"]);
+  });
+
   it("does not mutate the caller's ports array", () => {
     const state = new SystemState();
     state.T2points = 100;

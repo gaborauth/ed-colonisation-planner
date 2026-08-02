@@ -6,6 +6,7 @@ import {
   type PresentFacilitySlot,
 } from "../domain/presentFacilities";
 import { systemResourceLevel, type ResourceLevel } from "../domain/economyOverrides";
+import type { SelfSufficiencyCombo } from "../domain/selfSufficiencyCombos";
 import type { JournalBody } from "../journal/parser";
 import type { Direction, EconomyPreference, SlotAvailability, SolverResult } from "../solver/solve";
 
@@ -98,6 +99,13 @@ export interface PlannerFormState {
    * same session/system scope as `scoreMin`/`scoreMax`/`atLeast`/`atMost`, not persisted to
    * localStorage the way `objectiveMode`/`customExpression` are. */
   economyPreferences: Partial<Record<EconomyType, EconomyPreference>>;
+  /** "Self-sufficiency" checkboxes (ObjectivePanel.tsx) — checked = the NEXT solve is forced to
+   * build that combo somewhere it fits (see `domain/selfSufficiencyCombos.ts` and `solve.ts`'s
+   * `SolverInput.forcedBodyBuildings`). Absent per combo = unchecked, today's default.
+   * Deliberately doesn't store WHICH body — the best-fit target is recomputed fresh from
+   * `bodies` every solve, a standing goal rather than a one-time placement. Only meaningful once
+   * `bodies` is non-empty, same per-body-mode-only scope as `economyPreferences`. */
+  selfSufficiencyGoals: Partial<Record<SelfSufficiencyCombo, boolean>>;
 }
 
 export const INITIAL_FORM_STATE: PlannerFormState = {
@@ -140,6 +148,7 @@ export const INITIAL_FORM_STATE: PlannerFormState = {
   scoreMin: { security: 0 },
   scoreMax: { security: 20 },
   economyPreferences: {},
+  selfSufficiencyGoals: {},
 };
 
 export type PlannerAction =
@@ -147,6 +156,7 @@ export type PlannerAction =
   | { type: "setMapEntry"; map: "alreadyPresent" | "atLeast" | "atMost"; name: string; value: number | undefined }
   | { type: "setScoreBound"; bound: "scoreMin" | "scoreMax"; score: Score; value: number | undefined }
   | { type: "setEconomyPreference"; economy: EconomyType; value: EconomyPreference | undefined }
+  | { type: "setSelfSufficiencyGoal"; combo: SelfSufficiencyCombo; value: boolean }
   | {
       type: "setFacilitySlot";
       bodyId: number;
@@ -234,6 +244,15 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
       }
       return { ...state, economyPreferences: next };
     }
+    case "setSelfSufficiencyGoal": {
+      const next = { ...state.selfSufficiencyGoals };
+      if (action.value) {
+        next[action.combo] = true;
+      } else {
+        delete next[action.combo];
+      }
+      return { ...state, selfSufficiencyGoals: next };
+    }
     case "setFacilitySlot": {
       const bodies = state.bodies.map((b) => {
         if (b.bodyId !== action.bodyId) return b;
@@ -298,6 +317,9 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
       // this field's whole point was to move away from) or blindly overriding real per-body data a
       // pre-existing plan already has.
       const resourceLevel = action.state.systemResourceLevel ?? systemResourceLevel(bodies) ?? "pristine";
+      // Same shim style for `selfSufficiencyGoals` (added after `bodies`): a plan saved before it
+      // existed just has no goals checked, not a broken/undefined lookup target.
+      const selfSufficiencyGoals = action.state.selfSufficiencyGoals ?? {};
       return {
         ...action.state,
         bodies,
@@ -306,6 +328,7 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
         starSystem,
         economyPreferences,
         systemResourceLevel: resourceLevel,
+        selfSufficiencyGoals,
       };
     }
     case "reset":

@@ -49,6 +49,7 @@
 import { ALL_BUILDINGS, BASE_SCORES, isPort, type BaseScore, type Building } from "../data/buildings";
 import { getOrderingFromResult, computeFeasibleOrder } from "./ordering";
 import { normalizeFacilitySlots, presentBuildOrderHint, sortDeterministic } from "./presentFacilities";
+import { computeForcedBuildingPriority } from "./selfSufficiencyCombos";
 import { computeSolvedPlacements } from "./solvedPlacement";
 import { SystemState } from "./systemState";
 import type { SolverResult } from "../solver/solve";
@@ -184,8 +185,13 @@ function collectPlannedAndDemolishItems(
   result: SolverResult,
 ): { planned: PlannedCandidate[]; demolished: DemolishItem[] } {
   const planResult = toPlanResult(formState, result);
-  const newBuildOrder = getOrderingFromResult(planResult, true, false);
-  const { byBody } = computeSolvedPlacements(formState.bodies, result, newBuildOrder);
+  // Makes a checked self-sufficiency goal's forced combo land as early as possible in the build
+  // order — same priority derivation `SolvedSystemPanel.tsx` uses, so the two panels can't disagree
+  // about which build-order numbers these rows get. See domain/selfSufficiencyCombos.ts's
+  // `computeForcedBuildingPriority` doc comment.
+  const { buildingNames, bodyIds } = computeForcedBuildingPriority(formState.selfSufficiencyGoals, formState.bodies);
+  const newBuildOrder = getOrderingFromResult(planResult, true, false, buildingNames);
+  const { byBody } = computeSolvedPlacements(formState.bodies, result, newBuildOrder, bodyIds);
 
   const planned: PlannedCandidate[] = [];
   const demolished: DemolishItem[] = [];

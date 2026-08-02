@@ -16,6 +16,18 @@ function renderPanel(formState: PlannerFormState, dispatch = vi.fn()) {
   return dispatch;
 }
 
+function renderPanelWithRerender(formState: PlannerFormState) {
+  const dispatch = vi.fn();
+  const { rerender } = render(
+    <ObjectivePanel formState={formState} dispatch={dispatch} onSolve={vi.fn()} solving={false} result={null} />,
+  );
+  return {
+    dispatch,
+    rerenderWith: (next: PlannerFormState) =>
+      rerender(<ObjectivePanel formState={next} dispatch={dispatch} onSolve={vi.fn()} solving={false} result={null} />),
+  };
+}
+
 describe("ObjectivePanel's Economy preferences section", () => {
   beforeEach(() => {
     // Fold state is persisted via persistence/panelCollapse.ts — clear so each test starts from a
@@ -154,6 +166,124 @@ describe("ObjectivePanel's Economy preferences section", () => {
     fireEvent.change(field, { target: { value: "" } });
     fireEvent.blur(field);
     expect(dispatch).toHaveBeenCalledWith({ type: "setEconomyPreference", economy: "Military", value: undefined });
+  });
+});
+
+describe("ObjectivePanel's Self-sufficiency section", () => {
+  function cleanRockyPlanet(bodyId: number): JournalBody {
+    return {
+      bodyName: `Planet ${bodyId}`,
+      bodyId,
+      kind: "planet",
+      planetClass: "Rocky body",
+      landable: true,
+      hasBiologicalSignals: false,
+      hasGeologicalSignals: false,
+      parents: [{ type: "Star", bodyId: 0 }],
+      rings: [],
+      raw: {},
+      slots: { space: 1, ground: 5, asteroid: 0 },
+    };
+  }
+
+  beforeEach(() => {
+    localStorage.clear();
+  });
+
+  it("defaults to collapsed when no per-body layout is applied at all", () => {
+    renderPanel(INITIAL_FORM_STATE);
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("shows an explanatory hint and no checkboxes once manually expanded with no per-body layout applied", async () => {
+    const user = userEvent.setup();
+    renderPanel(INITIAL_FORM_STATE);
+    await user.click(screen.getByRole("button", { name: /Self-sufficiency/ }));
+    expect(screen.getByText(/Requires a per-body system layout/)).toBeInTheDocument();
+    expect(screen.queryByRole("checkbox", { name: /Commodity Hub/ })).not.toBeInTheDocument();
+  });
+
+  it("defaults to collapsed when bodies exist but none are eligible for either combo", () => {
+    renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("defaults to EXPANDED as soon as at least one body is eligible for either combo", () => {
+    renderPanel({ ...INITIAL_FORM_STATE, bodies: [cleanRockyPlanet(1)] });
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByText("Commodity Hub–eligible bodies: 1")).toBeInTheDocument();
+    expect(screen.getByText("Manufacturing Hub–eligible bodies: 1")).toBeInTheDocument();
+  });
+
+  it("auto-expands on a rerender once eligibility newly appears, without needing a manual click", () => {
+    const { rerenderWith } = renderPanelWithRerender({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "false");
+    rerenderWith({ ...INITIAL_FORM_STATE, bodies: [cleanRockyPlanet(1)] });
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "true");
+  });
+
+  it("auto-collapses on a rerender once eligibility disappears", () => {
+    const { rerenderWith } = renderPanelWithRerender({ ...INITIAL_FORM_STATE, bodies: [cleanRockyPlanet(1)] });
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "true");
+    rerenderWith({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("doesn't fight a manual toggle while eligibility stays unchanged across rerenders", async () => {
+    const user = userEvent.setup();
+    const { rerenderWith } = renderPanelWithRerender({ ...INITIAL_FORM_STATE, bodies: [cleanRockyPlanet(1)] });
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "true");
+    await user.click(screen.getByRole("button", { name: /Self-sufficiency/ }));
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "false");
+    // Same single eligible body, just a fresh array reference — an unrelated rerender must not
+    // silently re-force this back open.
+    rerenderWith({ ...INITIAL_FORM_STATE, bodies: [cleanRockyPlanet(1)] });
+    expect(screen.getByRole("button", { name: /Self-sufficiency/ })).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("renders unchecked checkboxes by default and dispatches setSelfSufficiencyGoal on toggle", () => {
+    const dispatch = renderPanel({ ...INITIAL_FORM_STATE, bodies: [cleanRockyPlanet(1)] });
+    const commodityHubCheckbox = screen.getByRole("checkbox", { name: /Commodity Hub/ });
+    expect(commodityHubCheckbox).not.toBeChecked();
+
+    fireEvent.click(commodityHubCheckbox);
+    expect(dispatch).toHaveBeenCalledWith({ type: "setSelfSufficiencyGoal", combo: "commodityHub", value: true });
+  });
+
+  it("reflects an already-checked goal from formState and unchecks it on toggle", () => {
+    const dispatch = renderPanel({
+      ...INITIAL_FORM_STATE,
+      bodies: [cleanRockyPlanet(1)],
+      selfSufficiencyGoals: { manufacturingHub: true },
+    });
+    const manufacturingHubCheckbox = screen.getByRole("checkbox", { name: /Manufacturing Hub/ });
+    expect(manufacturingHubCheckbox).toBeChecked();
+
+    fireEvent.click(manufacturingHubCheckbox);
+    expect(dispatch).toHaveBeenCalledWith({ type: "setSelfSufficiencyGoal", combo: "manufacturingHub", value: false });
+  });
+
+  it("doesn't touch presentFacilities/T2/T3 points — the checkbox never places a present facility", () => {
+    const dispatch = renderPanel({ ...INITIAL_FORM_STATE, bodies: [cleanRockyPlanet(1)] });
+    fireEvent.click(screen.getByRole("checkbox", { name: /Commodity Hub/ }));
+    expect(dispatch).toHaveBeenCalledTimes(1);
+    expect(dispatch).not.toHaveBeenCalledWith(expect.objectContaining({ type: "setFacilitySlot" }));
+  });
+
+  it("disables both checkboxes when manually expanded with no body currently eligible for either combo", async () => {
+    const user = userEvent.setup();
+    renderPanel({ ...INITIAL_FORM_STATE, bodies: [star(0)] });
+    await user.click(screen.getByRole("button", { name: /Self-sufficiency/ }));
+    expect(screen.getByRole("checkbox", { name: /Commodity Hub/ })).toBeDisabled();
+    expect(screen.getByRole("checkbox", { name: /Manufacturing Hub/ })).toBeDisabled();
+    expect(screen.getByText("Commodity Hub–eligible bodies: 0")).toBeInTheDocument();
+    expect(screen.getByText("Manufacturing Hub–eligible bodies: 0")).toBeInTheDocument();
+  });
+
+  it("leaves the checkbox enabled when its combo has at least one eligible body", () => {
+    renderPanel({ ...INITIAL_FORM_STATE, bodies: [cleanRockyPlanet(1)] });
+    expect(screen.getByRole("checkbox", { name: /Commodity Hub/ })).toBeEnabled();
+    expect(screen.getByRole("checkbox", { name: /Manufacturing Hub/ })).toBeEnabled();
   });
 });
 

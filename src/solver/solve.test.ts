@@ -787,3 +787,84 @@ describe("solve with economyPreferences (0-200 slider, Forbid)", () => {
     expect(withPrefs).toEqual(without);
   }, 20000);
 });
+
+describe("solve with forcedBodyBuildings (self-sufficiency goals)", () => {
+  it("forces the solver to build at least the given count of a building at the given body", async () => {
+    const result = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "construction_cost" },
+        bodies: [{ bodyId: 1, slots: { space: 0, ground: 3, asteroid: 0 } }],
+        forcedBodyBuildings: [{ bodyId: 1, building: "Civilian_Planetary_Outpost", count: 1 }],
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.toBuild.Civilian_Planetary_Outpost).toBeGreaterThanOrEqual(1);
+    const placements = result.placements.filter((p) => p.building === "Civilian_Planetary_Outpost" && p.bodyId === 1);
+    expect(placements.reduce((sum, p) => sum + p.count, 0)).toBeGreaterThanOrEqual(1);
+  }, 20000);
+
+  it("forces a multi-building combo (Scientific Outpost + 4 Refinery Hub), banking enough T2 points from present facilities elsewhere in the system", async () => {
+    // Refinery_Hub costs 1 T2 point each (t2: -1) and Scientific_Planetary_Outpost only grants 1
+    // (t2: 1) — 4 of them need 3 more T2 points banked from somewhere, same real economics a player
+    // would need in an already-configured system (this heuristic is meant to be used inside one,
+    // not from a totally empty system — see domain/selfSufficiencyCombos.ts's header comment).
+    const result = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "construction_cost" },
+        bodies: [
+          { bodyId: 1, slots: { space: 0, ground: 5, asteroid: 0 } },
+          {
+            bodyId: 2,
+            slots: { space: 0, ground: 3, asteroid: 0 },
+            presentFacilities: {
+              space: [],
+              ground: [
+                { building: "Small_Agricultural_Settlement", demolishable: false },
+                { building: "Small_Agricultural_Settlement", demolishable: false },
+                { building: "Small_Agricultural_Settlement", demolishable: false },
+              ],
+            },
+          },
+        ],
+        forcedBodyBuildings: [
+          { bodyId: 1, building: "Scientific_Planetary_Outpost", count: 1 },
+          { bodyId: 1, building: "Refinery_Hub", count: 4 },
+        ],
+      }),
+    );
+    expect(result.status).toBe("optimal");
+    expect(result.toBuild.Scientific_Planetary_Outpost).toBeGreaterThanOrEqual(1);
+    expect(result.toBuild.Refinery_Hub).toBeGreaterThanOrEqual(4);
+    const refineryPlacements = result.placements.filter((p) => p.building === "Refinery_Hub" && p.bodyId === 1);
+    expect(refineryPlacements.reduce((sum, p) => sum + p.count, 0)).toBeGreaterThanOrEqual(4);
+  }, 20000);
+
+  it("reports infeasible when the forced count can't fit the body's own capacity", async () => {
+    const result = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 } }],
+        forcedBodyBuildings: [{ bodyId: 1, building: "Refinery_Hub", count: 5 }],
+      }),
+    );
+    expect(result.status).toBe("infeasible");
+  }, 20000);
+
+  it("is silently skipped (not an error) for a bodyId with no matching SolverBody", async () => {
+    const withForced = await solve(
+      baseInput({
+        bodies: [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 } }],
+        forcedBodyBuildings: [{ bodyId: 999, building: "Refinery_Hub", count: 1 }],
+      }),
+    );
+    const without = await solve(baseInput({ bodies: [{ bodyId: 1, slots: { space: 0, ground: 1, asteroid: 0 } }] }));
+    expect(withForced).toEqual(without);
+  }, 20000);
+
+  it("has no effect in aggregate mode (bodies absent) — silently ignored, not an error", async () => {
+    const withForced = await solve(
+      baseInput({ forcedBodyBuildings: [{ bodyId: 1, building: "Refinery_Hub", count: 1 }] }),
+    );
+    const without = await solve(baseInput());
+    expect(withForced).toEqual(without);
+  }, 20000);
+});

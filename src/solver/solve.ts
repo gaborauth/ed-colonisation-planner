@@ -218,6 +218,19 @@ export interface SolverInput {
    * keeps getting real detected per-body data when present, or Pristine otherwise, never "unknown".
    * See `domain/economyOverrides.ts`'s `applyManualResourceLevel` for the injection mechanism. */
   systemResourceLevel?: ResourceLevel;
+  /** Per-body MILP lower bounds: forces the solver to build at least `count` of `building` at
+   * `bodyId` as genuine NEW construction (real cost, real slot consumption — shows up in
+   * `placements`/`toBuild` like any other solver decision), rather than a pre-existing present
+   * facility. Feeds the "Self-sufficiency" checkboxes (`domain/
+   * selfSufficiencyCombos.ts`'s `checkedForcedBuildings`) — deliberately NOT implemented by
+   * injecting a present facility into `SolverBody.presentFacilities`, since that would make the
+   * goal look already-built (inflating the pre-solve "Actual facilities" panel's current T2/T3
+   * points) instead of a planned outcome of the NEXT solve. Only meaningful when `bodies` is
+   * present and non-empty (a `bodyId` with no matching `SolverBody` is silently skipped, not an
+   * error) — same backward-compatible degrade pattern as `economyPreferences`/`systemResourceLevel`
+   * above. An unsatisfiable request (not enough capacity/points) correctly makes the whole solve
+   * report infeasible rather than being silently dropped. */
+  forcedBodyBuildings?: { bodyId: number; building: string; count: number }[];
 }
 
 /** What a user can set per `EconomyType` in `ObjectivePanel`'s "Economy preferences" table.
@@ -401,6 +414,16 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       }
       model.addConstraint(subExpr(bodySum, allVars[name]), "==", 0, `body_split_${name}`);
     }
+  }
+
+  // --- Forced body-specific builds (see SolverInput.forcedBodyBuildings's doc comment) — a lower
+  // bound on one specific (building, body) decision variable. Silently skipped when `bodyVars` has
+  // no entry for the pair (an unknown building name, or a bodyId not in `input.bodies`) — same
+  // defensive-no-op pattern as this file's other optional inputs; an unsatisfiable-but-well-formed
+  // request (not enough capacity/points) is left to report as a real infeasible result instead.
+  for (const forced of input.forcedBodyBuildings ?? []) {
+    const v = bodyVars[forced.building]?.[forced.bodyId];
+    if (v) model.addConstraint(exprVar(v, 1), ">=", forced.count);
   }
 
   // --- Already-present facility demolition (per-body only — see domain/presentFacilities.ts) ---

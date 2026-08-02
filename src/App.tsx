@@ -12,6 +12,7 @@ import { SolverStatusDialog } from "./components/SolverStatusDialog";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
 import { applyParsedSystem, SystemPortabilityBar } from "./components/SystemPortabilityBar";
 import { normalizeBlockedSlots, normalizeFacilitySlots } from "./domain/presentFacilities";
+import { checkedForcedBuildings } from "./domain/selfSufficiencyCombos";
 import { useCookieConsent } from "./hooks/useCookieConsent";
 import { getHasUsedLiveDemo, setHasUsedLiveDemo } from "./persistence/liveDemoHint";
 import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
@@ -79,6 +80,10 @@ export function buildSolverInput(formState: PlannerFormState): SolverInput {
     economyPreferences: formState.economyPreferences,
     // Only actually meaningful when `bodies` is non-empty, same as `economyPreferences` above.
     systemResourceLevel: formState.systemResourceLevel,
+    // Only actually meaningful when `bodies` is non-empty (see SolverInput.forcedBodyBuildings's
+    // doc comment) — `checkedForcedBuildings` itself already degrades to `[]` when nothing
+    // qualifies, so no need to gate this pass-through on `hasBodies` too.
+    forcedBodyBuildings: checkedForcedBuildings(formState.selfSufficiencyGoals, formState.bodies),
   };
 }
 

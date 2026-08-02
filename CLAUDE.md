@@ -426,6 +426,98 @@ the same per-body loop `solve.ts` already runs for `economy_synergy`.
   `PORT_FIXED_ECONOMY` port (e.g. `Military_Outpost`) is unaffected unless its own fixed economy
   also matches. Intended MILP consequence of the existing body-attribute override table, not a bug.
 
+## Self-sufficiency (Objective panel)
+
+`domain/selfSufficiencyCombos.ts` implements a player-reported (not officially/community-sourced,
+unlike this file's other best-effort constants) heuristic: a **Commodity Hub**
+(`Civilian_Planetary_Outpost`, "Maximizes local production of essential colonization commodities
+and CMM Composite") on one body and a **Manufacturing Hub** (`Scientific_Planetary_Outpost` + 4
+`Refinery_Hub`s, "Maximizes refinery capacity and high-tech manufacturing for self-sufficiency") on
+another, each on a Rocky (bio/geo/terraforming-confirmed-clean) or High Metal Content body, are
+claimed to cover most of the commodities a colonization project needs — letting every cargo haul
+stay inside the same system. This module only encodes the body-eligibility/recipe side of that
+claim; it has no commodity-level knowledge at all (out of scope, see README's "Known limitations")
+— it only knows the two ports' `EconomyType` (`Civilian_Planetary_Outpost`: body-derived Colony;
+`Scientific_Planetary_Outpost`: fixed HighTech, per `PORT_FIXED_ECONOMY`). The Refinery Hub counts
+(2 for a High Metal Content body in the Commodity Hub combo, 4 for either body type in the
+Manufacturing Hub combo) are the user's own in-game "usually" observation, not a verbatim number.
+
+- **Eligibility** (`eligibleBodiesForCombo`) requires a body to be completely untouched (no present
+  facility on any orbital or ground slot — `isBodyUntouched`, so a body with only the primary
+  station's synced slot entry is correctly excluded too) AND match the combo's body type AND have
+  enough ground slots for the outpost plus its Refinery Hubs. "Clean" only gates the Rocky-body path
+  (per the user's own combo definition, not the HMC path) and requires CONFIRMED-absent bio/geo
+  signals (`hasOrganics`/`hasGeologicals` both `=== false`, not merely unscanned/`null`) plus
+  `!isTerraformable` — same "confidently false, not guessed" precedent as the rest of
+  `economyOverrides.ts`.
+- **Not implemented as a pre-solve present-facility placement**: injecting a present, hard facility
+  directly would inflate the "Actual facilities" panel's current T2/T3 points and make the combo
+  look already-built today, when it's really a goal for the NEXT solve. Instead,
+  `ObjectivePanel.tsx` offers two plain checkboxes in their own foldable "Self-sufficiency"
+  sub-section, right ABOVE Score constraints — it's a solve-time goal/constraint like Score
+  constraints or Economy preferences below it, not a fact about what's currently built, which is
+  why it lives in this panel rather than "Actual facilities in the system." Each checkbox is
+  labeled with its `SELF_SUFFICIENCY_COMBO_LABELS`/`_DESCRIPTIONS` text and its own live
+  eligible-body count shown after it — `PlannerFormState.selfSufficiencyGoals`, toggled via the
+  `setSelfSufficiencyGoal` reducer action. Checking one never touches `presentFacilities`, so the
+  "Actual facilities" panel's current stat box (T2/T3 points, tree) stays completely unaffected.
+  Each checkbox is disabled whenever its own combo currently has zero eligible bodies.
+- **Auto-folds/unfolds off eligibility instead of a remembered user preference** — unlike Score
+  constraints/Economy preferences/the raw-expression textarea (each its own persisted
+  `persistence/panelCollapse.ts` entry), this section starts (and stays) collapsed whenever NEITHER
+  combo currently has an eligible body, and expanded the moment at least one does, so it declutters
+  itself on a system it doesn't apply to and surfaces itself the moment it becomes relevant.
+  Implemented as a `useRef`-tracked true/false TRANSITION check in `ObjectivePanel.tsx` (only calls
+  `setCollapsed` when `hasSelfSufficiencyEligibleBodies` actually flips relative to its last-seen
+  value, not on every render) — same react-to-a-real-change precedent as `SystemConfigPanel.tsx`'s
+  `justSolved` auto-collapse-on-solve, so it doesn't fight a manual toggle click while eligibility
+  stays unchanged in between.
+- **Enforced at solve time as a genuine new-build MILP lower bound**, not a present-facility
+  constant: `App.tsx`'s `buildSolverInput` calls `checkedForcedBuildings` (which maps every checked
+  goal through `forcedBuildingsForCombo`), recomputing the current best-fit eligible body fresh via
+  `pickBestFitBody` (a best-fit bin-packing choice — the eligible body with the FEWEST ground slots
+  that still satisfies the requirement, minimizing wasted capacity on a larger body; a STANDING
+  goal, not a body chosen once and stored, so it tracks body edits made after the checkbox was
+  ticked) to produce `SolverInput.forcedBodyBuildings` entries (`{ bodyId, building, count }`).
+  `solve.ts` turns each
+  into a lower-bound constraint on that exact `bodyVars[building][bodyId]` decision variable right
+  after `bodyVars` are built. The forced buildings pay real construction cost/T2/T3 points like any
+  other solver decision and show up in `SolverResult.placements`/`toBuild`/build order as ordinary
+  new construction — visibly "planned," not pre-existing infrastructure. An unsatisfiable request
+  (not enough capacity or T2/T3 budget) correctly makes the whole solve report infeasible rather than
+  being silently dropped or ignored. Silently skipped (not an error) for a `bodyId`/`building` pair
+  with no matching decision variable, or when nothing is checked, or in aggregate mode (`bodies`
+  absent) — same backward-compatible degrade pattern as `economyPreferences`/`systemResourceLevel`.
+- **A checked combo lands at the very front of the build order, not merely "earlier."**
+  `domain/selfSufficiencyCombos.ts`'s `computeForcedBuildingPriority(goals, bodies)` derives which
+  building NAMES (`Set<string>`) and which body ID (`Set<number>`) are involved in any checked goal.
+  Both `SolvedSystemPanel.tsx` and `domain/buildOrderTable.ts` thread these into `domain/
+  ordering.ts`'s `getOrderingFromResult`/`computeFeasibleOrder` (optional `priorityBuildings` param)
+  and `domain/solvedPlacement.ts`'s `computeSolvedPlacements` (optional `priorityBodyIds` param).
+  Both pieces are necessary together:
+  - `computeFeasibleOrder`'s main loop calls `tryBuildPriority()` first, every iteration: it scans
+    ALL FOUR of its internal pools (`dependencyUnlockers`/`remainingPorts`/`byTiers[1]`/`byTiers[2]`)
+    for any currently-buildable priority name and jumps it to the front, bypassing the loop's normal
+    port-before-facility/tier precedence entirely — not just a tie-break within whichever single
+    pool a name would otherwise be found in, since an eligible PORT is otherwise always tried before
+    any ordinary facility regardless of priority. Still gated by `state.canBuild` exactly like every
+    other pick (can never make an otherwise-infeasible order feasible), and still can't skip a
+    genuine dependency a priority building itself needs (that dependency is just another entry
+    inside `dependencyUnlockers`, handled the same way).
+  - But `computeFeasibleOrder` has no body concept at all — it only orders building NAMES (e.g.
+    "Refinery_Hub" is one pooled count across every body that gets one in the whole solved plan) —
+    so building-name priority alone only makes the TYPE get scheduled early in general.
+    `computeSolvedPlacements`'s `priorityBodyIds` visits priority bodies before the rest when seating
+    newly-built units (each group still in its own `compareBodyNames` order), so the actually-forced
+    body claims those early-numbered slots instead of some earlier-alphabetically body with its own
+    unrelated same-type build.
+  - Both callers derive this fresh from `formState.selfSufficiencyGoals`/`formState.bodies` each
+    render (cheap enough to just recompute, same precedent as this file's other per-render
+    derivations) rather than threading it through `SolverResult` itself, so the two panels can't
+    disagree about which build-order numbers these rows get. Regression-tested end-to-end against a
+    real system (`src/selfSufficiencyShortcutOrdering.test.ts`, `jsons/swoilz-eg-i-b2-3.json`), not
+    just a synthetic fixture.
+
 ## Gotchas worth knowing before touching the solver
 
 - **The `highs` npm package's LP-text parser crashes (native WASM abort, not a graceful error) on
