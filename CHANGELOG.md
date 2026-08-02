@@ -1,3 +1,14 @@
+## [1.5.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.6...v1.5.0) (2026-08-02)
+
+### Features
+
+* add self-sufficiency combo goals ([48789bd](https://github.com/gaborauth/ed-colonisation-planner/commit/48789bd2c10177cb9127cf9e04dc13bb75b27279))
+* show a whats new changelog popup ([e8186b3](https://github.com/gaborauth/ed-colonisation-planner/commit/e8186b351a083c578a21bbab369d76ea89e1f214))
+
+### Bug Fixes
+
+* move Ports and Facilities panel into the Objective panel ([dec0125](https://github.com/gaborauth/ed-colonisation-planner/commit/dec01252b3b9f4fd6a5d1a2d10c04fa665d742da))
+
 ## [1.4.6](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.5...v1.4.6) (2026-08-01)
 
 ### Bug Fixes
