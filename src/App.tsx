@@ -11,9 +11,11 @@ import { SolvedSystemPanel } from "./components/SolvedSystemPanel";
 import { SolverStatusDialog } from "./components/SolverStatusDialog";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
 import { applyParsedSystem, SystemPortabilityBar } from "./components/SystemPortabilityBar";
+import { WhatsNewDialog } from "./components/WhatsNewDialog";
 import { normalizeBlockedSlots, normalizeFacilitySlots } from "./domain/presentFacilities";
 import { checkedForcedBuildings } from "./domain/selfSufficiencyCombos";
 import { useCookieConsent } from "./hooks/useCookieConsent";
+import { useWhatsNew } from "./hooks/useWhatsNew";
 import { getHasUsedLiveDemo, setHasUsedLiveDemo } from "./persistence/liveDemoHint";
 import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
 import type { SavedPlan } from "./persistence/plans";
@@ -106,6 +108,7 @@ function App() {
   // one (persisted via persistence/liveDemoHint.ts).
   const [showLiveDemoAttention, setShowLiveDemoAttention] = useState(() => !getHasUsedLiveDemo());
   const cookieConsent = useCookieConsent();
+  const whatsNew = useWhatsNew();
 
   async function handleSolve(): Promise<void> {
     setResultState({ status: "solving", result: null, message: null });
@@ -226,6 +229,7 @@ function App() {
           onDismiss={() => setResultState(INITIAL_RESULT_STATE)}
         />
         <LiveDemoHintDialog open={liveDemoHintOpen} onDismiss={() => setLiveDemoHintOpen(false)} />
+        <WhatsNewDialog releases={whatsNew.releases} onDismiss={whatsNew.dismiss} />
 
         <SolvedSystemPanel formState={formState} result={resultState.result} />
 

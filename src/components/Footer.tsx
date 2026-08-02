@@ -19,7 +19,9 @@ export function Footer({
 
   return (
     <footer className="app-footer">
-      <span>v{pkg.version}</span>
+      <a href="changelog.html" target="_blank" rel="noreferrer">
+        v{pkg.version}
+      </a>
       <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">
         GitHub
       </a>
