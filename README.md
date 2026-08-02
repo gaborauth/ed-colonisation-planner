@@ -76,6 +76,15 @@ Otherwise:
 6. **Saved plans** — save/load plans locally (browser storage), delete a saved system you no longer
    need, or export/import a plan as a file to move it between browsers.
 
+## Staying up to date
+
+This app silently updates itself on your next page reload — no install prompt, no manual update
+step. The first time you load it after a new release, a one-time **What's new** popup summarizes
+what changed since your last visit (Features/Bug Fixes, straight from the project's own
+[CHANGELOG.md](CHANGELOG.md)); dismiss it and it won't reappear until the next release. The
+version number in the footer always links to the full release history if you want to check it
+again later.
+
 ## Update 3: links & economy
 
 Elite Dangerous's Update 3 (2025-04-27) reworked how colonised systems' economies work: completed

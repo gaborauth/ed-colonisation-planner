@@ -43,6 +43,10 @@ src/
     currentSystemScores.ts   — the CURRENT (not-yet-solved) system's score totals, plain-number
                               reweighted sum over already-present facilities — no MILP needed for a
                               fixed, already-built layout; feeds SystemConfigPanel's summary
+    changelog.ts             — parses CHANGELOG.md's own semantic-release-generated markdown shape
+                              into structured per-version data (see "Changelog" below)
+    changelogHtml.ts          — renders that same parsed data as the standalone changelog.html page
+                              vite.config.ts emits, styled like public/known-issues.html
   solver/
     expressionParser.ts    — safe recursive-descent parser for custom objective expressions
     objective.ts            — compiles parsed expressions into an LP-linearizable form
@@ -54,7 +58,8 @@ src/
                               the "Running the solver…" dialog's own animation) doesn't freeze
   state/plannerState.ts    — the app's one useReducer (form state) living in App.tsx
   persistence/             — localStorage-backed: saved plans, saved journal systems, panel
-                              fold/collapse state, the active custom-objective expression
+                              fold/collapse state, the active custom-objective expression, the
+                              last app version this browser has seen a changelog for
   journal/                 — parses uploaded Elite Dangerous Journal files, estimates buildable slots
   spansh/                  — alternative system-import source (see "Spansh import" below):
                               api.ts (fetch wrappers against a self-hosted CORS proxy),
@@ -71,7 +76,8 @@ src/
                               state), useScrollAnchoredCollapse (fold/collapse that keeps its
                               toggle button under the pointer as content above it resizes),
                               useSpanshProxyHealth (polls the CORS proxy's `/health` endpoint for
-                              the footer's status dot)
+                              the footer's status dot), useWhatsNew (drives the "What's new"
+                              changelog popup, see below)
   components/               — one component per UI panel, no component library; FacilityInfo.tsx
                               (the "i" info icons) and SystemScoresSummary.tsx (score/points/slots
                               readout) are shared between "Actual facilities" and "Solved system";
@@ -230,7 +236,9 @@ empty slot).
 
 Same commands as README.md's Development section (`npm install`/`dev`/`test`/`build`, `npx tsc -b`,
 `npx oxlint`). Branch flow, semantic-release mechanics, and Dependabot are also covered there —
-`.releaserc.json` / `.github/workflows/release.yml` implement it.
+`.releaserc.json` / `.github/workflows/release.yml` implement it. See "Changelog / 'What's new'
+popup" below for how the `CHANGELOG.md` this generates is also consumed at runtime, not just
+written.
 
 **Known open risk, not yet verified**: `main` is branch-protected (PRs required to merge into it).
 The `@semantic-release/git` step needs to push a commit directly to `main` after a merge lands; if
@@ -241,6 +249,50 @@ first, falling back to `secrets.GITHUB_TOKEN`, so the fix (if this happens) is a
 belonging to an account with bypass rights, saved as the `RELEASE_TOKEN` repo secret — or a
 branch-protection bypass entry for `github-actions[bot]`. Only confirmable by watching a real run in
 Actions.
+
+## Changelog / "What's new" popup
+
+This app is a silently self-updating client-only SPA — no install prompt, no "a new version is
+available" banner — so a returning visitor otherwise has no way to notice what changed between one
+page load and the next. Two features read the same `CHANGELOG.md` semantic-release already
+generates (see "Commands and releases" above), rather than a separately-generated artifact, so
+there's exactly one source of truth for release notes:
+
+- **The in-app "What's new" dialog** (`hooks/useWhatsNew.ts` + `components/WhatsNewDialog.tsx`,
+  wired into `App.tsx` next to `LiveDemoHintDialog`) compares the bundled `pkg.version` (fixed at
+  build time) against `persistence/changelogSeen.ts`'s last-seen version for this browser
+  (localStorage, same pattern as `consent.ts`). A genuinely first-ever visit just records a silent
+  baseline (nothing to diff against yet, so no popup); an older stored version fetches
+  `CHANGELOG.md` and shows every release's Features/Bug Fixes in between, sharing
+  `LiveDemoHintDialog`'s `.modal-overlay`/`.modal-dialog` shell. A fetch failure leaves the stored
+  version untouched (rather than marking it "seen" on a transient network error) so the next reload
+  retries instead of silently losing that version's changelog for good.
+- **The footer's version number** (`components/Footer.tsx`) links to a full-history `changelog.html`
+  page, styled like the other hand-authored `public/*.html` pages (`known-issues.html`/
+  `tutorials.html`'s dark-theme CSS-variable shell + `.back-link`) but generated, not hand-written.
+
+Both build on `domain/changelog.ts`'s `parseChangelog()` — a small regex-based parser for
+`@semantic-release/changelog`'s own conventionalcommits-preset output shape (`## [x.y.z](url)
+(date)` / `### Features`/`### Bug Fixes` / `* bullet` lines, stripping the trailing commit-hash and
+`closes #N` noise semantic-release appends to every bullet) — plus `releasesSince()` (the in-app
+dialog's "only what's newer than X" slice) and `domain/changelogHtml.ts`'s `renderChangelogPage()`
+(the footer page's "every release, full history" rendering, HTML-escaped). One parser, two
+different slices of its output — never two separate parsing implementations to keep in sync.
+
+**Deliberately not a copy under `public/`, and not a separately-generated JSON artifact**: an early
+design question was whether semantic-release itself should emit a JSON changelog
+(`@semantic-release/exec` + a `.releaserc.json` prepare step) for the app to consume instead.
+Rejected in favor of reading `CHANGELOG.md` directly — `vite.config.ts`'s `changelogPlugin()` serves
+the root file as-is (dev-server middleware for `/CHANGELOG.md` and `/changelog.html`, plus a
+build-time `generateBundle`/`emitFile` pair emitting both into `dist/`) rather than copying it into
+a tracked `public/` file or a second generated artifact — either of those would recreate the exact
+drift risk this design exists to avoid (a second file that has to be kept in sync with the real
+`CHANGELOG.md`). `parseChangelog()`/`renderChangelogPage()` are plain TypeScript, importable
+straight from `vite.config.ts` — its own Node-side project (`tsconfig.node.json`) needs explicit
+`.ts` import extensions per its `nodenext` module resolution, unlike `tsconfig.app.json`'s
+`bundler` resolution which tolerates either, so any file reachable from `vite.config.ts` (currently
+just `changelog.ts`/`changelogHtml.ts`) needs its own imports written with explicit `.ts`
+extensions to satisfy both projects' `tsc -b` pass at once.
 
 ## Explicitly unverified/best-effort constants — don't "fix" these without new evidence
 
