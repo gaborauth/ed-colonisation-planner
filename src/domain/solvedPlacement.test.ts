@@ -171,4 +171,36 @@ describe("computeSolvedPlacements", () => {
     // the bodyId/building were still concatenated together elsewhere in the string).
     expect(warnings[0]).toBe("1x Commercial_Outpost solved for body 5 but no empty slot was found there.");
   });
+
+  it("without priorityBodyIds, gives the earliest build-order number to the alphabetically-first body", () => {
+    const bodies = [
+      body(1, "A 1", { slots: { space: 1, ground: 0, asteroid: 0 } }),
+      body(2, "Z 9", { slots: { space: 1, ground: 0, asteroid: 0 } }),
+    ];
+    const r = result({
+      placements: [
+        { building: "Commercial_Outpost", bodyId: 1, count: 1 },
+        { building: "Commercial_Outpost", bodyId: 2, count: 1 },
+      ],
+    });
+    const { byBody } = computeSolvedPlacements(bodies, r, ["Commercial_Outpost", "Commercial_Outpost"]);
+    expect(byBody.get(1)?.space).toEqual([{ status: "new", building: "Commercial_Outpost", order: 1 }]);
+    expect(byBody.get(2)?.space).toEqual([{ status: "new", building: "Commercial_Outpost", order: 2 }]);
+  });
+
+  it("priorityBodyIds gives the earliest build-order number to the prioritized body even though it's alphabetically later", () => {
+    const bodies = [
+      body(1, "A 1", { slots: { space: 1, ground: 0, asteroid: 0 } }),
+      body(2, "Z 9", { slots: { space: 1, ground: 0, asteroid: 0 } }),
+    ];
+    const r = result({
+      placements: [
+        { building: "Commercial_Outpost", bodyId: 1, count: 1 },
+        { building: "Commercial_Outpost", bodyId: 2, count: 1 },
+      ],
+    });
+    const { byBody } = computeSolvedPlacements(bodies, r, ["Commercial_Outpost", "Commercial_Outpost"], new Set([2]));
+    expect(byBody.get(2)?.space).toEqual([{ status: "new", building: "Commercial_Outpost", order: 1 }]);
+    expect(byBody.get(1)?.space).toEqual([{ status: "new", building: "Commercial_Outpost", order: 2 }]);
+  });
 });
