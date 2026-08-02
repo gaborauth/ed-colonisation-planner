@@ -3,8 +3,9 @@ import { ALL_ECONOMY_TYPES, ALL_SCORES, ECONOMY_COLORS, toPrintable, type Score 
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import { getStoredPanelCollapsed, setStoredPanelCollapsed } from "../persistence/panelCollapse";
 import { setObjectivePreference } from "../persistence/objectivePreference";
-import type { EconomyPreference } from "../solver/solve";
+import type { EconomyPreference, SolverResult } from "../solver/solve";
 import { DEFAULT_OBJECTIVE_EXPRESSION, type PlannerAction, type PlannerFormState } from "../state/plannerState";
+import { BuildingsTable } from "./BuildingsTable";
 import { NumberInput } from "./NumberInput";
 
 const SCORE_CONSTRAINTS_PANEL_ID = "objective-score-constraints";
@@ -16,6 +17,7 @@ interface ObjectivePanelProps {
   dispatch: Dispatch<PlannerAction>;
   onSolve: () => void;
   solving: boolean;
+  result: SolverResult | null;
 }
 
 interface ObjectivePreset {
@@ -121,7 +123,7 @@ function clampEconomyPreference(value: number): EconomyPreference {
   return clamped === 0 ? "forbid" : clamped;
 }
 
-export function ObjectivePanel({ formState, dispatch, onSolve, solving }: ObjectivePanelProps) {
+export function ObjectivePanel({ formState, dispatch, onSolve, solving, result }: ObjectivePanelProps) {
   // Which preset (if any) matches the CURRENT customExpression — drives the select's `value` for
   // real (not a hardcoded "always blank" trick, which would make the dropdown visibly snap back to
   // "Default preset" on every selection, since its value would never actually reflect what was
@@ -510,6 +512,8 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
             </>
           ))}
       </div>
+
+      <BuildingsTable formState={formState} dispatch={dispatch} result={result} />
     </section>
   );
 }

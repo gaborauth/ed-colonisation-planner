@@ -1,11 +1,14 @@
-import type { Dispatch } from "react";
+import { useEffect, type Dispatch } from "react";
 import { ALL_BUILDINGS, ALL_CATEGORIES, BASE_SCORES, toPrintable, type Building } from "../data/buildings";
 import { derivePresentCounts } from "../domain/presentFacilities";
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
+import { getStoredPanelCollapsed, setStoredPanelCollapsed } from "../persistence/panelCollapse";
 import type { PlannerAction, PlannerFormState } from "../state/plannerState";
 import type { SolverResult } from "../solver/solve";
 import { NumberInput } from "./NumberInput";
 import { Tooltip } from "./Tooltip";
+
+const PORTS_FACILITIES_PANEL_ID = "objective-ports-facilities";
 
 // Column header says "Construction" — the umbrella term Frontier's own patch notes use ("All
 // constructions are divided into two types... Ports and Supporting Facilities"), picked
@@ -76,13 +79,18 @@ function contributionTooltip(building: Building, total: number) {
   return <>{lines}</>;
 }
 
-// Folded by default — a fine-tuning tool for later in a session, not needed for a first solve. Uses
-// the normal `panel-toggle` chevron styling (not `panel-toggle-flat`/muted), since At least/At most
-// really do reach the LP as constraints (see `setMapEntry`/`atMost` handling in plannerState.ts) and
-// this panel sits right after ObjectivePanel, reading as a normal, full-brightness part of the
-// objective-setup flow rather than a dim, tucked-away afterthought.
+// Rendered as a nested sub-section of ObjectivePanel (alongside "Score constraints"/"Economy
+// preferences"), not its own top-level panel — At least/At most really do reach the LP as
+// constraints (see `setMapEntry`/`atMost` handling in plannerState.ts), the same kind of
+// "bounds what the solver's free to pick" control those two sibling sections are. Folded by
+// default, same as Economy preferences, and remembered across sessions the same way.
 export function BuildingsTable({ formState, dispatch, result }: BuildingsTableProps) {
-  const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(true);
+  const { collapsed, setCollapsed, buttonRef } = useScrollAnchoredCollapse<HTMLButtonElement>(
+    getStoredPanelCollapsed(PORTS_FACILITIES_PANEL_ID) ?? true,
+  );
+  useEffect(() => {
+    setStoredPanelCollapsed(PORTS_FACILITIES_PANEL_ID, collapsed);
+  }, [collapsed]);
   // Once a body layout is applied, already-present counts come from the System facilities panel's
   // per-slot tree instead of this flat map (see solve.ts's alreadyPresent doc comment) — shown here
   // read-only so the two sources of truth can't drift apart.
@@ -98,11 +106,11 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
     : formState.alreadyPresent;
 
   return (
-    <section className="panel">
+    <div style={{ marginTop: 14 }}>
       <button
         ref={buttonRef}
         type="button"
-        className="panel-toggle"
+        className="panel-toggle panel-toggle-nested"
         aria-expanded={!collapsed}
         onClick={() => setCollapsed((c) => !c)}
       >
@@ -177,6 +185,6 @@ export function BuildingsTable({ formState, dispatch, result }: BuildingsTablePr
             </table>
           </div>
         ))}
-    </section>
+    </div>
   );
 }

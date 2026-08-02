@@ -271,11 +271,14 @@ h2 {
 }
 
 /* A `.panel-toggle` that's a SUB-section within another panel's own header — e.g. ObjectivePanel's
- * "Score constraints"/"Economy preferences", nested under its "Objective" `<h2>` — rather than a
- * genuine top-level panel toggle (BuildingsTable's "Constructions", SavedPlansPanel, etc., which use
- * `.panel-toggle-title` as their ONLY header). Those used to render at the exact same size/color as
- * a real top-level title, reading as more important than they are (2026-07-28 user request):
- * smaller and tinted with the same yellow used for Tier 2 badges elsewhere, instead. */
+ * "Score constraints"/"Economy preferences"/"Ports & Facilities numbers", nested under its
+ * "Objective" `<h2>` — rather than a genuine top-level panel toggle (SavedPlansPanel, etc., which
+ * use `.panel-toggle-title` as their ONLY header). Those used to render at the exact same
+ * size/color as a real top-level title, reading as more important than they are (2026-07-28 user
+ * request): smaller and tinted with the same yellow used for Tier 2 badges elsewhere, instead.
+ * UPDATE (2026-08-02): BuildingsTable ("Ports & Facilities numbers") moved off its own top-level
+ * `.panel-toggle` onto this class too, once it moved inside ObjectivePanel alongside its two
+ * siblings above. */
 .panel-toggle-nested {
   font-size: 0.8rem;
   color: var(--tier2-yellow);

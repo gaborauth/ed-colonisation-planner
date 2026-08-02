@@ -1,7 +1,6 @@
 import { useReducer, useState } from "react";
 import { AboutHelpPanel } from "./components/AboutHelpPanel";
 import { BuildOrderPanel } from "./components/BuildOrderPanel";
-import { BuildingsTable } from "./components/BuildingsTable";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { Footer } from "./components/Footer";
 import { JournalImportPanel } from "./components/JournalImportPanel";
@@ -213,8 +212,8 @@ function App() {
           dispatch={dispatch}
           onSolve={() => void handleSolve()}
           solving={resultState.status === "solving"}
+          result={resultState.result}
         />
-        <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
 
         <SolverStatusDialog
           status={resultState.status}

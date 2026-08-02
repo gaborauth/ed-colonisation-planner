@@ -12,7 +12,7 @@ function star(bodyId: number): JournalBody {
 }
 
 function renderPanel(formState: PlannerFormState, dispatch = vi.fn()) {
-  render(<ObjectivePanel formState={formState} dispatch={dispatch} onSolve={vi.fn()} solving={false} />);
+  render(<ObjectivePanel formState={formState} dispatch={dispatch} onSolve={vi.fn()} solving={false} result={null} />);
   return dispatch;
 }
 
@@ -96,6 +96,7 @@ describe("ObjectivePanel's Economy preferences section", () => {
         dispatch={vi.fn()}
         onSolve={vi.fn()}
         solving={false}
+        result={null}
       />,
     );
     expect(screen.getByRole("textbox", { name: "Military: preference number (0-200)" })).toHaveValue("");
@@ -105,6 +106,7 @@ describe("ObjectivePanel's Economy preferences section", () => {
         dispatch={vi.fn()}
         onSolve={vi.fn()}
         solving={false}
+        result={null}
       />,
     );
     expect(screen.getByRole("textbox", { name: "Military: preference number (0-200)" })).toHaveValue("120");
