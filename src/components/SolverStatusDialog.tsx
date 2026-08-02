@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import type { PlannerResultState } from "../state/plannerState";
 
 /** A real blocking modal for the solve's "in progress"/"error" states, in place of an inline
- * `.status-banner` sitting in normal page flow between BuildingsTable and SolvedSystemPanel — that
+ * `.status-banner` sitting in normal page flow between ObjectivePanel and SolvedSystemPanel — that
  * would be easy to scroll past and wouldn't stop the user from poking at the rest of the form
  * mid-solve. Renders `null` for "idle"/"done" — those have nothing to block on. The "solving" state
  * has no dismiss control at all (there's nothing to cancel back to — `solveInWorker` runs to

@@ -1,7 +1,6 @@
 import { useReducer, useState } from "react";
 import { AboutHelpPanel } from "./components/AboutHelpPanel";
 import { BuildOrderPanel } from "./components/BuildOrderPanel";
-import { BuildingsTable } from "./components/BuildingsTable";
 import { CookieConsentBanner } from "./components/CookieConsentBanner";
 import { Footer } from "./components/Footer";
 import { JournalImportPanel } from "./components/JournalImportPanel";
@@ -12,8 +11,11 @@ import { SolvedSystemPanel } from "./components/SolvedSystemPanel";
 import { SolverStatusDialog } from "./components/SolverStatusDialog";
 import { SystemConfigPanel } from "./components/SystemConfigPanel";
 import { applyParsedSystem, SystemPortabilityBar } from "./components/SystemPortabilityBar";
+import { WhatsNewDialog } from "./components/WhatsNewDialog";
 import { normalizeBlockedSlots, normalizeFacilitySlots } from "./domain/presentFacilities";
+import { checkedForcedBuildings } from "./domain/selfSufficiencyCombos";
 import { useCookieConsent } from "./hooks/useCookieConsent";
+import { useWhatsNew } from "./hooks/useWhatsNew";
 import { getHasUsedLiveDemo, setHasUsedLiveDemo } from "./persistence/liveDemoHint";
 import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
 import type { SavedPlan } from "./persistence/plans";
@@ -80,6 +82,10 @@ export function buildSolverInput(formState: PlannerFormState): SolverInput {
     economyPreferences: formState.economyPreferences,
     // Only actually meaningful when `bodies` is non-empty, same as `economyPreferences` above.
     systemResourceLevel: formState.systemResourceLevel,
+    // Only actually meaningful when `bodies` is non-empty (see SolverInput.forcedBodyBuildings's
+    // doc comment) — `checkedForcedBuildings` itself already degrades to `[]` when nothing
+    // qualifies, so no need to gate this pass-through on `hasBodies` too.
+    forcedBodyBuildings: checkedForcedBuildings(formState.selfSufficiencyGoals, formState.bodies),
   };
 }
 
@@ -102,6 +108,7 @@ function App() {
   // one (persisted via persistence/liveDemoHint.ts).
   const [showLiveDemoAttention, setShowLiveDemoAttention] = useState(() => !getHasUsedLiveDemo());
   const cookieConsent = useCookieConsent();
+  const whatsNew = useWhatsNew();
 
   async function handleSolve(): Promise<void> {
     setResultState({ status: "solving", result: null, message: null });
@@ -213,8 +220,8 @@ function App() {
           dispatch={dispatch}
           onSolve={() => void handleSolve()}
           solving={resultState.status === "solving"}
+          result={resultState.result}
         />
-        <BuildingsTable formState={formState} dispatch={dispatch} result={resultState.result} />
 
         <SolverStatusDialog
           status={resultState.status}
@@ -222,6 +229,7 @@ function App() {
           onDismiss={() => setResultState(INITIAL_RESULT_STATE)}
         />
         <LiveDemoHintDialog open={liveDemoHintOpen} onDismiss={() => setLiveDemoHintOpen(false)} />
+        <WhatsNewDialog releases={whatsNew.releases} onDismiss={whatsNew.dismiss} />
 
         <SolvedSystemPanel formState={formState} result={resultState.result} />
 

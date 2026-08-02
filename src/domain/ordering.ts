@@ -35,6 +35,18 @@ export function computeFeasibleOrder(
   facilities: Record<string, number>,
   ports: string[],
   firstStation?: string | null,
+  /** Building names to build as soon as they're individually affordable, jumping the normal
+   * dependency-unlocker/port/tier precedence entirely (not just re-ordering within whichever list
+   * they'd otherwise be found in) — see `domain/selfSufficiencyCombos.ts`'s
+   * `computeForcedBuildingPriority`'s doc comment for why this exists: a checked self-sufficiency
+   * goal should read as "first thing built," not merely "built a bit sooner than it otherwise
+   * would've been." A port structurally being checked before ordinary facilities every iteration
+   * (see the main loop below) would otherwise keep burying a priority FACILITY behind an unrelated,
+   * merely-earlier-affordable port. Never overrides `state.canBuild`'s own feasibility gate, and
+   * never skips a dependency a priority building itself needs (it's just one more candidate name
+   * inside `dependencyUnlockers` too) — this can never make an otherwise-infeasible order feasible,
+   * or reorder anything AROUND a priority building that isn't itself also priority. */
+  priorityBuildings?: Set<string>,
 ): string[] {
   const result: string[] = [];
   if (firstStation) {
@@ -87,7 +99,27 @@ export function computeFeasibleOrder(
     return false;
   }
 
+  // Tries every remaining pool (dependency unlockers, ports, tier 1, tier 2 — this loop order
+  // doesn't matter for feasibility, only for which priority candidate wins a same-iteration tie,
+  // an edge case indistinguishable in outcome) for the first currently-buildable `priorityBuildings`
+  // member, jumping the pool it's found in to the very front of this iteration — see
+  // `priorityBuildings`'s own doc comment above for why this needs to bypass the normal
+  // port-before-facility/tier structure, not just reorder within one list.
+  function tryBuildPriority(): boolean {
+    if (!priorityBuildings) return false;
+    for (const pool of [dependencyUnlockers, remainingPorts, byTiers[1], byTiers[2]]) {
+      const idx = findFirstIndex(pool, (name) => priorityBuildings.has(name) && state.canBuild(name));
+      if (idx !== null) {
+        insertBuilding(pool[idx]);
+        pool.splice(idx, 1);
+        return true;
+      }
+    }
+    return false;
+  }
+
   while (totalNbBuildings > 0) {
+    if (tryBuildPriority()) continue;
     if (buildFirstFromList(dependencyUnlockers)) continue;
 
     let targetTier: 1 | 2;
@@ -157,19 +189,22 @@ export function getOrderingFromResult(
   result: PlanResult,
   withSolution = true,
   withAlreadyPresent = true,
+  /** Threaded straight through to every `computeFeasibleOrder` call here — see that function's own
+   * `priorityBuildings` doc comment. */
+  priorityBuildings?: Set<string>,
 ): string[] {
   const ordering: string[] = [];
   const state = new SystemState();
   if (withAlreadyPresent) {
     const { facilities, ports, firstStation } = getAlreadyPresent(result);
-    ordering.push(...computeFeasibleOrder(state, facilities, ports, firstStation));
+    ordering.push(...computeFeasibleOrder(state, facilities, ports, firstStation, priorityBuildings));
   } else {
     state.addResult(result);
   }
 
   if (withSolution) {
     const { facilities, ports, firstStation } = getSolution(result);
-    ordering.push(...computeFeasibleOrder(state, facilities, ports, firstStation));
+    ordering.push(...computeFeasibleOrder(state, facilities, ports, firstStation, priorityBuildings));
   }
 
   return ordering;

@@ -271,11 +271,14 @@ h2 {
 }
 
 /* A `.panel-toggle` that's a SUB-section within another panel's own header — e.g. ObjectivePanel's
- * "Score constraints"/"Economy preferences", nested under its "Objective" `<h2>` — rather than a
- * genuine top-level panel toggle (BuildingsTable's "Constructions", SavedPlansPanel, etc., which use
- * `.panel-toggle-title` as their ONLY header). Those used to render at the exact same size/color as
- * a real top-level title, reading as more important than they are (2026-07-28 user request):
- * smaller and tinted with the same yellow used for Tier 2 badges elsewhere, instead. */
+ * "Score constraints"/"Economy preferences"/"Ports & Facilities numbers", nested under its
+ * "Objective" `<h2>` — rather than a genuine top-level panel toggle (SavedPlansPanel, etc., which
+ * use `.panel-toggle-title` as their ONLY header). Those used to render at the exact same
+ * size/color as a real top-level title, reading as more important than they are (2026-07-28 user
+ * request): smaller and tinted with the same yellow used for Tier 2 badges elsewhere, instead.
+ * UPDATE (2026-08-02): BuildingsTable ("Ports & Facilities numbers") moved off its own top-level
+ * `.panel-toggle` onto this class too, once it moved inside ObjectivePanel alongside its two
+ * siblings above. */
 .panel-toggle-nested {
   font-size: 0.8rem;
   color: var(--tier2-yellow);
@@ -971,6 +974,51 @@ select.toolbar-summary-system {
   display: flex;
   justify-content: flex-end;
   margin-top: 14px;
+}
+
+/* WhatsNewDialog.tsx — wider than the generic .modal-dialog max-width (this one lists real
+ * multi-release content, not a single short message) and scrolls internally so a long list of
+ * skipped releases never grows the dialog past the viewport. */
+.whats-new-dialog {
+  max-width: 560px;
+}
+
+.whats-new-releases {
+  max-height: 60vh;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.whats-new-release {
+  padding-bottom: 12px;
+  margin-bottom: 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.whats-new-release:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+.whats-new-release h3 {
+  margin: 0 0 6px;
+}
+
+.whats-new-release h4 {
+  margin: 8px 0 2px;
+  color: var(--text-dim);
+}
+
+.whats-new-date {
+  font-weight: normal;
+  color: var(--text-dim);
+  font-size: 0.85em;
+}
+
+.whats-new-release ul {
+  margin: 0;
+  padding-left: 20px;
 }
 
 /* A real, clearly-animated indeterminate bar under the "Running the solver…" text — the text's own

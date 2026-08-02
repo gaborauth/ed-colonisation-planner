@@ -1,10 +1,17 @@
-import { useEffect, type Dispatch } from "react";
+import { useEffect, useRef, type Dispatch } from "react";
 import { ALL_ECONOMY_TYPES, ALL_SCORES, ECONOMY_COLORS, toPrintable, type Score } from "../data/buildings";
+import {
+  ALL_SELF_SUFFICIENCY_COMBOS,
+  eligibleBodiesForCombo,
+  SELF_SUFFICIENCY_COMBO_DESCRIPTIONS,
+  SELF_SUFFICIENCY_COMBO_LABELS,
+} from "../domain/selfSufficiencyCombos";
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
 import { getStoredPanelCollapsed, setStoredPanelCollapsed } from "../persistence/panelCollapse";
 import { setObjectivePreference } from "../persistence/objectivePreference";
-import type { EconomyPreference } from "../solver/solve";
+import type { EconomyPreference, SolverResult } from "../solver/solve";
 import { DEFAULT_OBJECTIVE_EXPRESSION, type PlannerAction, type PlannerFormState } from "../state/plannerState";
+import { BuildingsTable } from "./BuildingsTable";
 import { NumberInput } from "./NumberInput";
 
 const SCORE_CONSTRAINTS_PANEL_ID = "objective-score-constraints";
@@ -16,6 +23,7 @@ interface ObjectivePanelProps {
   dispatch: Dispatch<PlannerAction>;
   onSolve: () => void;
   solving: boolean;
+  result: SolverResult | null;
 }
 
 interface ObjectivePreset {
@@ -121,7 +129,7 @@ function clampEconomyPreference(value: number): EconomyPreference {
   return clamped === 0 ? "forbid" : clamped;
 }
 
-export function ObjectivePanel({ formState, dispatch, onSolve, solving }: ObjectivePanelProps) {
+export function ObjectivePanel({ formState, dispatch, onSolve, solving, result }: ObjectivePanelProps) {
   // Which preset (if any) matches the CURRENT customExpression — drives the select's `value` for
   // real (not a hardcoded "always blank" trick, which would make the dropdown visibly snap back to
   // "Default preset" on every selection, since its value would never actually reflect what was
@@ -129,6 +137,17 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
   // expression that doesn't match any preset) so the select always has a valid, non-crashing value
   // to show.
   const selectedPreset = PRESETS.find((p) => p.expression === formState.customExpression);
+
+  // "Self-sufficiency" eligibility counts (see domain/selfSufficiencyCombos.ts's header comment for
+  // what this heuristic is and isn't) — recomputed on every render off `formState.bodies` directly,
+  // cheap enough to just recompute (same precedent as this panel's other per-render reads).
+  const eligibleBodiesByCombo = {
+    commodityHub: eligibleBodiesForCombo("commodityHub", formState.bodies),
+    manufacturingHub: eligibleBodiesForCombo("manufacturingHub", formState.bodies),
+  };
+  const hasSelfSufficiencyEligibleBodies = ALL_SELF_SUFFICIENCY_COMBOS.some(
+    (combo) => eligibleBodiesByCombo[combo].length > 0,
+  );
 
   // Score constraints / Economy preferences are individually foldable. Score constraints defaults
   // to EXPANDED (`?? false`, same as AboutHelpPanel), not collapsed: a constraint sitting folded
@@ -149,6 +168,22 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
   useEffect(() => {
     setStoredPanelCollapsed(ECONOMY_PREFERENCES_PANEL_ID, economyPreferencesCollapse.collapsed);
   }, [economyPreferencesCollapse.collapsed]);
+  // Not a remembered preference like the other foldable sections above — auto-folded/unfolded
+  // purely off whether any body currently qualifies for either combo, so it stays out of the way on
+  // a system where it doesn't apply and pops open the moment a body becomes eligible (e.g. applying
+  // a different system, or editing a body's built facilities). Reacts only to a genuine true/false
+  // TRANSITION, not every render, so it doesn't fight a manual toggle click while eligibility stays
+  // unchanged — same react-to-a-real-change precedent as SystemConfigPanel.tsx's `justSolved`
+  // auto-collapse.
+  const selfSufficiencyCollapse = useScrollAnchoredCollapse<HTMLButtonElement>(!hasSelfSufficiencyEligibleBodies);
+  const setSelfSufficiencyCollapsed = selfSufficiencyCollapse.setCollapsed;
+  const hadSelfSufficiencyEligibleBodies = useRef(hasSelfSufficiencyEligibleBodies);
+  useEffect(() => {
+    if (hadSelfSufficiencyEligibleBodies.current !== hasSelfSufficiencyEligibleBodies) {
+      setSelfSufficiencyCollapsed(!hasSelfSufficiencyEligibleBodies);
+      hadSelfSufficiencyEligibleBodies.current = hasSelfSufficiencyEligibleBodies;
+    }
+  }, [hasSelfSufficiencyEligibleBodies, setSelfSufficiencyCollapsed]);
 
   // The raw expression textarea is real formula-editor territory (short variable letters, function
   // names) — tucked behind its own collapsed-by-default disclosure so a first-time user sees only
@@ -301,6 +336,66 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
             Allow criminal constructions
           </label>
         </div>
+      </div>
+
+      {/* A checked goal constrains the NEXT solve (enforced as a `SolverInput.forcedBodyBuildings`
+       * MILP lower bound — see solve.ts), the same kind of solve-steering control as Score
+       * constraints/Economy preferences below, which is why it lives in this panel rather than the
+       * "Actual facilities in the system" one. Auto-folds/unfolds based on eligibility instead of a
+       * remembered preference — see the collapse-hook setup above. */}
+      <div style={{ marginTop: 14 }}>
+        <button
+          ref={selfSufficiencyCollapse.buttonRef}
+          type="button"
+          className="panel-toggle panel-toggle-nested"
+          aria-expanded={!selfSufficiencyCollapse.collapsed}
+          onClick={() => selfSufficiencyCollapse.setCollapsed((c) => !c)}
+        >
+          <span className="panel-toggle-title">Self-sufficiency</span>
+          <span className="chevron" aria-hidden="true">
+            ▾
+          </span>
+        </button>
+        {!selfSufficiencyCollapse.collapsed &&
+          (formState.bodies.length === 0 ? (
+            <p className="panel-hint">
+              Requires a per-body system layout — apply one via the Import system panel first, since each combo
+              targets a specific empty body that plain aggregate slot counts can't provide.
+            </p>
+          ) : (
+            <>
+              <p className="panel-hint">
+                A checked combo forces the next solve to build it as new construction on the best-fit empty body,
+                as early in the build order as possible — so this system can supply its own colonization
+                commodities instead of importing them. Doesn't touch anything already built or today's T2/T3
+                points. Player-reported combo, not verbatim game data.
+              </p>
+              <div className="row-grid" style={{ marginTop: 8 }}>
+                {ALL_SELF_SUFFICIENCY_COMBOS.map((combo) => {
+                  const eligibleCount = eligibleBodiesByCombo[combo].length;
+                  return (
+                    <div className="field" key={combo}>
+                      <label>
+                        <input
+                          type="checkbox"
+                          disabled={eligibleCount === 0}
+                          checked={formState.selfSufficiencyGoals[combo] ?? false}
+                          onChange={(e) => dispatch({ type: "setSelfSufficiencyGoal", combo, value: e.target.checked })}
+                        />{" "}
+                        {SELF_SUFFICIENCY_COMBO_LABELS[combo]}
+                      </label>
+                      <div className="panel-hint" style={{ marginTop: 4 }}>
+                        {SELF_SUFFICIENCY_COMBO_DESCRIPTIONS[combo]}
+                      </div>
+                      <div className="field-value" style={{ marginTop: 4 }}>
+                        {SELF_SUFFICIENCY_COMBO_LABELS[combo]}–eligible bodies: {eligibleCount}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </>
+          ))}
       </div>
 
       {/* Individually foldable, defaulting to EXPANDED (not folded) so the "at least 1 security"
@@ -510,6 +605,8 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving }: Object
             </>
           ))}
       </div>
+
+      <BuildingsTable formState={formState} dispatch={dispatch} result={result} />
     </section>
   );
 }

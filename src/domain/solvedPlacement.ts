@@ -75,6 +75,12 @@ export function computeSolvedPlacements(
   bodies: JournalBody[],
   result: SolverResult,
   newBuildOrder: string[],
+  /** Body IDs to visit BEFORE the rest (still each group in its own `compareBodyNames` order) when
+   * seating newly-built units and consuming `newBuildOrder`'s per-building-name position queue —
+   * see `domain/selfSufficiencyCombos.ts`'s `computeForcedBuildingPriority` doc comment. Without
+   * this, an earlier-alphabetically body with its own unrelated same-type build would claim the
+   * early build-order numbers instead of the actually-prioritized body. */
+  priorityBodyIds?: Set<number>,
 ): SolvedPlacementsResult {
   const warnings: string[] = [];
 
@@ -117,7 +123,14 @@ export function computeSolvedPlacements(
   }
 
   const byBody = new Map<number, SolvedBodySlots>();
-  const sortedBodies = [...bodies].sort(compareBodyNames);
+  const sortedBodies = [...bodies].sort((a, b) => {
+    if (priorityBodyIds) {
+      const aPriority = priorityBodyIds.has(a.bodyId) ? 0 : 1;
+      const bPriority = priorityBodyIds.has(b.bodyId) ? 0 : 1;
+      if (aPriority !== bPriority) return aPriority - bPriority;
+    }
+    return compareBodyNames(a, b);
+  });
 
   function buildKindSlots(body: JournalBody, kind: "space" | "ground"): SolvedSlot[] {
     const count = body.slots?.[kind] ?? 0;
