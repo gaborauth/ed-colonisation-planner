@@ -4,6 +4,7 @@ import {
   ALL_SELF_SUFFICIENCY_COMBOS,
   eligibleBodiesForCombo,
   SELF_SUFFICIENCY_COMBO_DESCRIPTIONS,
+  SELF_SUFFICIENCY_COMBO_ELIGIBILITY_HINTS,
   SELF_SUFFICIENCY_COMBO_LABELS,
 } from "../domain/selfSufficiencyCombos";
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
@@ -365,17 +366,17 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving, result }
           ) : (
             <>
               <p className="panel-hint">
-                A checked combo forces the next solve to build it as new construction on the best-fit empty body,
-                as early in the build order as possible — so this system can supply its own colonization
-                commodities instead of importing them. Doesn't touch anything already built or today's T2/T3
-                points. Player-reported combo, not verbatim game data.
+                Checking a box tells the next solve to actually build it: the solver picks a suitable empty body
+                for you and schedules it early in the plan, so this system can supply its own colonization
+                commodities instead of importing them. It never touches anything you've already built, and your
+                current T2/T3 points stay exactly as they are until you solve.
               </p>
               <div className="row-grid" style={{ marginTop: 8 }}>
                 {ALL_SELF_SUFFICIENCY_COMBOS.map((combo) => {
                   const eligibleCount = eligibleBodiesByCombo[combo].length;
                   return (
                     <div className="field" key={combo}>
-                      <label>
+                      <label title={SELF_SUFFICIENCY_COMBO_ELIGIBILITY_HINTS[combo]}>
                         <input
                           type="checkbox"
                           disabled={eligibleCount === 0}

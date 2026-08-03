@@ -14,6 +14,13 @@ import { fetchSpanshSystemDump, searchSystemNames } from "../spansh/api";
 const mockedSearch = vi.mocked(searchSystemNames);
 const mockedFetchDump = vi.mocked(fetchSpanshSystemDump);
 
+// JournalImportPanel.tsx debounces the Spansh "System name" search by a real 1000ms setTimeout
+// before calling searchSystemNames — Testing Library's own `findBy*` default timeout is ALSO
+// 1000ms, so the two race on every run. Locally the debounce usually wins by a hair; on a
+// slower/busier CI runner it doesn't, causing a real (not flaky-test-writing-mistake) intermittent
+// failure. Every `findByRole("option", ...)` below needs enough headroom over that debounce.
+const SPANSH_OPTION_TIMEOUT_MS = 3000;
+
 const CANDIDATE = { id64: 1797250861443, name: "Swoilz AW-C d52" };
 
 const DUMP_RECORD = {
@@ -87,7 +94,7 @@ describe("JournalImportPanel", () => {
     await user.click(screen.getByRole("tab", { name: "Spansh" }));
     await user.type(screen.getByLabelText("System name"), "Swoil");
 
-    const option = await screen.findByRole("option", { name: "Swoilz AW-C d52" });
+    const option = await screen.findByRole("option", { name: "Swoilz AW-C d52" }, { timeout: SPANSH_OPTION_TIMEOUT_MS });
     await user.click(option);
     expect(mockedSearch).toHaveBeenCalledWith("Swoil");
 
@@ -147,7 +154,7 @@ describe("JournalImportPanel", () => {
     await user.click(screen.getByRole("button", { name: /Import system/ }));
     await user.click(screen.getByRole("tab", { name: "Spansh" }));
     await user.type(screen.getByLabelText("System name"), "Swoil");
-    await user.click(await screen.findByRole("option", { name: "Swoilz AW-C d52" }));
+    await user.click(await screen.findByRole("option", { name: "Swoilz AW-C d52" }, { timeout: SPANSH_OPTION_TIMEOUT_MS }));
     await user.click(screen.getByRole("button", { name: "Load" }));
 
     await screen.findByText("Swoilz AW-C d52 1");
@@ -165,7 +172,7 @@ describe("JournalImportPanel", () => {
 
     await user.click(screen.getByRole("tab", { name: "Spansh" }));
     await user.type(screen.getByLabelText("System name"), "Swoil");
-    await user.click(await screen.findByRole("option", { name: "Swoilz AW-C d52" }));
+    await user.click(await screen.findByRole("option", { name: "Swoilz AW-C d52" }, { timeout: SPANSH_OPTION_TIMEOUT_MS }));
     await user.click(screen.getByRole("button", { name: "Load" }));
 
     expect(await screen.findByText("Spansh proxy request failed (502).")).toBeInTheDocument();

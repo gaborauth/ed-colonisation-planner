@@ -40,6 +40,19 @@ export const SELF_SUFFICIENCY_COMBO_DESCRIPTIONS: Record<SelfSufficiencyCombo, s
   manufacturingHub: "Maximizes refinery capacity and high-tech manufacturing for self-sufficiency.",
 };
 
+// Shown as a hover tooltip over each combo's checkbox — spells out `comboRecipeForBody`'s actual
+// eligibility rule (body type + cleanliness + ground-slot count) in plain terms, since the
+// checkbox row itself only ever shows a bare eligible-body count, not why a body does or doesn't
+// qualify.
+export const SELF_SUFFICIENCY_COMBO_ELIGIBILITY_HINTS: Record<SelfSufficiencyCombo, string> = {
+  commodityHub:
+    "Needs an untouched body that's either High Metal Content (3 free ground slots) or Rocky with no organics, " +
+    "no geologicals, and not terraformable (1 free ground slot).",
+  manufacturingHub:
+    "Needs an untouched body that's either High Metal Content or Rocky with no organics, no geologicals, and not " +
+    "terraformable — 5 free ground slots either way.",
+};
+
 export const REFINERY_HUB_BUILDING = "Refinery_Hub";
 
 export interface ComboRecipe {
