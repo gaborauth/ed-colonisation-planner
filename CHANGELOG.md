@@ -1,3 +1,10 @@
+## [1.5.1](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.5.0...v1.5.1) (2026-08-03)
+
+### Bug Fixes
+
+* raise Spansh option-search timeout to outrun its own debounce ([031de65](https://github.com/gaborauth/ed-colonisation-planner/commit/031de655a1d0d8cac6f66deebd6874b6c46a897e))
+* reword self-sufficiency hint and add eligibility tooltip ([b8a824a](https://github.com/gaborauth/ed-colonisation-planner/commit/b8a824a58f8ec6e950ee1c45bf9a8d70905f268b))
+
 ## [1.5.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.4.6...v1.5.0) (2026-08-02)
 
 ### Features
