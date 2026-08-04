@@ -1,0 +1,1606 @@
+{
+  "starSystem": "Wregoe YL-W b56-4",
+  "systemAddress": 9470000244201,
+  "bodies": [
+    {
+      "bodyName": "Wregoe YL-W b56-4 A",
+      "bodyId": 1,
+      "kind": "star",
+      "starType": "M",
+      "landable": false,
+      "surfaceTemperature": 2724,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Wregoe YL-W b56-4 A A Belt",
+          "ringClass": "Metal Rich",
+          "massMT": 74210000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 B",
+      "bodyId": 3,
+      "kind": "star",
+      "starType": "M",
+      "landable": false,
+      "surfaceTemperature": 2265,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Wregoe YL-W b56-4 B A Belt",
+          "ringClass": "Rocky",
+          "massMT": 53523000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 C",
+      "bodyId": 4,
+      "kind": "star",
+      "starType": "L",
+      "landable": false,
+      "surfaceTemperature": 1566,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 1",
+      "bodyId": 16,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 3.7045277851534615,
+      "surfaceTemperature": 750.907715,
+      "radius": 2496253,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Major Silicate Vapour Geysers"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 2",
+      "bodyId": 17,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 6.422494780728052,
+      "surfaceTemperature": 574.128479,
+      "radius": 4019333.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 4,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 3",
+      "bodyId": 18,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 6.596253579264813,
+      "surfaceTemperature": 176.961838,
+      "radius": 6832016,
+      "atmosphere": "Thick Argon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Water Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 3 a",
+      "bodyId": 19,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 2.102466962812275,
+      "surfaceTemperature": 120.332672,
+      "radius": 3320669.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 18
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 4",
+      "bodyId": 21,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 8.939895934511064,
+      "surfaceTemperature": 539.779968,
+      "radius": 9269720,
+      "atmosphere": "Hot thick Ammonia",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 20
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 5",
+      "bodyId": 22,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 5.834834754354028,
+      "surfaceTemperature": 147.353195,
+      "radius": 6770538,
+      "atmosphere": "Thick Nitrogen",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 20
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Minor Carbon Dioxide Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 6",
+      "bodyId": 23,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 7.426412950820842,
+      "surfaceTemperature": 390.887726,
+      "radius": 8131302,
+      "atmosphere": "Thick Methane-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 7",
+      "bodyId": 24,
+      "kind": "planet",
+      "planetClass": "Sudarsky class I gas giant",
+      "landable": false,
+      "surfaceGravity": 9.538641565239116,
+      "surfaceTemperature": 57.426647,
+      "radius": 57048088,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 7 a",
+      "bodyId": 25,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.3961878600285514,
+      "surfaceTemperature": 47.066811,
+      "radius": 685348.25,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 24
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Water Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 7 b",
+      "bodyId": 26,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.5255542429336189,
+      "surfaceTemperature": 46.836403,
+      "radius": 903248.625,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 24
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 7 c",
+      "bodyId": 27,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.537150829050678,
+      "surfaceTemperature": 46.624615,
+      "radius": 920627.875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 24
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 7 d",
+      "bodyId": 28,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.40282062330478213,
+      "surfaceTemperature": 46.464447,
+      "radius": 696657.875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 24
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 7 e",
+      "bodyId": 29,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.7017729536759463,
+      "surfaceTemperature": 46.211731,
+      "radius": 1200302.375,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 24
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 8",
+      "bodyId": 30,
+      "kind": "planet",
+      "planetClass": "Sudarsky class I gas giant",
+      "landable": false,
+      "surfaceGravity": 7.690094540007136,
+      "surfaceTemperature": 43.710079,
+      "radius": 17718826,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Wregoe YL-W b56-4 A 8 A Ring",
+          "ringClass": "Icy",
+          "massMT": 103050000000
+        }
+      ],
+      "reserveLevel": "Pristine",
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 8 a",
+      "bodyId": 32,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.2938165136688084,
+      "surfaceTemperature": 39.280434,
+      "radius": 510056.625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 30
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 8 b",
+      "bodyId": 33,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.2855408090292651,
+      "surfaceTemperature": 39.274414,
+      "radius": 495829.75,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 30
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 8 c",
+      "bodyId": 34,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.29524046284796535,
+      "surfaceTemperature": 39.268147,
+      "radius": 512505.59375,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 30
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A 8 d",
+      "bodyId": 35,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.3973498185581729,
+      "surfaceTemperature": 39.262169,
+      "radius": 687329,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 30
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 B 1",
+      "bodyId": 40,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 3.5583520021770205,
+      "surfaceTemperature": 410.155182,
+      "radius": 2406887.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 B 2",
+      "bodyId": 41,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 3.4711501144182693,
+      "surfaceTemperature": 307.557678,
+      "radius": 2353230.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 B 3",
+      "bodyId": 42,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 4.08559618479657,
+      "surfaceTemperature": 701.392212,
+      "radius": 2725824,
+      "atmosphere": "Hot Water",
+      "terraformState": "Terraformable",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Military_Outpost",
+            "demolishable": false,
+            "variant": "Nemesis",
+            "primary": true
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 B 4",
+      "bodyId": 43,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 3.626131583119199,
+      "surfaceTemperature": 240.62355,
+      "radius": 2448420.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 B 5",
+      "bodyId": 44,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 4.119087989471807,
+      "surfaceTemperature": 205.437027,
+      "radius": 2737610,
+      "atmosphere": "Thin Sulphur dioxide",
+      "terraformState": "Terraformable",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": true,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 6,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 B 5 a",
+      "bodyId": 45,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": false,
+      "surfaceGravity": 0.9582268008208424,
+      "surfaceTemperature": 204.844604,
+      "radius": 802763.0625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 44
+        },
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Rocky Magma"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 B 6",
+      "bodyId": 46,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 3.887116268558177,
+      "surfaceTemperature": 176.554779,
+      "radius": 2606863.75,
+      "atmosphere": "Thin Sulphur dioxide",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": true,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 5,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 C 1",
+      "bodyId": 47,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 2.4513305118486777,
+      "surfaceTemperature": 310.365234,
+      "radius": 1706012.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 C 2",
+      "bodyId": 48,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 2.6037730711634572,
+      "surfaceTemperature": 615.909912,
+      "radius": 1805092.75,
+      "atmosphere": "Hot Water",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 C 3",
+      "bodyId": 49,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 2.7703501260171257,
+      "surfaceTemperature": 219.214142,
+      "radius": 1912413.75,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 C 4",
+      "bodyId": 50,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 2.5028196741970024,
+      "surfaceTemperature": 170.72673,
+      "radius": 1739569.875,
+      "atmosphere": "Thin Ammonia",
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": true,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 5,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 C 5",
+      "bodyId": 51,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 2.2670030905067766,
+      "surfaceTemperature": 150.941376,
+      "radius": 1585097,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 4
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 1",
+      "bodyId": 52,
+      "kind": "planet",
+      "planetClass": "Sudarsky class I gas giant",
+      "landable": false,
+      "surfaceGravity": 13.369076856745219,
+      "surfaceTemperature": 56.588528,
+      "radius": 64585020,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 1 a",
+      "bodyId": 53,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.5171165440756601,
+      "surfaceTemperature": 40.892921,
+      "radius": 890642.8125,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 52
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 1 b",
+      "bodyId": 54,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.5155216009992865,
+      "surfaceTemperature": 40.506023,
+      "radius": 887948,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 52
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 1 c",
+      "bodyId": 55,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.5520212983226266,
+      "surfaceTemperature": 39.796318,
+      "radius": 946651.6875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 52
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 1 d",
+      "bodyId": 57,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.40376958943611685,
+      "surfaceTemperature": 39.560188,
+      "radius": 698275.6875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 56
+        },
+        {
+          "type": "Planet",
+          "bodyId": 52
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 1 e",
+      "bodyId": 58,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.38041542294789465,
+      "surfaceTemperature": 39.560188,
+      "radius": 658430.0625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 56
+        },
+        {
+          "type": "Planet",
+          "bodyId": 52
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 1 f",
+      "bodyId": 59,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.7789262000713774,
+      "surfaceTemperature": 39.218361,
+      "radius": 1328286.5,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 52
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 2",
+      "bodyId": 60,
+      "kind": "planet",
+      "planetClass": "Sudarsky class I gas giant",
+      "landable": false,
+      "surfaceGravity": 8.422141413204853,
+      "surfaceTemperature": 36.320511,
+      "radius": 18751154,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 2 a",
+      "bodyId": 61,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.33526803426124197,
+      "surfaceTemperature": 32.543411,
+      "radius": 581197.0625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 60
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Minor Nitrogen Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 2 b",
+      "bodyId": 62,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.33924089246966466,
+      "surfaceTemperature": 32.526775,
+      "radius": 588005.25,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 60
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 2 c",
+      "bodyId": 63,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.3092649623126342,
+      "surfaceTemperature": 32.518009,
+      "radius": 536597.1875,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 60
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 BC 2 d",
+      "bodyId": 64,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.30333617391149215,
+      "surfaceTemperature": 32.513554,
+      "radius": 526415.4375,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 60
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 A A Belt",
+      "bodyId": 1000100,
+      "kind": "ring",
+      "landable": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Wregoe YL-W b56-4 A A Belt",
+          "ringClass": "Metal Rich",
+          "massMT": 74210000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Wregoe YL-W b56-4 B A Belt",
+      "bodyId": 1000300,
+      "kind": "ring",
+      "landable": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 3
+        },
+        {
+          "type": "Null",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Wregoe YL-W b56-4 B A Belt",
+          "ringClass": "Rocky",
+          "massMT": 53523000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    }
+  ],
+  "firstStationBuilding": "Military_Outpost",
+  "firstStationBodyId": 42,
+  "firstStationVariant": "Nemesis"
+}

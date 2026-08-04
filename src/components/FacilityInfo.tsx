@@ -16,7 +16,6 @@ import {
   hasRings,
   hasVolcanism,
   isTerraformable,
-  isTidalLockChainToStar,
   TERRAFORMABLE_AGRICULTURE_BUG_LINK,
   TERRAFORMABLE_AGRICULTURE_BUG_NOTE,
   type EconomyBreakdown,
@@ -340,23 +339,7 @@ function bodyInfoContent(body: JournalBody, allBodies: JournalBody[]) {
   if (body.atmosphere) features.push(`Atmosphere: ${body.atmosphere}`);
   if (hasRings(body)) features.push("Rings");
   if (isTerraformable(body)) features.push("Terraformable");
-  if (body.tidalLocked === true) {
-    // Tidally locked is a real, standalone fact about this body — but the Agriculture strong-link
-    // decrease only fires when the WHOLE chain up to the star is tidally locked (see
-    // isTidalLockChainToStar's own doc comment), so a body that's locked but sits under an unlocked
-    // ancestor gets the label crossed out: true, but functionally inert for that game mechanic.
-    const allBodiesById = new Map(allBodies.map((b) => [b.bodyId, b]));
-    const decreaseApplies = isTidalLockChainToStar(body, allBodiesById);
-    features.push(
-      decreaseApplies ? (
-        "Tidally locked"
-      ) : (
-        <s title="Tidally locked, but a body further up the chain to the star isn't — the Agriculture strong-link decrease doesn't apply">
-          Tidally locked
-        </s>
-      ),
-    );
-  }
+  if (body.tidalLocked === true) features.push("Tidally locked");
   if (hasOrganics(body) === true) features.push("Bio Signals");
   if (hasGeologicals(body) === true) features.push("Geo Signals");
   if (hasVolcanism(body) === true) features.push("Volcanism");

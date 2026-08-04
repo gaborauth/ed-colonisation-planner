@@ -1221,15 +1221,6 @@ select.toolbar-summary-system {
   margin-bottom: 4px;
 }
 
-/* The body-info hover's "Tidally locked" feature tag, crossed out when true locally but the chain
- * up to the star isn't fully tidally locked (see SystemConfigPanel.tsx's `bodyInfoContent` — the
- * Agriculture strong-link decrease doesn't apply in that case). Dimmed on top of the strikethrough
- * so it reads as "true, but inert" rather than just visually noisy. */
-.tooltip-bubble s {
-  color: var(--text-faint);
-  text-decoration-color: var(--text-faint);
-}
-
 .facility-body-info-table {
   border-collapse: collapse;
   font-size: 0.8rem;

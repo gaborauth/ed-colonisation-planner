@@ -249,6 +249,14 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving, result }
           />{" "}
           Complex score
         </label>
+        <label style={{ marginLeft: "auto" }}>
+          <input
+            type="checkbox"
+            checked={formState.allowCriminal}
+            onChange={(e) => dispatch({ type: "patch", patch: { allowCriminal: e.target.checked } })}
+          />{" "}
+          Allow criminal constructions
+        </label>
       </div>
 
       {formState.objectiveMode === "simple" ? (
@@ -325,19 +333,6 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving, result }
           </div>
         </div>
       )}
-
-      <div className="row-grid" style={{ marginTop: 14 }}>
-        <div className="field">
-          <label>
-            <input
-              type="checkbox"
-              checked={formState.allowCriminal}
-              onChange={(e) => dispatch({ type: "patch", patch: { allowCriminal: e.target.checked } })}
-            />{" "}
-            Allow criminal constructions
-          </label>
-        </div>
-      </div>
 
       {/* A checked goal constrains the NEXT solve (enforced as a `SolverInput.forcedBodyBuildings`
        * MILP lower bound — see solve.ts), the same kind of solve-steering control as Score
