@@ -101,40 +101,6 @@ export function systemHasNeutronStar(bodies: JournalBody[]): boolean {
   return bodies.some((b) => starTypeOf(b) === "neutronstar");
 }
 
-/** Walks a body's parent chain to determine "tidally locked to its star" (a planet directly) or
- * "a moon tidally locked to its planet, where the planet chain up to the star is also tidally
- * locked" (transitively) — the source table's two separate Agriculture-decrease bullets collapse
- * into one recursive check. Real-game-verified: the decrease requires the WHOLE chain up to the
- * star to be tidally locked — one un-locked link anywhere breaks it, so the official wording is
- * meant literally, not just "this body is tidally locked to *something*".
- *
- * Scans `body.parents` (not just its first entry) before giving up, to skip past a `"Null"`
- * entry — a binary-pair barycenter (two planets, or a planet and its parent star, orbiting their
- * shared center of mass) rather than a real body that can itself be tidally locked or not, and with
- * no scanned `Scan` event of its own to look up (confirmed: none of a real system's barycenter
- * `BodyID`s ever appear as a body in `allBodiesById`). An earlier version of this function treated
- * any non-"Planet"/non-"Star" immediate parent as an instant chain-break, which incorrectly zeroed
- * out real tidally-locked planets in a binary pair — e.g. a planet whose immediate parent hop is
- * `[Null, Star]` (two gas giants orbiting each other, that pair then orbiting the system's star).
- * Still recurses into the actual looked-up `JournalBody` on hitting a `"Planet"` entry (rather than
- * assuming `body.parents` is already the complete near-to-far chain) — real Journal data does list
- * the full chain on every body already, but recursing keeps this correct even if it didn't. Missing
- * scan data anywhere in the chain (a `"Planet"` ancestor that was never itself scanned) returns
- * `false`, not a guessed decrease — this is a DEcrease condition, and inventing one from absent data
- * would be worse than just not applying it. */
-export function isTidalLockChainToStar(body: JournalBody, allBodiesById: Map<number, JournalBody>): boolean {
-  if (!body.tidalLocked) return false;
-  for (const parent of body.parents) {
-    if (parent.type === "Star") return true;
-    if (parent.type === "Null") continue;
-    if (parent.type !== "Planet") return false;
-    const parentBody = allBodiesById.get(parent.bodyId);
-    if (!parentBody) return false;
-    return isTidalLockChainToStar(parentBody, allBodiesById);
-  }
-  return false;
-}
-
 // --- Organics/geologicals/volcanism: confident where the data allows, `null` otherwise ---------
 
 /** Confidently `false` for an unlandable body (no surface, no bio signals possible); otherwise the
@@ -349,7 +315,6 @@ export function computeBoostDecrease(
   const decreased = new Set<EconomyType>();
   const deltas: Partial<Record<EconomyType, number>> = {};
   const reasons: string[] = [];
-  const allBodiesById = new Map(bodies.map((b) => [b.bodyId, b]));
 
   function boost(economy: EconomyType): void {
     boosted.add(economy);
@@ -364,7 +329,6 @@ export function computeBoostDecrease(
   const organics = hasOrganics(body);
   const geologicals = hasGeologicals(body);
   const volcanism = hasVolcanism(body);
-  const tidalDecrease = isTidalLockChainToStar(body, allBodiesById);
 
   const wants = (economy: EconomyType) => economiesToCheck.includes(economy);
 
@@ -381,13 +345,9 @@ export function computeBoostDecrease(
     } else if (organics === null) {
       reasons.push("Agriculture: organics presence unknown (needs DSS/FSS scan data)");
     }
-    if (isIcyBody(body)) {
+    if (isIcyBody(body) || isRockyIce(body)) {
       decrease("Agriculture");
-      reasons.push("Agriculture decreased: on/orbiting an icy body");
-    }
-    if (tidalDecrease) {
-      decrease("Agriculture");
-      reasons.push("Agriculture decreased: tidally locked to its star (directly, or via a locked moon chain)");
+      reasons.push("Agriculture decreased: on/orbiting an icy or rocky ice body");
     }
   }
 
@@ -566,7 +526,6 @@ export interface EconomyBreakdown {
  * Extraction/Industrial/Refinery, with the rest extrapolated consistently for conditions those
  * examples didn't happen to show; easy to relabel if any read wrong in practice. */
 export function computeColonyEconomyBreakdown(body: JournalBody, allBodies: JournalBody[]): EconomyBreakdown[] {
-  const allBodiesById = new Map(allBodies.map((b) => [b.bodyId, b]));
   const baseReason = new Map<EconomyType, string>();
 
   function base(types: EconomyType[], label: string): void {
@@ -612,15 +571,13 @@ export function computeColonyEconomyBreakdown(body: JournalBody, allBodies: Jour
   const organics = hasOrganics(body);
   const geologicals = hasGeologicals(body);
   const volcanism = hasVolcanism(body);
-  const tidalDecrease = isTidalLockChainToStar(body, allBodiesById);
 
   if (has("Agriculture")) {
     if (isELW(body)) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: orbiting ELW");
     // Terraformable's +0.4 Agriculture boost is deliberately not applied — see
     // TERRAFORMABLE_AGRICULTURE_BUG_NOTE.
     if (organics === true) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: body has BIO");
-    if (isIcyBody(body)) add("Agriculture", -BOOST_DECREASE_DELTA, "Debuff: body is ICY");
-    if (tidalDecrease) add("Agriculture", -BOOST_DECREASE_DELTA, "Debuff: TIDALLY LOCKED to star");
+    if (isIcyBody(body) || isRockyIce(body)) add("Agriculture", -BOOST_DECREASE_DELTA, "Debuff: body is ICY or ROCKY ICE");
   }
   if (has("Extraction")) {
     if (resourceLevel === "major" || resourceLevel === "pristine") {
@@ -680,7 +637,6 @@ const STRONG_LINK_ECONOMIES: EconomyType[] = ["Agriculture", "Extraction", "High
  * already shipped/tested with their own exact shapes, and re-sequencing the same boolean predicates
  * for a different presentation is cheaper and safer than merging the two. */
 export function computeStrongLinkBreakdown(body: JournalBody, allBodies: JournalBody[]): EconomyBreakdown[] {
-  const allBodiesById = new Map(allBodies.map((b) => [b.bodyId, b]));
   const lines = new Map<EconomyType, EconomyBreakdownLine[]>();
 
   function add(economy: EconomyType, amount: number, label: string): void {
@@ -692,14 +648,12 @@ export function computeStrongLinkBreakdown(body: JournalBody, allBodies: Journal
   const organics = hasOrganics(body);
   const geologicals = hasGeologicals(body);
   const volcanism = hasVolcanism(body);
-  const tidalDecrease = isTidalLockChainToStar(body, allBodiesById);
 
   if (isELW(body)) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: orbiting ELW");
   // Terraformable's +0.4 Agriculture boost is deliberately not applied — see
   // TERRAFORMABLE_AGRICULTURE_BUG_NOTE.
   if (organics === true) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: body has BIO");
-  if (isIcyBody(body)) add("Agriculture", -BOOST_DECREASE_DELTA, "Debuff: body is ICY");
-  if (tidalDecrease) add("Agriculture", -BOOST_DECREASE_DELTA, "Debuff: TIDALLY LOCKED to star");
+  if (isIcyBody(body) || isRockyIce(body)) add("Agriculture", -BOOST_DECREASE_DELTA, "Debuff: body is ICY or ROCKY ICE");
 
   if (resourceLevel === "major" || resourceLevel === "pristine") {
     add("Extraction", BOOST_DECREASE_DELTA, "Buff: reserveLevel MAJOR or PRISTINE");

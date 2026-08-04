@@ -114,8 +114,7 @@ function toJournalBody(body: SpanshDumpBody): JournalBody {
 
 /** Converts a Spansh `/dump/{id64}` record into this app's `JournalSystem` shape. Skips any body
  * whose `type` is `"Barycentre"` — binary-pair centers, not real scannable bodies (the same concept
- * Journal's `"Null"` parent-type entries represent; `economyOverrides.ts`'s
- * `isTidalLockChainToStar` already treats those as pass-through, not a real body to look up). */
+ * Journal's `"Null"` parent-type entries represent). */
 export function spanshDumpToJournalSystem(record: SpanshDumpRecord): JournalSystem {
   return {
     starSystem: record.name,

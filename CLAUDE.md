@@ -349,6 +349,35 @@ an inference this project made itself, not something the source stated verbatim:
   `public/known-issues.html` (`TERRAFORMABLE_AGRICULTURE_BUG_LINK`) for the full explanation. Revert
   by re-adding the `isTerraformable(body)` boost call at each of the three sites if Frontier ever
   fixes this in-game.
+- **Agriculture's "tidally locked to its star" strong-link decrease (README's verbatim boost/
+  decrease table) does not actually fire in-game — real-game-confirmed 2026-08-04, removed from the
+  implementation.** A real-game test (three matched moons of gas giants in
+  `jsons/swoilz-cd-e-c1-1.json`, isolating tidal-lock-chain from Rocky Ice as separate variables —
+  each moon fitted with an identical `Small_Agricultural_Settlement` + cheap Outpost pair, then the
+  outpost's own reported `StationEconomies` Agriculture proportion compared) found IDENTICAL
+  Agriculture contribution whether or not the whole tidal-lock chain up to the star was locked (both
+  matched the predicted no-decrease value of `0.4` tier-1 strong-link rate + `2×0.05` weak-link
+  contribution from the system's other two Agriculture settlements, down to the exact `0.05`
+  granularity) — contradicting this codebase's previous "real-game-verified" claim for the decrease
+  (itself now understood to have been wrong). The `isTidalLockChainToStar` predicate and its
+  Agriculture-decrease branch were deleted entirely from `computeBoostDecrease`/
+  `computeColonyEconomyBreakdown`/`computeStrongLinkBreakdown` (`src/domain/economyOverrides.ts`),
+  along with the "Tidally locked, chain broken" strikethrough UI treatment it existed to explain
+  (`FacilityInfo.tsx`'s `bodyInfoContent`, `.tooltip-bubble s` CSS). **Deliberately NOT edited**:
+  README's verbatim boost/decrease table still lists this rule (it's what the official patch notes
+  say, same "table = official source text, implementation may still diverge" precedent
+  `TERRAFORMABLE_AGRICULTURE_BUG_NOTE` above already established) — this bullet is the
+  implementation-side flag for that divergence instead of a UI disclaimer, since (unlike the
+  Terraformable case) there's no now-inert body attribute worth still labeling in the UI once the
+  decrease itself is gone.
+- **The same real-game test also confirmed Rocky Ice DOES get the Agriculture strong-link decrease,
+  same `-0.4` magnitude as an Icy body** (the third of the three test moons, isolating this from the
+  tidal-lock-chain variable above, matched the predicted decreased value of `0.1` floored tier-1 rate
+  + `2×0.05` weak-link exactly) — even though README's verbatim table only names "icy body" for this
+  row. `isRockyIce(body)` was added alongside `isIcyBody(body)` in the same three Agriculture-
+  decrease branches the bullet above touches. Two independent community-sourced guide passages had
+  already flagged this as a likely gap (see the now-resolved TASKS.md backlog item), and this
+  real-game test is the confirming evidence.
 - `LINK_TIER_CONTRIBUTION_RATE` (0.4/0.8/1.2) and `WEAK_LINK_CONTRIBUTION` (flat 0.05) in
   `src/domain/links.ts` — how much of a linked economy a facility/port contributes *to a linked
   port* through a strong or weak link respectively (distinct from `BOOST_DECREASE_DELTA` above,
