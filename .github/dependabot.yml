@@ -6,8 +6,9 @@ updates:
     schedule:
       interval: "weekly"
     groups:
-      dev-dependencies:
-        dependency-type: "development"
+      dependencies:
+        patterns:
+          - "*"
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
