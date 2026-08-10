@@ -378,6 +378,32 @@ an inference this project made itself, not something the source stated verbatim:
   decrease branches the bullet above touches. Two independent community-sourced guide passages had
   already flagged this as a likely gap (see the now-resolved TASKS.md backlog item), and this
   real-game test is the confirming evidence.
+- **`system_score` (formerly `system_score_beta`) was a wrong formula, not just an imprecise one —
+  now real-game-verified, 2026-08-10.** The old formula (`security + tech_level + wealth +
+  standard_of_living`, each individually reweighted via `FIRST_STATION_BONUS`/
+  `SUBSEQUENT_FACILITY_REDUCTION`) was meant to approximate the real in-game "system points" number
+  the weekly Architect Dividend payout is based on — but it was built from entirely the wrong
+  ingredients. The user supplied real, verified weekly-payout messages for 4 real committed systems
+  (`jsons/*.json`), reproduced the real in-game points **exactly**: 125/125, 45/45, 75/75, 3/3
+  across all 4 systems. All 54 of this app's buildings resolve to a real score with no gaps.
+  `system_score` is now a genuine per-building `BASE_SCORE` column (`data/buildings.ts`), same
+  status as `security`/`wealth`/etc, deliberately kept OUT of `FIRST_STATION_BONUS`/
+  `SUBSEQUENT_FACILITY_REDUCTION` so every consumer's existing "no reweighting entry" code path
+  handles it for free — see `src/domain/currentSystemScores.test.ts`'s dedicated regression test
+  pinning the exact 125/45/75/3 values against the real fixtures. This does NOT disprove
+  `FIRST_STATION_BONUS`/`SUBSEQUENT_FACILITY_REDUCTION` itself (README's "Dodec Update
+  score-weighting" bullet, claimed verbatim-official) — that reweighting still governs the other 5
+  stats it's documented for; only `system_score_beta`'s specific 4-stat-sum formula (never itself
+  claimed verbatim in README, only in code/UI, sourced to the DaftMav spreadsheet) turned out wrong.
+  Renamed `system_score_beta` -> `system_score` (the "_beta" hedge no longer applies) — old saved
+  plans are migrated via `state/plannerState.ts`'s `migrateScoreName`. Also exposed as the `s` letter
+  in custom objective expressions (`expressionParser.ts`/`solve.ts`'s `SCORE_LETTER_TO_SCORE`) and
+  added to `DEFAULT_OBJECTIVE_EXPRESSION` (`sqrt(s)`, since it's always non-negative like `i`/`m`/
+  `t`/`w`/`d`) — it's now the single most real-game-grounded number in the whole objective.
+  `domain/currentSystemScores.ts`'s `ARCHITECT_DIVIDEND_CR_PER_POINT` (9994, shown as "Est. weekly
+  Architect Dividend" in both `SystemConfigPanel.tsx`/`SolvedSystemPanel.tsx`) is the one piece that
+  STAYS best-effort — calibrated from exactly 4 (system_score, payout) pairs (ratio 9993.9-9994.0
+  across a 30K-1.25M cr range), not verbatim-sourced; more real data points would tighten it further.
 - `LINK_TIER_CONTRIBUTION_RATE` (0.4/0.8/1.2) and `WEAK_LINK_CONTRIBUTION` (flat 0.05) in
   `src/domain/links.ts` — how much of a linked economy a facility/port contributes *to a linked
   port* through a strong or weak link respectively (distinct from `BOOST_DECREASE_DELTA` above,
@@ -655,7 +681,16 @@ Manufacturing Hub combo) are the user's own in-game "usually" observation, not a
   (`BuildOrderPanel`/`SolvedSystemPanel` treat `ordering.ts`'s own computed order as authoritative
   for display, never `solve.ts`'s raw internal port assignment). Consequence: this table's own final
   running T2/T3 total can legitimately end up higher than `result.finalT2Points`/`finalT3Points`,
-  never lower — surfaced via the panel's own caption, not silently. A present facility the solver
+  never lower. **`SolvedSystemPanel.tsx`'s own "T2/T3 points left" summary reuses this same
+  `computeBuildOrderTable` call for its displayed number (2026-08-10 fix)** — a real player-reported
+  point of confusion before this: every OTHER number on that panel is a real in-game figure, but
+  `result.finalT2Points`/`finalT3Points` on its own is the solver's internal conservative estimate,
+  and the two could visibly disagree (e.g. reporting "2 T3 points left" next to a Build order table
+  whose own Total row correctly showed 14) with nothing to tell a player which one to trust. Now both
+  panels compute from the identical `computeBuildOrderTable(formState, result)` call, so they can
+  never disagree again — `result.finalT2Points`/`finalT3Points` only remain as a fallback if that
+  replay itself errors (not expected in practice, `computeFeasibleOrder` is designed to always
+  succeed when the solver itself reported success). A present facility the solver
   demolishes still shows up as a real Built row first (real, standing infrastructure today) before
   its Demolish row subtracts it back out. Demolish and Planned rows are interleaved, not "all
   demolishes then all planned builds" — `scheduleDemolishAndPlanned` defers any demolish that would

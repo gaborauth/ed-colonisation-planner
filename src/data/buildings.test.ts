@@ -2,7 +2,6 @@ import { describe, expect, it } from "vitest";
 import {
   ALL_BUILDINGS,
   ALL_CATEGORIES,
-  computeCompoundScore,
   FACILITY_ECONOMY_GUESS,
   getPortTier,
   getT2PortCost,
@@ -166,15 +165,16 @@ describe("escalating port construction-point cost", () => {
   });
 });
 
-describe("system_score_(beta)", () => {
-  it("sums security + tech_level + wealth + standard_of_living", () => {
-    const score = computeCompoundScore("system_score_beta", {
-      security: 1,
-      tech_level: 2,
-      wealth: 3,
-      standard_of_living: 4,
-      development_level: 100, // must be ignored
-    });
-    expect(score).toBe(10);
+describe("system_score", () => {
+  // Spot-checks against the verified per-building table (see CLAUDE.md's "Explicitly unverified/
+  // best-effort constants" section) — real-game-confirmed via 4 exact real-system matches, not a
+  // guess. `system_score` is a genuine per-building stat now (like `security`/`wealth`), not derived
+  // from the other four.
+  it("matches the real per-building point values for a few representative buildings", () => {
+    expect(ALL_BUILDINGS.Coriolis.system_score).toBe(8);
+    expect(ALL_BUILDINGS.Orbis_or_Ocellus.system_score).toBe(15);
+    expect(ALL_BUILDINGS.Refinery_Hub.system_score).toBe(5);
+    expect(ALL_BUILDINGS.Small_Agricultural_Settlement.system_score).toBe(1);
+    expect(ALL_BUILDINGS.Military_Outpost.system_score).toBe(3);
   });
 });

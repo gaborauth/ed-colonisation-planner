@@ -1,11 +1,13 @@
 import { useMemo, useState } from "react";
 import { isPortRole, toPrintable } from "../data/buildings";
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
+import { computeBuildOrderTable } from "../domain/buildOrderTable";
 import { applyManualResourceLevel } from "../domain/economyOverrides";
 import { sumSystemEconomyRatios, type SystemLinksResult } from "../domain/links";
 import { getOrderingFromResult } from "../domain/ordering";
 import type { StrongLinkedInstance } from "../domain/presentLinks";
 import { computeForcedBuildingPriority } from "../domain/selfSufficiencyCombos";
+import { estimateWeeklyArchitectDividend } from "../domain/currentSystemScores";
 import { computeSolvedPlacements, type SolvedBodySlots, type SolvedSlot } from "../domain/solvedPlacement";
 import { computeSolvedSystemLinks } from "../domain/solvedLinks";
 import type { JournalBody } from "../journal/parser";
@@ -246,6 +248,27 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
     ? sumSystemEconomyRatios(linksResult.ports).some((r) => r.totalPercent > 0)
     : false;
 
+  // `result.finalT2Points`/`finalT3Points` are the solver's OWN internal MILP estimate — a
+  // deliberately conservative one (see solve.ts's header comment: new ports share ONE global
+  // sequential cost index across all 5 escalating port types instead of two independent per-tier
+  // sequences), so it can read lower than what's actually achievable. The Build order panel below
+  // computes the real number via a genuine step-by-step replay of the build order
+  // (`ordering.ts`/`systemState.ts`'s per-tier-correct math, real-game-confirmed) — reusing that
+  // SAME function here (not re-deriving the number a second, potentially-drifting way) so this
+  // summary and the Build order panel's own Total row can never show two disagreeing "final" T2/T3
+  // numbers, matching `BuildOrderPanel.tsx`'s own precedent for preferring this over
+  // `result.finalT2Points`/`finalT3Points`. Falls back to the solver's own (conservative) number
+  // only if the replay itself errors — same graceful-degrade spirit as `orderError` above, though in
+  // practice `computeFeasibleOrder` is designed to always find a working order when the solver
+  // itself reported success.
+  const buildOrderTotals = useMemo(() => {
+    if (!result) return null;
+    const { rows, error } = computeBuildOrderTable(formState, result);
+    if (error || rows.length === 0) return null;
+    const lastRow = rows[rows.length - 1];
+    return { t2: lastRow.t2Total, t3: lastRow.t3Total };
+  }, [formState, result]);
+
   const hierarchyRoot = hasBodies ? buildBodyHierarchy(formState.starSystem, formState.bodies) : null;
 
   // Only offered for a system that's had a Raven Colonial backup imported at least once — the
@@ -291,8 +314,13 @@ export function SolvedSystemPanel({ formState, result }: SolvedSystemPanelProps)
             { label: "Orbital slots left", value: result.slotsRemaining.space, neutral: true },
             { label: "Ground slots left", value: result.slotsRemaining.ground, neutral: true },
             { label: "Asteroid slots left", value: result.slotsRemaining.asteroid, neutral: true },
-            { label: "T2 points left", value: result.finalT2Points },
-            { label: "T3 points left", value: result.finalT3Points },
+            { label: "T2 points left", value: buildOrderTotals?.t2 ?? result.finalT2Points },
+            { label: "T3 points left", value: buildOrderTotals?.t3 ?? result.finalT3Points },
+            {
+              label: "Est. weekly Architect Dividend",
+              value: `${estimateWeeklyArchitectDividend(result.scores.system_score).toLocaleString()} Cr`,
+              neutral: true,
+            },
             ...(result.firstStation ? [{ label: "First station", value: toPrintable(result.firstStation), neutral: true }] : []),
             ...(result.objectiveValue !== null
               ? [{ label: "Objective value", value: Math.round(result.objectiveValue * 1000) / 1000, neutral: true }]

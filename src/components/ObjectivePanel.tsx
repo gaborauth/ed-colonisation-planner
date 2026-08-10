@@ -40,12 +40,15 @@ interface ObjectivePreset {
 // (shown as a hint below the dropdown for whichever one is currently active) rather than cramming
 // both into one long option string, which reads poorly in a native <select>.
 //
-// `e` (security) and `n` (standard_of_living) are deliberately NOT wrapped in sqrt/pow/ln here,
-// unlike the other 5 original stats — see DEFAULT_OBJECTIVE_EXPRESSION's comment in
-// state/plannerState.ts for why (some buildings carry a negative sec/sol contribution, and the
-// concave-function linearizer silently mis-linearizes below its domain-positive floor instead of
-// erroring). `y`/`p` (economy_synergy/economy_preference) are appended the same way for the same
-// reason, matching the Default preset — plain linear terms, never inside sqrt/pow/ln.
+// `e` (security) is deliberately NOT wrapped in sqrt/pow/ln here, unlike the other 7
+// always-non-negative-in-practice stats (including `n`/standard_of_living and `s`/system_score) —
+// see DEFAULT_OBJECTIVE_EXPRESSION's comment in state/plannerState.ts for the full reasoning and the
+// deliberate exception made for `n` specifically. `y`/`p` (economy_synergy/economy_preference) are
+// appended the same way as `e`, for the same reason, matching the Default preset — plain linear
+// terms, never inside sqrt/pow/ln. `s`/`n` are only added to the three "Balance all stats" presets
+// below (real per-building stats, same treatment as i/m/t/w/d) — deliberately left OUT of "Wealth &
+// tech, 2:1 ratio", which already excludes several other real stats (i, m, d) to stay narrowly
+// focused on just wealth and tech.
 const PRESETS: ObjectivePreset[] = [
   {
     name: "Default preset",
@@ -56,20 +59,20 @@ const PRESETS: ObjectivePreset[] = [
   {
     name: "Balance all stats",
     description:
-      "Grows every stat together instead of maxing out just one, so the system ends up well-rounded (moderate diminishing returns per stat, via square root). Also factors in security, standard of living, economy fit, and your economy preference choices.",
-    expression: "sqrt(i) + sqrt(m) + e + sqrt(t) + sqrt(w) + n + sqrt(d) + y + p",
+      "Grows every stat together instead of maxing out just one, so the system ends up well-rounded (moderate diminishing returns per stat, via square root). Also factors in security, economy fit, and your economy preference choices.",
+    expression: "sqrt(i) + sqrt(m) + e + sqrt(t) + sqrt(w) + sqrt(n) + sqrt(d) + sqrt(s) + y + p",
   },
   {
     name: "Balance all stats, harder",
     description:
-      "Pushes even harder toward an even spread across every stat, so it's harder to get ahead by dumping everything into just one (stronger diminishing returns than \"Balance all stats\"). Also factors in security, standard of living, economy fit, and your economy preference choices.",
-    expression: "i^0.2 + m^0.2 + e + t^0.2 + w^0.2 + n + d^0.2 + y + p",
+      "Pushes even harder toward an even spread across every stat, so it's harder to get ahead by dumping everything into just one (stronger diminishing returns than \"Balance all stats\"). Also factors in security, economy fit, and your economy preference choices.",
+    expression: "i^0.2 + m^0.2 + e + t^0.2 + w^0.2 + n^0.2 + d^0.2 + s^0.2 + y + p",
   },
   {
     name: "Balance all stats, hardest",
     description:
-      "The most even spread of the three balance presets — hardest for any single stat to dominate (logarithmic diminishing returns, the strongest of the three). Also factors in security, standard of living, economy fit, and your economy preference choices.",
-    expression: "ln(i) + ln(m) + e + ln(t) + ln(w) + n + ln(d) + y + p",
+      "The most even spread of the three balance presets — hardest for any single stat to dominate (logarithmic diminishing returns, the strongest of the three). Also factors in security, economy fit, and your economy preference choices.",
+    expression: "ln(i) + ln(m) + e + ln(t) + ln(w) + ln(n) + ln(d) + ln(s) + y + p",
   },
   {
     name: "Wealth & tech, 2:1 ratio",
@@ -90,14 +93,13 @@ function capitalize(text: string): string {
 
 // Short "what does this mean" line shown below the "Maximize a single score" dropdown for whichever
 // score is currently picked, same idea as the Presets' descriptions above; also shown per-row in the
-// Score constraints table (see below). Every ALL_SCORES entry needs one (including the
-// derived/compound ones): missing an entry would silently show a blank hint rather than erroring, so
-// this is written as a full Record, not Partial, to make an omission a compile error instead. Capped
-// at 8 words each — the Score constraints table's own divider (see ALL_SCORES.map below) already
-// separates real system stats from
-// construction_cost/system_score_beta/economy_synergy/economy_preference, so an individual
-// description doesn't need to spell out that distinction itself (e.g. "not a real in-game stat"
-// for the two derived scores).
+// Score constraints table (see below). Every ALL_SCORES entry needs one (including the derived
+// ones): missing an entry would silently show a blank hint rather than erroring, so this is written
+// as a full Record, not Partial, to make an omission a compile error instead. Capped at 8 words each
+// — the Score constraints table's own divider (see ALL_SCORES.map below) already separates real
+// system stats (now including `system_score`) from construction_cost/economy_synergy/
+// economy_preference, so an individual description doesn't need to spell out that distinction itself
+// (e.g. "not a real in-game stat" for the two derived scores).
 const SCORE_DESCRIPTIONS: Record<Score, string> = {
   initial_population_increase: "How much starting population increases from this.",
   max_population_increase: "Maximum sustainable population increase for the system.",
@@ -106,8 +108,8 @@ const SCORE_DESCRIPTIONS: Record<Score, string> = {
   wealth: "Economic wealth; drives commodity prices and market activity.",
   standard_of_living: "How comfortable life is for the population.",
   development_level: "How developed/industrialized the system is overall.",
+  system_score: "Real colonisation score behind the weekly Architect Dividend.",
   construction_cost: "Total commodities needed.",
-  system_score_beta: "Sum of security, tech, wealth, standard of living.",
   economy_synergy: "Solver's estimate of building-to-body economy fit.",
   economy_preference: "Your economy preference choices, turned into a score.",
 };
@@ -315,10 +317,13 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving, result }
               <div className="field" style={{ marginTop: 8 }}>
                 <label htmlFor="objective-expression">
                   Combine these stats: i (initial population increase), m (max population increase), e
-                  (security), t (tech level), w (wealth), n (standard of living), d (development), c
-                  (construction cost), y (economy fit), p (economy preference). Functions: sqrt, ln, log,
-                  exp, abs — and ^ for a constant fractional power. e, n, y, and p can go negative, so add
-                  them as plain terms rather than wrapping them in sqrt/ln/^.
+                  (security), t (tech level), w (wealth), n (standard of living), d (development), s
+                  (system score), c (construction cost), y (economy fit), p (economy preference).
+                  Functions: sqrt, ln, log, exp, abs — and ^ for a constant fractional power. e, y, and p
+                  can go negative, so add them as plain terms rather than wrapping them in sqrt/ln/^. n can
+                  go negative too, but this app's own presets wrap it anyway — below ~0 it silently caps
+                  at a softened (not zero) linear penalty rather than erroring, which real systems rarely
+                  get close to.
                 </label>
                 <textarea
                   id="objective-expression"
@@ -450,12 +455,12 @@ export function ObjectivePanel({ formState, dispatch, onSolve, solving, result }
                 // Separates the real, persistent system stats above from construction_cost onward
                 // below — construction_cost is a genuine in-game number but a transient, inverted
                 // one (minimized, not maximized, and never itself shown in the system's own stats
-                // panel), and system_score_beta/economy_synergy/economy_preference are this app's
-                // own compound/solver-side numbers, not real per-building stats. The divider goes
-                // after development_level, not before construction_cost, since construction_cost
-                // itself belongs with the "not a real system stat" group below, not the real stats
-                // above it.
-                return score === "development_level"
+                // panel), and economy_synergy/economy_preference are this app's own solver-side
+                // numbers, not real per-building stats. `system_score` is a real per-building stat
+                // (real-game-verified, see CLAUDE.md) so the divider goes after IT, not after
+                // development_level — construction_cost itself belongs with the "not a real system
+                // stat" group below, not the real stats above it.
+                return score === "system_score"
                   ? [row, <tr key={`${score}-divider`} aria-hidden="true"><td colSpan={3}><hr className="score-constraints-divider" /></td></tr>]
                   : [row];
               })}

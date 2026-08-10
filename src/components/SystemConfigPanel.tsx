@@ -1,7 +1,7 @@
 import { useEffect, useMemo, type Dispatch } from "react";
 import { ALL_CATEGORIES, isPort, isPortRole, ALL_BUILDINGS, toPrintable, getBuildingVariants } from "../data/buildings";
 import { buildBodyHierarchy, type BodyHierarchyNode } from "../domain/bodyHierarchy";
-import { computeCurrentSystemScores } from "../domain/currentSystemScores";
+import { computeCurrentSystemScores, estimateWeeklyArchitectDividend } from "../domain/currentSystemScores";
 import { applyManualResourceLevel, type ResourceLevel } from "../domain/economyOverrides";
 import { sumSystemEconomyRatios, type SystemLinksResult } from "../domain/links";
 import { useScrollAnchoredCollapse } from "../hooks/useScrollAnchoredCollapse";
@@ -692,6 +692,11 @@ export function SystemConfigPanel({ formState, dispatch, justSolved }: SystemCon
         extraFields={[
           { label: "T2 points", value: currentPoints.t2 },
           { label: "T3 points", value: currentPoints.t3 },
+          {
+            label: "Est. weekly Architect Dividend",
+            value: `${estimateWeeklyArchitectDividend(currentScores.system_score).toLocaleString()} Cr`,
+            neutral: true,
+          },
         ]}
         emphasized
       >

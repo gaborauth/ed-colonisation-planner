@@ -65,7 +65,6 @@ import {
   ALL_SCORES,
   type EconomyType,
   type Score,
-  computeCompoundScore,
   FIRST_STATION_BONUS,
   getT2PortCost,
   getT3PortCost,
@@ -303,6 +302,7 @@ const SCORE_LETTER_TO_SCORE: Record<ScoreLetter, Score> = {
   c: "construction_cost",
   y: "economy_synergy",
   p: "economy_preference",
+  s: "system_score",
 };
 
 function errorResult(message: string): SolverResult {
@@ -614,7 +614,6 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   const firstStationContribution: Partial<Record<Score, LPExpr>> = {};
   for (const [name, building] of Object.entries(ALL_BUILDINGS)) {
     for (const score of ALL_SCORES) {
-      if (score === "system_score_beta") continue;
       const statValue = building[score as keyof typeof building];
       if (typeof statValue !== "number" || statValue === 0) continue;
       const source = score === "construction_cost" ? allVars[name] : allValues[name];
@@ -650,11 +649,6 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       scaleExpr(subsequentPart, 1 - reduction),
     );
   }
-
-  systemScores.system_score_beta = addExpr(
-    addExpr(systemScores.security, systemScores.tech_level),
-    addExpr(systemScores.wealth, systemScores.standard_of_living),
-  );
 
   // --- economy_synergy / economy_preference / Forbid (per-body economy-fit + steering) -----------
   // Only meaningful in per-body mode, and only for bodies whose caller actually supplied
@@ -933,8 +927,6 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
   const scores = Object.fromEntries(
     ALL_SCORES.map((score) => [score, Math.round(evalExprAt(systemScores[score], colValues))]),
   ) as Record<Score, number>;
-  // Recompute the compound score from the rounded base scores for display consistency.
-  scores.system_score_beta = computeCompoundScore("system_score_beta", scores);
 
   const demolished = presentKeepVars
     .filter((d) => Math.round(colValues[d.keepVar] ?? 1) === 0)
