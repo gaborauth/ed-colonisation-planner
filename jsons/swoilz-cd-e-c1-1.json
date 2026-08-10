@@ -101,7 +101,14 @@
         "asteroid": 0
       },
       "presentFacilities": {
-        "space": [],
+        "space": [
+          {
+            "building": "Commercial_Outpost",
+            "demolishable": false,
+            "customName": "Potagos's Folly",
+            "variant": "Plutus"
+          }
+        ],
         "ground": [
           {
             "building": "Small_Agricultural_Settlement",
@@ -284,6 +291,12 @@
         "space": 1,
         "ground": 1,
         "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          null
+        ]
       }
     },
     {
@@ -343,6 +356,26 @@
         "space": 3,
         "ground": 1,
         "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Commercial_Outpost",
+            "demolishable": false,
+            "customName": "Hyakutake Horizons",
+            "variant": "Plutus"
+          },
+          null,
+          null
+        ],
+        "ground": [
+          {
+            "building": "Small_Agricultural_Settlement",
+            "demolishable": false,
+            "customName": "Colley Nutrition Centre",
+            "variant": "Consus"
+          }
+        ]
       }
     },
     {
@@ -433,6 +466,26 @@
         "space": 2,
         "ground": 2,
         "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Commercial_Outpost",
+            "demolishable": false,
+            "customName": "Lagerkvist Horizons",
+            "variant": "Plutus"
+          },
+          null
+        ],
+        "ground": [
+          {
+            "building": "Small_Agricultural_Settlement",
+            "demolishable": false,
+            "customName": "Colley Nutrition Centre",
+            "variant": "Consus"
+          },
+          null
+        ]
       }
     },
     {

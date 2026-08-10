@@ -17,21 +17,34 @@ import type { Direction, EconomyPreference, SlotAvailability, SolverResult } fro
 // preference) added alongside `y` (economy_synergy) — same precedent as when `y` itself was added:
 // Want/Don't want preferences only actually bias the solve when the active objective references
 // `p`, same as economy_synergy today (see solve.ts's SolverInput.economyPreferences doc comment).
+// `sqrt(s)` (system_score) added once its formula was corrected and real-game-verified (see
+// data/buildings.ts's doc comment) — it's now the single most real-game-grounded number in the
+// whole objective (what real weekly Architect Dividend payout is literally based on), so it belongs
+// in the default "one-size-fits-most" expression like the other real per-building stats.
 //
-// `e` (security), `n` (standard_of_living), `y`, and `p` are deliberately kept OUTSIDE the
-// sqrt(...) wrapping the other stats get, added as plain linear terms instead — unlike
-// initial/max population increase, tech, wealth, and development (which no building's stats ever
-// push negative), several real buildings carry a negative `sec` or `sol` contribution (e.g.
-// Orbis_or_Ocellus's sec: -3, Industrial_Hub's sol: -4 in data/buildings.ts), and `y`/`p` can go
-// negative by construction (a strong-link decrease condition, or a "Don't want" economy
-// preference). `objective.ts`'s concave-function linearizer doesn't error on a negative-reaching
-// argument — `pickBreakpoints` just clamps its lowest sample to x=1 (its `domainPositive` handling)
-// and silently extrapolates that breakpoint's tangent line forever below it, so `sqrt(e)` would
-// quietly become a fixed-slope LINEAR penalty on security instead of a diminishing-returns curve
-// the instant a solved layout pushes security negative — a real, reachable case, not a hypothetical
-// edge case. Don't re-wrap `e`/`n`/`y`/`p` in sqrt/ln/pow without re-solving this.
+// `e` (security), `y`, and `p` are deliberately kept OUTSIDE the sqrt(...) wrapping the other stats
+// get, added as plain linear terms instead — several real buildings carry a negative `sec`
+// contribution (e.g. Orbis_or_Ocellus's sec: -3 in data/buildings.ts), and `y`/`p` can go negative by
+// construction (a strong-link decrease condition, or a "Don't want" economy preference).
+// `objective.ts`'s concave-function linearizer doesn't error on a negative-reaching argument —
+// `pickBreakpoints` just clamps its lowest sample to x=1 (its `domainPositive` handling) and
+// silently extrapolates that breakpoint's tangent line forever below it, so `sqrt(e)` would quietly
+// become a fixed-slope LINEAR penalty on security instead of a diminishing-returns curve the instant
+// a solved layout pushes security negative — a real, reachable case, not a hypothetical edge case.
+// Don't re-wrap `e`/`y`/`p` in sqrt/ln/pow without re-solving this.
+//
+// **`n` (standard_of_living) is the one deliberate exception** (2026-08-10 discussion): it's wrapped
+// in `sqrt(...)` anyway, despite the same risk (buildings like Industrial_Hub carry a negative `sol`:
+// -4), because real systems' `standard_of_living` overwhelmingly stays positive (this app's own
+// real-system fixtures run +15 to +51) and was previously dominating the sum as a much larger raw
+// number than `security`/`economy_synergy`. The accepted tradeoff: if a solved layout DOES push `n`
+// negative, the tangent-at-x=1 extrapolation gives it a HALVED linear penalty (`0.5 + 0.5*n` instead
+// of the full `n`) — softened, not zero, and never a wrong/invalid LP bound (a concave function's
+// tangent line is always a valid upper bound everywhere, positive or negative domain). Worth
+// revisiting only if a real solved system is observed pushing `standard_of_living` meaningfully
+// negative in practice.
 export const DEFAULT_OBJECTIVE_EXPRESSION =
-  "sqrt(i) + sqrt(m) + e + sqrt(t) + sqrt(w) + n + sqrt(d) + 2 * w + t - abs(w - 2 * t) + y + p";
+  "sqrt(i) + sqrt(m) + e + sqrt(t) + sqrt(w) + sqrt(n) + sqrt(d) + sqrt(s) + 2 * w + t - abs(w - 2 * t) + y + p";
 
 export interface PlannerFormState {
   slots: SlotAvailability;
@@ -184,6 +197,22 @@ const LEGACY_ECONOMY_PREFERENCE_MAP: Record<string, EconomyPreference> = {
   must: 175,
 };
 
+/** `system_score_beta` was renamed to `system_score` once its formula was corrected and real-game-
+ * verified (see `data/buildings.ts`'s `system_score` doc comment) — a plan saved before the rename
+ * can still have the old literal string in `simpleScore`/`scoreMin`/`scoreMax`. */
+function migrateScoreName(score: string): string {
+  return score === "system_score_beta" ? "system_score" : score;
+}
+
+function migrateScoreRecord(record: Partial<Record<string, number>> | undefined): Partial<Record<Score, number>> {
+  if (!record) return {};
+  const next: Partial<Record<Score, number>> = {};
+  for (const [score, value] of Object.entries(record)) {
+    if (value !== undefined) next[migrateScoreName(score) as Score] = value;
+  }
+  return next;
+}
+
 function migrateEconomyPreferences(
   raw: Partial<Record<EconomyType, EconomyPreference>> | undefined,
 ): Partial<Record<EconomyType, EconomyPreference>> {
@@ -320,6 +349,10 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
       // Same shim style for `selfSufficiencyGoals` (added after `bodies`): a plan saved before it
       // existed just has no goals checked, not a broken/undefined lookup target.
       const selfSufficiencyGoals = action.state.selfSufficiencyGoals ?? {};
+      // `system_score_beta` -> `system_score` rename shim — see `migrateScoreName`'s doc comment.
+      const simpleScore = migrateScoreName(action.state.simpleScore) as Score;
+      const scoreMin = migrateScoreRecord(action.state.scoreMin);
+      const scoreMax = migrateScoreRecord(action.state.scoreMax);
       return {
         ...action.state,
         bodies,
@@ -329,6 +362,9 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
         economyPreferences,
         systemResourceLevel: resourceLevel,
         selfSufficiencyGoals,
+        simpleScore,
+        scoreMin,
+        scoreMax,
       };
     }
     case "reset":

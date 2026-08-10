@@ -349,6 +349,61 @@ an inference this project made itself, not something the source stated verbatim:
   `public/known-issues.html` (`TERRAFORMABLE_AGRICULTURE_BUG_LINK`) for the full explanation. Revert
   by re-adding the `isTerraformable(body)` boost call at each of the three sites if Frontier ever
   fixes this in-game.
+- **Agriculture's "tidally locked to its star" strong-link decrease (README's verbatim boost/
+  decrease table) does not actually fire in-game — real-game-confirmed 2026-08-04, removed from the
+  implementation.** A real-game test (three matched moons of gas giants in
+  `jsons/swoilz-cd-e-c1-1.json`, isolating tidal-lock-chain from Rocky Ice as separate variables —
+  each moon fitted with an identical `Small_Agricultural_Settlement` + cheap Outpost pair, then the
+  outpost's own reported `StationEconomies` Agriculture proportion compared) found IDENTICAL
+  Agriculture contribution whether or not the whole tidal-lock chain up to the star was locked (both
+  matched the predicted no-decrease value of `0.4` tier-1 strong-link rate + `2×0.05` weak-link
+  contribution from the system's other two Agriculture settlements, down to the exact `0.05`
+  granularity) — contradicting this codebase's previous "real-game-verified" claim for the decrease
+  (itself now understood to have been wrong). The `isTidalLockChainToStar` predicate and its
+  Agriculture-decrease branch were deleted entirely from `computeBoostDecrease`/
+  `computeColonyEconomyBreakdown`/`computeStrongLinkBreakdown` (`src/domain/economyOverrides.ts`),
+  along with the "Tidally locked, chain broken" strikethrough UI treatment it existed to explain
+  (`FacilityInfo.tsx`'s `bodyInfoContent`, `.tooltip-bubble s` CSS). **Deliberately NOT edited**:
+  README's verbatim boost/decrease table still lists this rule (it's what the official patch notes
+  say, same "table = official source text, implementation may still diverge" precedent
+  `TERRAFORMABLE_AGRICULTURE_BUG_NOTE` above already established) — this bullet is the
+  implementation-side flag for that divergence instead of a UI disclaimer, since (unlike the
+  Terraformable case) there's no now-inert body attribute worth still labeling in the UI once the
+  decrease itself is gone.
+- **The same real-game test also confirmed Rocky Ice DOES get the Agriculture strong-link decrease,
+  same `-0.4` magnitude as an Icy body** (the third of the three test moons, isolating this from the
+  tidal-lock-chain variable above, matched the predicted decreased value of `0.1` floored tier-1 rate
+  + `2×0.05` weak-link exactly) — even though README's verbatim table only names "icy body" for this
+  row. `isRockyIce(body)` was added alongside `isIcyBody(body)` in the same three Agriculture-
+  decrease branches the bullet above touches. Two independent community-sourced guide passages had
+  already flagged this as a likely gap (see the now-resolved TASKS.md backlog item), and this
+  real-game test is the confirming evidence.
+- **`system_score` (formerly `system_score_beta`) was a wrong formula, not just an imprecise one —
+  now real-game-verified, 2026-08-10.** The old formula (`security + tech_level + wealth +
+  standard_of_living`, each individually reweighted via `FIRST_STATION_BONUS`/
+  `SUBSEQUENT_FACILITY_REDUCTION`) was meant to approximate the real in-game "system points" number
+  the weekly Architect Dividend payout is based on — but it was built from entirely the wrong
+  ingredients. The user supplied real, verified weekly-payout messages for 4 real committed systems
+  (`jsons/*.json`), reproduced the real in-game points **exactly**: 125/125, 45/45, 75/75, 3/3
+  across all 4 systems. All 54 of this app's buildings resolve to a real score with no gaps.
+  `system_score` is now a genuine per-building `BASE_SCORE` column (`data/buildings.ts`), same
+  status as `security`/`wealth`/etc, deliberately kept OUT of `FIRST_STATION_BONUS`/
+  `SUBSEQUENT_FACILITY_REDUCTION` so every consumer's existing "no reweighting entry" code path
+  handles it for free — see `src/domain/currentSystemScores.test.ts`'s dedicated regression test
+  pinning the exact 125/45/75/3 values against the real fixtures. This does NOT disprove
+  `FIRST_STATION_BONUS`/`SUBSEQUENT_FACILITY_REDUCTION` itself (README's "Dodec Update
+  score-weighting" bullet, claimed verbatim-official) — that reweighting still governs the other 5
+  stats it's documented for; only `system_score_beta`'s specific 4-stat-sum formula (never itself
+  claimed verbatim in README, only in code/UI, sourced to the DaftMav spreadsheet) turned out wrong.
+  Renamed `system_score_beta` -> `system_score` (the "_beta" hedge no longer applies) — old saved
+  plans are migrated via `state/plannerState.ts`'s `migrateScoreName`. Also exposed as the `s` letter
+  in custom objective expressions (`expressionParser.ts`/`solve.ts`'s `SCORE_LETTER_TO_SCORE`) and
+  added to `DEFAULT_OBJECTIVE_EXPRESSION` (`sqrt(s)`, since it's always non-negative like `i`/`m`/
+  `t`/`w`/`d`) — it's now the single most real-game-grounded number in the whole objective.
+  `domain/currentSystemScores.ts`'s `ARCHITECT_DIVIDEND_CR_PER_POINT` (9994, shown as "Est. weekly
+  Architect Dividend" in both `SystemConfigPanel.tsx`/`SolvedSystemPanel.tsx`) is the one piece that
+  STAYS best-effort — calibrated from exactly 4 (system_score, payout) pairs (ratio 9993.9-9994.0
+  across a 30K-1.25M cr range), not verbatim-sourced; more real data points would tighten it further.
 - `LINK_TIER_CONTRIBUTION_RATE` (0.4/0.8/1.2) and `WEAK_LINK_CONTRIBUTION` (flat 0.05) in
   `src/domain/links.ts` — how much of a linked economy a facility/port contributes *to a linked
   port* through a strong or weak link respectively (distinct from `BOOST_DECREASE_DELTA` above,
@@ -626,7 +681,16 @@ Manufacturing Hub combo) are the user's own in-game "usually" observation, not a
   (`BuildOrderPanel`/`SolvedSystemPanel` treat `ordering.ts`'s own computed order as authoritative
   for display, never `solve.ts`'s raw internal port assignment). Consequence: this table's own final
   running T2/T3 total can legitimately end up higher than `result.finalT2Points`/`finalT3Points`,
-  never lower — surfaced via the panel's own caption, not silently. A present facility the solver
+  never lower. **`SolvedSystemPanel.tsx`'s own "T2/T3 points left" summary reuses this same
+  `computeBuildOrderTable` call for its displayed number (2026-08-10 fix)** — a real player-reported
+  point of confusion before this: every OTHER number on that panel is a real in-game figure, but
+  `result.finalT2Points`/`finalT3Points` on its own is the solver's internal conservative estimate,
+  and the two could visibly disagree (e.g. reporting "2 T3 points left" next to a Build order table
+  whose own Total row correctly showed 14) with nothing to tell a player which one to trust. Now both
+  panels compute from the identical `computeBuildOrderTable(formState, result)` call, so they can
+  never disagree again — `result.finalT2Points`/`finalT3Points` only remain as a fallback if that
+  replay itself errors (not expected in practice, `computeFeasibleOrder` is designed to always
+  succeed when the solver itself reported success). A present facility the solver
   demolishes still shows up as a real Built row first (real, standing infrastructure today) before
   its Demolish row subtracts it back out. Demolish and Planned rows are interleaved, not "all
   demolishes then all planned builds" — `scheduleDemolishAndPlanned` defers any demolish that would
@@ -789,6 +853,42 @@ purely as a *feasibility* constraint (real per-body slot capacity, replacing the
 slot pools when present) and still separately feeds `domain/links.ts`'s post-solve computation for
 the "i" info icons' exact link topology — `economy_synergy` is additive to both of those existing
 roles, not a replacement for either.
+
+**Multi-pass iterative solving (`solver/iterativeSolve.ts`) is a heuristic escape hatch for
+`economy_synergy`'s remaining circularity, spanning MULTIPLE solves rather than solving it exactly
+within one.** Within a single `solve()` call, `knownPortBodyIds` (the set of bodies that get the full
+strong-link-style boost/decrease instead of a flat weak-link trickle — see `solve.ts`'s header
+comment) only ever contains facts known *before* solving: already-present ports and the primary
+station's body. `solveIteratively(input, passes, onProgress)` re-solves up to `passes` times — the
+function itself stays generic over `passes`, but `App.tsx` calls it with a FIXED constant
+(`solver/iterativeSolve.ts`'s `ITERATIVE_SOLVE_PASSES = 20`), not a user-facing control: real-machine
+timing (2026-08-10, a ~6-year-old laptop, a ~97-slot system) found 5 passes takes ~7s, and that a
+typical system's known-port set converges (see the fixed-point check below) well before reaching even
+that many passes — so a higher fixed cap costs little in the common case (most solves finish early
+regardless) while giving real headroom to the less common system that needs more passes to settle,
+without needing a slider for the user to reason about. `SolverStatusDialog.tsx`'s "(pass X of Y)" text
+is still the only visible sign this is happening — an earlier design iteration exposed `passes` as a
+`PlannerFormState.iterativeRefinementPasses` slider in `ObjectivePanel.tsx`; removed once real usage
+showed the convergence check already makes extra passes cheap enough to just always spend, widening
+`SolverInput.synergyKnownPortBodyIds` on each pass with the *previous* pass's own
+newly-built port-role placements (`isPortRole` from `data/buildings.ts` — the 14-building Update-3
+"Ports" set, not the narrower 5-building `isPort()`). This lets a body that only became a port as a
+*result* of solving get real economy-fit signal on the next pass, instead of the flat estimate every
+port-less body gets today. Recomputed fresh from each pass's own decisions, not a cumulative union
+across passes, so a body a later pass decides *not* to port on correctly drops back out rather than
+permanently biasing subsequent passes toward a stale early guess. `synergyKnownPortBodyIds` only ever
+feeds `economySynergyCoefficient`'s objective contribution — it's never passed to
+`model.addConstraint` — so the feasible region is provably identical across every pass of one
+iterative run; a non-`"optimal"` status on pass 2+ is therefore a transient solver-internal issue, not
+a consequence of this feature, and `solveIteratively` falls back to the last known-optimal result
+rather than surfacing that as an error. The loop stops early ("converged") the moment a pass
+reproduces the exact known-port set it was given as input (further passes would just re-solve an
+identical LP model) — this is a genuine fixed-point guarantee, but NOT a global-optimality one: a
+2-cycle (pass *k* ports body A, pass *k+1* ports body B instead, pass *k+2* back to A, …) won't be
+detected early and will simply run to `ITERATIVE_SOLVE_PASSES`, which is why that constant is capped
+at 20 rather than left unbounded. Each pass re-runs the whole HiGHS WASM solve, so cost scales
+linearly with however many passes actually run before convergence — bounded, but not shown anywhere
+in the UI beyond the progress dialog's pass count while solving.
 
 **Backward compatibility is load-bearing, not incidental.** `SolverInput.bodies` absent/empty (the
 default — anyone using only the System facilities panel's aggregate slot fields) reproduces today's

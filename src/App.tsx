@@ -19,8 +19,8 @@ import { useWhatsNew } from "./hooks/useWhatsNew";
 import { getHasUsedLiveDemo, setHasUsedLiveDemo } from "./persistence/liveDemoHint";
 import { applyStoredObjectivePreference } from "./persistence/objectivePreference";
 import type { SavedPlan } from "./persistence/plans";
+import { ITERATIVE_SOLVE_PASSES, solveIteratively } from "./solver/iterativeSolve";
 import type { SolverBody, SolverInput } from "./solver/solve";
-import { solveInWorker } from "./solver/solveInWorker";
 import {
   INITIAL_FORM_STATE,
   INITIAL_RESULT_STATE,
@@ -107,13 +107,20 @@ function App() {
   // on every render. Stops for good the moment they actually click it, in this tab and every future
   // one (persisted via persistence/liveDemoHint.ts).
   const [showLiveDemoAttention, setShowLiveDemoAttention] = useState(() => !getHasUsedLiveDemo());
+  // Drives SolverStatusDialog's "(pass X of Y)" text while `solveIteratively` runs its fixed
+  // `ITERATIVE_SOLVE_PASSES` — see `solver/iterativeSolve.ts` for why this cost is spent
+  // unconditionally rather than behind a user-facing control.
+  const [solveProgress, setSolveProgress] = useState<{ pass: number; total: number } | null>(null);
   const cookieConsent = useCookieConsent();
   const whatsNew = useWhatsNew();
 
   async function handleSolve(): Promise<void> {
     setResultState({ status: "solving", result: null, message: null });
+    setSolveProgress(null);
     try {
-      const result = await solveInWorker(buildSolverInput(formState));
+      const { result } = await solveIteratively(buildSolverInput(formState), ITERATIVE_SOLVE_PASSES, (pass, total) =>
+        setSolveProgress(total > 1 ? { pass, total } : null),
+      );
       if (result.status === "optimal") {
         setResultState({ status: "done", result, message: null });
         // Deferred one frame so the "Solved system" panel has already re-rendered with the new
@@ -127,6 +134,8 @@ function App() {
       }
     } catch (e) {
       setResultState({ status: "error", result: null, message: (e as Error).message });
+    } finally {
+      setSolveProgress(null);
     }
   }
 
@@ -226,6 +235,7 @@ function App() {
         <SolverStatusDialog
           status={resultState.status}
           message={resultState.message}
+          progress={solveProgress}
           onDismiss={() => setResultState(INITIAL_RESULT_STATE)}
         />
         <LiveDemoHintDialog open={liveDemoHintOpen} onDismiss={() => setLiveDemoHintOpen(false)} />

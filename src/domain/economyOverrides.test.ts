@@ -10,7 +10,6 @@ import {
   hasGeologicals,
   hasOrganics,
   hasVolcanism,
-  isTidalLockChainToStar,
   systemResourceLevel,
 } from "./economyOverrides";
 
@@ -86,74 +85,6 @@ describe("computeBodyEconomyOverrides", () => {
   });
 });
 
-describe("isTidalLockChainToStar", () => {
-  it("is true for a planet directly tidally locked to its star", () => {
-    const star = makeBody({ kind: "star", starType: "G", parents: [] });
-    const planet = makeBody({ tidalLocked: true, parents: [{ type: "Star", bodyId: star.bodyId }] });
-    const byId = new Map([star, planet].map((b) => [b.bodyId, b]));
-    expect(isTidalLockChainToStar(planet, byId)).toBe(true);
-  });
-
-  it("is false when the body itself isn't tidally locked", () => {
-    const planet = makeBody({ tidalLocked: false, parents: [{ type: "Star", bodyId: 0 }] });
-    expect(isTidalLockChainToStar(planet, new Map())).toBe(false);
-  });
-
-  it("is true for a moon tidally locked to a planet that's itself locked to the star", () => {
-    const star = makeBody({ kind: "star", starType: "G", parents: [] });
-    const planet = makeBody({ tidalLocked: true, parents: [{ type: "Star", bodyId: star.bodyId }] });
-    const moon = makeBody({ tidalLocked: true, parents: [{ type: "Planet", bodyId: planet.bodyId }] });
-    const byId = new Map([star, planet, moon].map((b) => [b.bodyId, b]));
-    expect(isTidalLockChainToStar(moon, byId)).toBe(true);
-  });
-
-  it("is false for a locked moon whose parent planet is not itself locked to the star", () => {
-    const star = makeBody({ kind: "star", starType: "G", parents: [] });
-    const planet = makeBody({ tidalLocked: false, parents: [{ type: "Star", bodyId: star.bodyId }] });
-    const moon = makeBody({ tidalLocked: true, parents: [{ type: "Planet", bodyId: planet.bodyId }] });
-    const byId = new Map([star, planet, moon].map((b) => [b.bodyId, b]));
-    expect(isTidalLockChainToStar(moon, byId)).toBe(false);
-  });
-
-  it("safely returns false (not a guessed decrease) when a parent link is missing scan data", () => {
-    const moon = makeBody({ tidalLocked: true, parents: [{ type: "Planet", bodyId: 9999 }] });
-    expect(isTidalLockChainToStar(moon, new Map())).toBe(false);
-  });
-
-  it("is true for a planet tidally locked to its star through a binary-pair barycenter (\"Null\" parent)", () => {
-    // Real bug found from jsons/Swoilz AW-C d52-20260725-0826.json: bodies 4/5 are two gas giants
-    // orbiting each other (a binary pair), that pair then orbiting the system's star — each one's
-    // own `parents` runs [{Null, barycenterId}, {Star, starId}], and the barycenter itself was never
-    // scanned (no Scan event, no JournalBody record to look up). The old version of this function
-    // treated the "Null" immediate parent as an instant chain-break, so a real tidally-locked planet
-    // never registered the decrease at all.
-    const star = makeBody({ kind: "star", starType: "G", parents: [] });
-    const planet = makeBody({
-      tidalLocked: true,
-      parents: [
-        { type: "Null", bodyId: 999 },
-        { type: "Star", bodyId: star.bodyId },
-      ],
-    });
-    const byId = new Map([star, planet].map((b) => [b.bodyId, b]));
-    expect(isTidalLockChainToStar(planet, byId)).toBe(true);
-  });
-
-  it("still walks past a barycenter to find and recurse into a real Planet ancestor", () => {
-    const star = makeBody({ kind: "star", starType: "G", parents: [] });
-    const planet = makeBody({ tidalLocked: true, parents: [{ type: "Star", bodyId: star.bodyId }] });
-    const moon = makeBody({
-      tidalLocked: true,
-      parents: [
-        { type: "Null", bodyId: 999 },
-        { type: "Planet", bodyId: planet.bodyId },
-      ],
-    });
-    const byId = new Map([star, planet, moon].map((b) => [b.bodyId, b]));
-    expect(isTidalLockChainToStar(moon, byId)).toBe(true);
-  });
-});
-
 describe("computeBoostDecrease", () => {
   it("boosts Agriculture for an Earth-like world but not an unrequested economy", () => {
     const body = makeBody({ planetClass: "Earthlike body" });
@@ -169,7 +100,7 @@ describe("computeBoostDecrease", () => {
     expect(result.decreased).toEqual(["Agriculture"]);
   });
 
-  it("decreases Agriculture for a planet tidally locked to its star", () => {
+  it("does NOT decrease Agriculture for a planet tidally locked to its star (real-game-confirmed 2026-08-04: no such penalty)", () => {
     const star = makeBody({ kind: "star", starType: "G", parents: [] });
     const planet = makeBody({
       planetClass: "Rocky body",
@@ -177,7 +108,14 @@ describe("computeBoostDecrease", () => {
       parents: [{ type: "Star", bodyId: star.bodyId }],
     });
     const result = computeBoostDecrease(planet, [star, planet], ["Agriculture"]);
-    expect(result.decreased).toContain("Agriculture");
+    expect(result.decreased).not.toContain("Agriculture");
+  });
+
+  it("decreases (not boosts) Agriculture on a Rocky Ice body (real-game-confirmed 2026-08-04)", () => {
+    const body = makeBody({ planetClass: "Rocky ice body" });
+    const result = computeBoostDecrease(body, [body], ["Agriculture"]);
+    expect(result.boosted).toEqual([]);
+    expect(result.decreased).toEqual(["Agriculture"]);
   });
 
   it("boosts Tourism from a system-wide black hole even though the body itself isn't one", () => {
@@ -353,8 +291,7 @@ describe("computeEconomyRatios", () => {
 
   it("reproduces the real reported case: Agriculture 140% with organics, 100% without, on an otherwise-identical moon of a gas giant", () => {
     // Mirrors the user's own exported system: two moons of a gas giant, both Rocky/tidally-locked
-    // to the *planet* (not the star, so no tidal-lock decrease applies — see
-    // isTidalLockChainToStar), differing only in FSSBodySignals-reported biological signals.
+    // to the *planet*, differing only in FSSBodySignals-reported biological signals.
     const gasGiant = makeBody({ kind: "planet", planetClass: "Sudarsky class I gas giant", landable: false });
     const withBio = makeBody({
       planetClass: "Rocky body",
@@ -411,19 +348,11 @@ describe("computeEconomyRatios", () => {
     expect(computeEconomyRatios(economies, rockyPort, allBodies)).toEqual([{ economy: "Refinery", percent: 140 }]);
   });
 
-  it("stacks two independent decreases below a single one, without going below the floor", () => {
-    // Two of Agriculture's decrease conditions triggered at once (icy body, AND tidally locked
-    // directly to the star) -> 100% - 40% - 40% = 20%. No current rule set can push any economy's
-    // delta past the ECONOMY_RATIO_FLOOR_PERCENT floor (that would need 3+ independent -0.4
-    // conditions on one economy, which doesn't exist in the source tables today) — this just
-    // confirms the floor's `Math.max` doesn't accidentally clip a legitimately-computable 20%.
-    const star = makeBody({ kind: "star", starType: "G", parents: [] });
-    const body = makeBody({
-      planetClass: "Icy body",
-      tidalLocked: true,
-      parents: [{ type: "Star", bodyId: star.bodyId }],
-    });
-    expect(computeEconomyRatios(["Agriculture"], body, [star, body])).toEqual([{ economy: "Agriculture", percent: 20 }]);
+  it("cancels an Agriculture boost and decrease landing on the same body back to a flat 100%", () => {
+    // An icy body with confirmed organics: the organics boost (+0.4) and the icy decrease (-0.4)
+    // land on the same economy and net to zero -> back to the unmodified 100%.
+    const body = makeBody({ planetClass: "Icy body", hasBiologicalSignals: true });
+    expect(computeEconomyRatios(["Agriculture"], body, [body])).toEqual([{ economy: "Agriculture", percent: 100 }]);
   });
 
   it("sorts descending by percent", () => {
@@ -529,12 +458,11 @@ describe("computeColonyEconomyBreakdown", () => {
     const icy = makeBody({ planetClass: "Icy body" });
     expect(computeColonyEconomyBreakdown(icy, [icy]).map((b) => b.economy)).toEqual(["Industrial"]);
 
-    // An Earth-like world tidally locked directly to its star: Agriculture gets a real base grant
-    // (from being an ELW) AND a real decrease (tidal-lock-to-star).
-    const star = makeBody({ kind: "star", starType: "G", parents: [] });
-    const elw = makeBody({ planetClass: "Earthlike body", tidalLocked: true, parents: [{ type: "Star", bodyId: star.bodyId }] });
-    const agriculture = computeColonyEconomyBreakdown(elw, [star, elw]).find((b) => b.economy === "Agriculture")!;
-    expect(agriculture.lines).toContainEqual({ amount: -0.4, label: "Debuff: TIDALLY LOCKED to star" });
+    // An icy body with confirmed organics: Agriculture gets a real base grant (from organics) AND a
+    // real decrease (icy) alongside its own organics boost.
+    const icyWithBio = makeBody({ planetClass: "Icy body", hasBiologicalSignals: true });
+    const agriculture = computeColonyEconomyBreakdown(icyWithBio, [icyWithBio]).find((b) => b.economy === "Agriculture")!;
+    expect(agriculture.lines).toContainEqual({ amount: -0.4, label: "Debuff: body is ICY or ROCKY ICE" });
   });
 
   it("returns an empty array for a body with no Colony-override economy at all", () => {
@@ -618,10 +546,15 @@ describe("computeStrongLinkBreakdown", () => {
     expect(computeStrongLinkBreakdown(body, [body])).toEqual([]);
   });
 
-  it("matches the real 'Swoilz AW-C d52 4' journal body: Agriculture debuffed through a binary-pair barycenter", () => {
+  it("gives a tidally-locked gas giant no Agriculture debuff at all (real-game-confirmed: tidal lock never decreases Agriculture)", () => {
     // Real data from jsons/Swoilz AW-C d52-20260725-0826.json: a gas giant tidally locked to its
-    // binary-pair partner, that pair orbiting the star via an unscanned barycenter ("Null" parent) —
-    // see the isTidalLockChainToStar barycenter tests above for why this used to be missed entirely.
+    // binary-pair partner, that pair orbiting the star via an unscanned barycenter ("Null" parent).
+    // An earlier version of this app applied an Agriculture strong-link decrease for this "tidal-lock
+    // chain to star" case, but a 2026-08-04 real-game test (three matched moons in
+    // jsons/swoilz-cd-e-c1-1.json, isolating tidal-lock-chain from Rocky Ice as separate variables)
+    // showed no such decrease in the actual reported Agriculture strong-link contribution — the
+    // decrease was removed from `computeBoostDecrease`/`computeColonyEconomyBreakdown`/
+    // `computeStrongLinkBreakdown` accordingly (see TASKS.md).
     const star = makeBody({ kind: "star", parents: [] });
     const body = makeBody({
       bodyName: "Swoilz AW-C d52 4",
@@ -634,7 +567,14 @@ describe("computeStrongLinkBreakdown", () => {
       ],
     });
     const breakdown = computeStrongLinkBreakdown(body, [star, body]);
-    expect(breakdown.map((b) => b.economy)).toEqual(["Agriculture"]);
-    expect(breakdown[0].lines).toEqual([{ amount: -0.4, label: "Debuff: TIDALLY LOCKED to star" }]);
+    expect(breakdown).toEqual([]);
+  });
+
+  it("decreases Agriculture on a Rocky Ice body (real-game-confirmed 2026-08-04, same magnitude as an icy body)", () => {
+    const body = makeBody({ planetClass: "Rocky ice body" });
+    const breakdown = computeStrongLinkBreakdown(body, [body]);
+    expect(breakdown.find((b) => b.economy === "Agriculture")!.lines).toEqual([
+      { amount: -0.4, label: "Debuff: body is ICY or ROCKY ICE" },
+    ]);
   });
 });

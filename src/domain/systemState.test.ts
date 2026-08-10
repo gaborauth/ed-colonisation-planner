@@ -115,14 +115,12 @@ describe("SystemState slot tracking", () => {
 });
 
 describe("SystemState score accumulation", () => {
-  it("sums base scores linearly and recomputes the compound score", () => {
+  it("sums base scores linearly, including the real per-building system_score", () => {
     const state = new SystemState();
-    state.addBuilding("Commercial_Outpost", 2); // wealth 3, sol 5, sec -1 each
+    state.addBuilding("Commercial_Outpost", 2); // wealth 3, sol 5, sec -1, system_score 3 each
     expect(state.scores.wealth).toBe(6);
     expect(state.scores.standard_of_living).toBe(10);
     expect(state.scores.security).toBe(-2);
-    expect(state.scores.system_score_beta).toBe(
-      state.scores.security + state.scores.tech_level + state.scores.wealth + state.scores.standard_of_living,
-    );
+    expect(state.scores.system_score).toBe(6);
   });
 });

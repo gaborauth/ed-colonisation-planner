@@ -311,13 +311,13 @@ describe("ObjectivePanel's Score constraints rows", () => {
     expect(screen.getByText("How safe the system is from piracy.")).toHaveClass("panel-hint");
   });
 
-  it("places a divider after Development level, separating real system stats from construction_cost onward", () => {
+  it("places a divider after System score, separating real system stats from construction_cost onward", () => {
     renderPanel(INITIAL_FORM_STATE);
     const rows = Array.from(document.querySelectorAll<HTMLTableRowElement>(".score-constraints-table tbody tr"));
-    const developmentIndex = rows.findIndex((r) => r.textContent?.includes("Development level"));
+    const systemScoreIndex = rows.findIndex((r) => r.textContent?.includes("System score"));
     const dividerIndex = rows.findIndex((r) => r.getAttribute("aria-hidden") === "true");
     const constructionIndex = rows.findIndex((r) => r.textContent?.includes("Construction cost"));
-    expect(dividerIndex).toBe(developmentIndex + 1);
+    expect(dividerIndex).toBe(systemScoreIndex + 1);
     expect(constructionIndex).toBe(dividerIndex + 1);
   });
 });
