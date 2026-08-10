@@ -1,3 +1,14 @@
+## [1.6.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.5.1...v1.6.0) (2026-08-10)
+
+### Features
+
+* add multi-pass solving to sharpen economy synergy ([c80350c](https://github.com/gaborauth/ed-colonisation-planner/commit/c80350cde6f14d3da9602bb736ffc85d6e086417))
+* real in-game verify of system score ([9847a36](https://github.com/gaborauth/ed-colonisation-planner/commit/9847a36a55405dd354eb2abdebe7c65e8e9bb909))
+
+### Bug Fixes
+
+* agriculture strong link decrease (in-game verified) ([e5cf652](https://github.com/gaborauth/ed-colonisation-planner/commit/e5cf65277a955924b97ddbe44844a587b7545f4c))
+
 ## [1.5.1](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.5.0...v1.5.1) (2026-08-03)
 
 ### Bug Fixes
