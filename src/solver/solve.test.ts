@@ -635,6 +635,48 @@ describe("solve with economy_synergy (input.bodies[].economy)", () => {
     expect(result.objectiveValue).toBeCloseTo(0.05, 5);
   }, 20000);
 
+  it("synergyKnownPortBodyIds widens the full strong-link-style boost to a body with no present port and no primary station", async () => {
+    // Same scenario as the flat-trickle test above (no firstStationBodyId, no present port on body
+    // 1) — the only difference is `synergyKnownPortBodyIds: [1]`, simulating a prior
+    // `iterativeSolve.ts` pass having already built a port-role building there. That alone must lift
+    // body 1 out of the flat WEAK_LINK_CONTRIBUTION trickle and into the real
+    // computeBoostDecrease-driven boost, matching the "known port" test above's `> 0` result.
+    const withoutOverride = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+      }),
+    );
+    const withOverride = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        bodies: [{ bodyId: 1, slots: { space: 1, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+        synergyKnownPortBodyIds: [1],
+      }),
+    );
+    expect(withoutOverride.objectiveValue).toBeCloseTo(0.05, 5);
+    expect(withOverride.objectiveValue as number).toBeGreaterThan(withoutOverride.objectiveValue as number);
+  }, 20000);
+
+  it("synergyKnownPortBodyIds omitted/empty reproduces today's exact behavior (backward-compat)", async () => {
+    const omitted = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+      }),
+    );
+    const explicitEmpty = await solve(
+      baseInput({
+        objective: { kind: "simple", score: "economy_synergy" },
+        firstStationBodyId: 1,
+        bodies: [{ bodyId: 1, slots: { space: 2, ground: 0, asteroid: 0 }, economy: volcanicBody }],
+        synergyKnownPortBodyIds: [],
+      }),
+    );
+    expect(omitted).toEqual(explicitEmpty);
+  }, 20000);
+
   it("systemResourceLevel omitted defaults to the same result as explicit 'pristine' (backward-compat)", async () => {
     // volcanicBody has no `reserveLevel` of its own, so before this field existed the system's
     // resource level was "unknown" (no Extraction boost from it). Omitting `systemResourceLevel`

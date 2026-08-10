@@ -819,6 +819,42 @@ slot pools when present) and still separately feeds `domain/links.ts`'s post-sol
 the "i" info icons' exact link topology — `economy_synergy` is additive to both of those existing
 roles, not a replacement for either.
 
+**Multi-pass iterative solving (`solver/iterativeSolve.ts`) is a heuristic escape hatch for
+`economy_synergy`'s remaining circularity, spanning MULTIPLE solves rather than solving it exactly
+within one.** Within a single `solve()` call, `knownPortBodyIds` (the set of bodies that get the full
+strong-link-style boost/decrease instead of a flat weak-link trickle — see `solve.ts`'s header
+comment) only ever contains facts known *before* solving: already-present ports and the primary
+station's body. `solveIteratively(input, passes, onProgress)` re-solves up to `passes` times — the
+function itself stays generic over `passes`, but `App.tsx` calls it with a FIXED constant
+(`solver/iterativeSolve.ts`'s `ITERATIVE_SOLVE_PASSES = 20`), not a user-facing control: real-machine
+timing (2026-08-10, a ~6-year-old laptop, a ~97-slot system) found 5 passes takes ~7s, and that a
+typical system's known-port set converges (see the fixed-point check below) well before reaching even
+that many passes — so a higher fixed cap costs little in the common case (most solves finish early
+regardless) while giving real headroom to the less common system that needs more passes to settle,
+without needing a slider for the user to reason about. `SolverStatusDialog.tsx`'s "(pass X of Y)" text
+is still the only visible sign this is happening — an earlier design iteration exposed `passes` as a
+`PlannerFormState.iterativeRefinementPasses` slider in `ObjectivePanel.tsx`; removed once real usage
+showed the convergence check already makes extra passes cheap enough to just always spend, widening
+`SolverInput.synergyKnownPortBodyIds` on each pass with the *previous* pass's own
+newly-built port-role placements (`isPortRole` from `data/buildings.ts` — the 14-building Update-3
+"Ports" set, not the narrower 5-building `isPort()`). This lets a body that only became a port as a
+*result* of solving get real economy-fit signal on the next pass, instead of the flat estimate every
+port-less body gets today. Recomputed fresh from each pass's own decisions, not a cumulative union
+across passes, so a body a later pass decides *not* to port on correctly drops back out rather than
+permanently biasing subsequent passes toward a stale early guess. `synergyKnownPortBodyIds` only ever
+feeds `economySynergyCoefficient`'s objective contribution — it's never passed to
+`model.addConstraint` — so the feasible region is provably identical across every pass of one
+iterative run; a non-`"optimal"` status on pass 2+ is therefore a transient solver-internal issue, not
+a consequence of this feature, and `solveIteratively` falls back to the last known-optimal result
+rather than surfacing that as an error. The loop stops early ("converged") the moment a pass
+reproduces the exact known-port set it was given as input (further passes would just re-solve an
+identical LP model) — this is a genuine fixed-point guarantee, but NOT a global-optimality one: a
+2-cycle (pass *k* ports body A, pass *k+1* ports body B instead, pass *k+2* back to A, …) won't be
+detected early and will simply run to `ITERATIVE_SOLVE_PASSES`, which is why that constant is capped
+at 20 rather than left unbounded. Each pass re-runs the whole HiGHS WASM solve, so cost scales
+linearly with however many passes actually run before convergence — bounded, but not shown anywhere
+in the UI beyond the progress dialog's pass count while solving.
+
 **Backward compatibility is load-bearing, not incidental.** `SolverInput.bodies` absent/empty (the
 default — anyone using only the System facilities panel's aggregate slot fields) reproduces today's
 exact solver behavior; `PlannerFormState.bodies` empty is the same signal at the state layer. This

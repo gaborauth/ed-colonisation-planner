@@ -52,7 +52,13 @@
 // are unaffected by body boost/decrease, per the same verbatim rules), not a full strong link.
 // Whether the solver ALSO builds a brand-new port on a body it didn't have one on yet is itself a
 // decision variable — same circularity this file's header already calls out — so this stays a
-// conservative "assume no new port arrives here" approximation, not exact either way.
+// conservative "assume no new port arrives here" approximation, not exact either way, WITHIN one
+// `solve()` call. `SolverInput.synergyKnownPortBodyIds` is the escape hatch across MULTIPLE calls:
+// `solver/iterativeSolve.ts` re-solves up to N times, feeding each pass's own newly-built port-role
+// placements into the next pass's `knownPortBodyIds` — still not circular (each individual solve
+// only ever uses facts already decided by a PRIOR call), just a heuristic fixed-point iteration that
+// converges toward (not guaranteed to reach) a self-consistent layout instead of solving the
+// circularity exactly in one shot.
 
 import {
   ALL_BUILDINGS,
@@ -231,6 +237,16 @@ export interface SolverInput {
    * above. An unsatisfiable request (not enough capacity/points) correctly makes the whole solve
    * report infeasible rather than being silently dropped. */
   forcedBodyBuildings?: { bodyId: number; building: string; count: number }[];
+  /** Additional body IDs to treat as "known to have a port" for `economy_synergy`'s boost/decrease
+   * gate only (see `knownPortBodyIds` below) — does NOT touch capacity, `presentFacilities`, or
+   * T2/T3 cost, so widening it can never change feasibility, only which coefficient a candidate
+   * (building, body) pair gets in the objective. Fed by `solver/iterativeSolve.ts`'s multi-pass loop
+   * from a PRIOR pass's own newly-built port-role placements, closing (heuristically, across
+   * multiple solves — never within a single one) the "a body's true port status isn't known until
+   * after solving" gap this file's header comment describes. Absent/empty reproduces today's exact
+   * single-pass behavior — every existing caller (including `solve.test.ts`'s `bodies: []` vs.
+   * omitted regression test) is unaffected. */
+  synergyKnownPortBodyIds?: number[];
 }
 
 /** What a user can set per `EconomyType` in `ObjectivePanel`'s "Economy preferences" table.
@@ -666,6 +682,7 @@ export async function solve(input: SolverInput): Promise<SolverResult> {
       presentSplit.hard.filter((f) => isPortRole(f.building)).map((f) => f.bodyId),
     );
     if (input.firstStationBodyId !== undefined) knownPortBodyIds.add(input.firstStationBodyId);
+    for (const bodyId of input.synergyKnownPortBodyIds ?? []) knownPortBodyIds.add(bodyId);
 
     function economySynergyCoefficient(buildingName: string, body: SolverBody): number {
       if (!body.economy) return 0;
