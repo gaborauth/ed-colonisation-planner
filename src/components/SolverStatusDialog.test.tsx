@@ -23,6 +23,20 @@ describe("SolverStatusDialog", () => {
     expect(screen.queryByRole("button")).not.toBeInTheDocument();
   });
 
+  it("shows a '(pass X of Y)' suffix while solving a multi-pass run", () => {
+    render(
+      <SolverStatusDialog status="solving" message={null} progress={{ pass: 2, total: 4 }} onDismiss={vi.fn()} />,
+    );
+    expect(screen.getByText("Running the solver… (pass 2 of 4)")).toBeInTheDocument();
+  });
+
+  it("omits the pass suffix when progress.total is 1 (single-pass, today's default)", () => {
+    render(
+      <SolverStatusDialog status="solving" message={null} progress={{ pass: 1, total: 1 }} onDismiss={vi.fn()} />,
+    );
+    expect(screen.getByText("Running the solver…")).toBeInTheDocument();
+  });
+
   it("shows the error message and a Close button on error, calling onDismiss when clicked", async () => {
     const user = userEvent.setup();
     const onDismiss = vi.fn();
