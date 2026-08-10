@@ -5,10 +5,6 @@ updates:
     target-branch: "development"
     schedule:
       interval: "weekly"
-    groups:
-      dependencies:
-        patterns:
-          - "*"
     commit-message:
       prefix: "chore"
       prefix-development: "chore"
