@@ -57,10 +57,14 @@ function FacilityCell({ row }: { row: BuildOrderRow }) {
  * `SystemConfigPanel.tsx` uses for the primary elsewhere) and a distinct background, since it's
  * always the very first row but otherwise easy to miss. The Total row's T2/T3 Σ mirrors the last
  * row's own running total directly rather than `result.finalT2Points`/`finalT3Points` (the
- * solver's own separate, more conservative estimate), so the table never shows two disagreeing
- * "final" T2/T3 numbers; the score columns still come from `result.scores` (weighted with the
- * first-station bonus/subsequent-facility reduction/economy synergy — not something this table's
- * own row-by-row replay reproduces). */
+ * solver's own separate, more conservative estimate); the score columns still come from
+ * `result.scores` (weighted with the first-station bonus/subsequent-facility reduction/economy
+ * synergy — not something this table's own row-by-row replay reproduces). `SolvedSystemPanel.tsx`'s
+ * own "T2/T3 points left" summary reuses this SAME `computeBuildOrderTable` call (not
+ * `result.finalT2Points`/`finalT3Points` directly, and not a second independent re-derivation) so
+ * the two panels can never show two disagreeing "final" T2/T3 numbers to the player — a real,
+ * player-reported point of confusion (2026-08-10) before this fix, since every OTHER number on the
+ * page is a real in-game figure and the solver's own conservative one looked like it should be too. */
 export function BuildOrderPanel({ formState, result }: BuildOrderPanelProps) {
   const { rows, error } = useMemo(() => computeBuildOrderTable(formState, result), [formState, result]);
   const lastRow = rows.length > 0 ? rows[rows.length - 1] : null;

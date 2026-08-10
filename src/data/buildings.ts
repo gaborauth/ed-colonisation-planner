@@ -11,6 +11,14 @@
 
 export type SlotType = "space" | "ground";
 
+/** `system_score` (real-game-verified 2026-08-10, see CLAUDE.md's "Explicitly unverified/best-effort
+ * constants" section) is a genuine per-building stat, same as `security`/`wealth`/etc — a flat,
+ * unweighted per-building point value with NO `FIRST_STATION_BONUS`/`SUBSEQUENT_FACILITY_REDUCTION`
+ * reweighting, confirmed by exactly reproducing real in-game "system points" readings across 4 real
+ * systems. It's what the real weekly Architect Dividend payout is based on. (Previously modeled as a
+ * derived "compound" score, `system_score_beta` — `security + tech_level + wealth +
+ * standard_of_living`, each individually reweighted — which turned out to be the wrong ingredients
+ * entirely, not just imprecise; that machinery is gone.) */
 export const BASE_SCORES = [
   "initial_population_increase",
   "max_population_increase",
@@ -19,29 +27,26 @@ export const BASE_SCORES = [
   "wealth",
   "standard_of_living",
   "development_level",
+  "system_score",
   "construction_cost",
 ] as const;
 export type BaseScore = (typeof BASE_SCORES)[number];
 
-export const COMPOUND_SCORES = ["system_score_beta"] as const;
-export type CompoundScore = (typeof COMPOUND_SCORES)[number];
-
-/** Scores that exist outside both the per-building stat table (`BASE_SCORES`) and the
- * base-score-derived compound formulas (`COMPOUND_SCORES`/`computeCompoundScore`) — computed
- * instead from *where* a building lands (per-body placement), not just *how many* of it exist.
- * `economy_synergy` approximates the real link-boost mechanic; `economy_preference` is a distinct,
- * separate term for the user's own manual Must/Want/Don't-want/Forbid steering (see `solve.ts`'s
- * header comment and CLAUDE.md's "Update 3 link/economy modeling" section for what each means and
- * how it's computed — deliberately not merged into one number, so a user's own preference bias
- * never silently distorts `economy_synergy`'s real-mechanic approximation). Both are always 0 in
- * aggregate mode (no body layout applied) or in `domain/systemState.ts`'s already-present/build-
- * order accounting (neither has per-body placement data) — only `solve.ts`'s per-body MILP path
- * ever sets either to something else. */
+/** Scores that exist outside the per-building stat table (`BASE_SCORES`) — computed instead from
+ * *where* a building lands (per-body placement), not just *how many* of it exist. `economy_synergy`
+ * approximates the real link-boost mechanic; `economy_preference` is a distinct, separate term for
+ * the user's own manual Must/Want/Don't-want/Forbid steering (see `solve.ts`'s header comment and
+ * CLAUDE.md's "Update 3 link/economy modeling" section for what each means and how it's computed —
+ * deliberately not merged into one number, so a user's own preference bias never silently distorts
+ * `economy_synergy`'s real-mechanic approximation). Both are always 0 in aggregate mode (no body
+ * layout applied) or in `domain/systemState.ts`'s already-present/build-order accounting (neither has
+ * per-body placement data) — only `solve.ts`'s per-body MILP path ever sets either to something
+ * else. */
 export const DERIVED_SCORES = ["economy_synergy", "economy_preference"] as const;
 export type DerivedScore = (typeof DERIVED_SCORES)[number];
 
-export type Score = BaseScore | CompoundScore | DerivedScore;
-export const ALL_SCORES: Score[] = [...BASE_SCORES, ...COMPOUND_SCORES, ...DERIVED_SCORES];
+export type Score = BaseScore | DerivedScore;
+export const ALL_SCORES: Score[] = [...BASE_SCORES, ...DERIVED_SCORES];
 
 export const ALL_SLOTS = { space: "Orbital", ground: "Ground", asteroid: "Asteroid" } as const;
 export type SlotKind = keyof typeof ALL_SLOTS;
@@ -59,6 +64,7 @@ export interface Building {
   wealth: number;
   standard_of_living: number;
   development_level: number;
+  system_score: number;
   construction_cost: number;
   T2points: PortPoints;
   T3points: PortPoints;
@@ -76,6 +82,8 @@ interface Row {
   w?: number;
   sol?: number;
   dl?: number;
+  /** `system_score` — real per-building point value, see `BASE_SCORES`'s doc comment. */
+  score?: number;
   cost: number;
   t2?: PortPoints;
   t3?: PortPoints;
@@ -95,6 +103,7 @@ function row(r: Row): [string, Building] {
       wealth: r.w ?? 0,
       standard_of_living: r.sol ?? 0,
       development_level: r.dl ?? 0,
+      system_score: r.score ?? 0,
       construction_cost: r.cost,
       T2points: r.t2 ?? 0,
       T3points: r.t3 ?? 0,
@@ -108,75 +117,75 @@ function row(r: Row): [string, Building] {
 // https://docs.google.com/spreadsheets/d/1jsZOzNJSnPIWlU88puOc9gQXvsw-MGp8meoQ6k-Yj-Y/copy?usp=sharing
 // first_station_offset values are computed from the sheet's own Primary vs regular cost rows
 // (e.g. Coriolis 70,533 / 53,723 - 1) rather than the changelog's rounded "roughly +33%" language.
-//         NAME                            SLOT     IP MP SEC TL  W SoL DL   cost   T2      T3
+//         NAME                            SLOT     IP MP SEC TL  W SoL DL  SC   cost   T2      T3
 export const ALL_BUILDINGS: Record<string, Building> = Object.fromEntries([
-  row({ name: "Orbis_or_Ocellus", slot: "space", ip: 5, mp: 1, sec: -3, tl: 7, w: 8, sol: 5, dl: 9, cost: 209122, t2: 0, t3: "port", firstStationOffset: 0.1608 }),
-  row({ name: "Dodecahedron", slot: "space", ip: 8, mp: 4, sec: -4, tl: 8, w: 9, sol: 7, dl: 10, cost: 236304, t2: 0, t3: "port", firstStationOffset: 0.1423 }),
-  row({ name: "Coriolis", slot: "space", ip: 1, mp: 1, sec: -2, tl: 2, w: 3, sol: 3, dl: 3, cost: 53723, t2: "port", t3: 1, firstStationOffset: 0.3129 }),
-  row({ name: "Asteroid_Base", slot: "space", ip: 1, mp: 1, sec: -1, tl: 3, w: 5, sol: -4, dl: 7, cost: 53723, t2: "port", t3: 1, firstStationOffset: 0.3129 }),
+  row({ name: "Orbis_or_Ocellus", slot: "space", ip: 5, mp: 1, sec: -3, tl: 7, w: 8, sol: 5, dl: 9, score: 15, cost: 209122, t2: 0, t3: "port", firstStationOffset: 0.1608 }),
+  row({ name: "Dodecahedron", slot: "space", ip: 8, mp: 4, sec: -4, tl: 8, w: 9, sol: 7, dl: 10, score: 15, cost: 236304, t2: 0, t3: "port", firstStationOffset: 0.1423 }),
+  row({ name: "Coriolis", slot: "space", ip: 1, mp: 1, sec: -2, tl: 2, w: 3, sol: 3, dl: 3, score: 8, cost: 53723, t2: "port", t3: 1, firstStationOffset: 0.3129 }),
+  row({ name: "Asteroid_Base", slot: "space", ip: 1, mp: 1, sec: -1, tl: 3, w: 5, sol: -4, dl: 7, score: 8, cost: 53723, t2: "port", t3: 1, firstStationOffset: 0.3129 }),
 
-  row({ name: "Commercial_Outpost", slot: "space", ip: 1, mp: 1, sec: -1, tl: 0, w: 3, sol: 5, dl: 0, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
-  row({ name: "Industrial_Outpost", slot: "space", ip: 1, mp: 1, sec: 0, tl: 3, w: 0, sol: 0, dl: 3, cost: 18987, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
-  row({ name: "Criminal_Outpost", slot: "space", ip: 1, mp: 1, sec: -2, tl: 0, w: 3, sol: 0, dl: 0, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
-  row({ name: "Civilian_Outpost", slot: "space", ip: 1, mp: 1, sec: -1, tl: 0, w: 1, sol: 2, dl: 1, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
-  row({ name: "Scientific_Outpost", slot: "space", ip: 1, mp: 1, sec: 0, tl: 3, w: 0, sol: 0, dl: 0, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
-  row({ name: "Military_Outpost", slot: "space", ip: 1, mp: 1, sec: 2, tl: 0, w: 0, sol: 0, dl: 0, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
+  row({ name: "Commercial_Outpost", slot: "space", ip: 1, mp: 1, sec: -1, tl: 0, w: 3, sol: 5, dl: 0, score: 3, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
+  row({ name: "Industrial_Outpost", slot: "space", ip: 1, mp: 1, sec: 0, tl: 3, w: 0, sol: 0, dl: 3, score: 3, cost: 18987, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
+  row({ name: "Criminal_Outpost", slot: "space", ip: 1, mp: 1, sec: -2, tl: 0, w: 3, sol: 0, dl: 0, score: 3, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
+  row({ name: "Civilian_Outpost", slot: "space", ip: 1, mp: 1, sec: -1, tl: 0, w: 1, sol: 2, dl: 1, score: 3, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
+  row({ name: "Scientific_Outpost", slot: "space", ip: 1, mp: 1, sec: 0, tl: 3, w: 0, sol: 0, dl: 0, score: 3, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
+  row({ name: "Military_Outpost", slot: "space", ip: 1, mp: 1, sec: 2, tl: 0, w: 0, sol: 0, dl: 0, score: 3, cost: 18988, t2: 1, t3: 0, firstStationOffset: 0.1499 }),
 
-  row({ name: "Satellite", slot: "space", w: 0, sol: 1, dl: 2, cost: 6721, t2: 1, t3: 0 }),
-  row({ name: "Communication_Station", slot: "space", sec: 1, tl: 3, cost: 6721, t2: 1, t3: 0 }),
-  row({ name: "Space_Farm", slot: "space", sol: 5, dl: 1, cost: 6722, t2: 1, t3: 0 }),
-  row({ name: "Pirate_Base", slot: "space", sec: -4, w: 4, cost: 6721, t2: 1, t3: 0 }),
-  row({ name: "Mining_Outpost", slot: "space", w: 4, sol: -2, cost: 6723, t2: 1, t3: 0 }),
-  row({ name: "Relay_Station", slot: "space", sec: 1, dl: 1, cost: 6721, t2: 1, t3: 0 }),
+  row({ name: "Satellite", slot: "space", w: 0, sol: 1, dl: 2, score: 3, cost: 6721, t2: 1, t3: 0 }),
+  row({ name: "Communication_Station", slot: "space", sec: 1, tl: 3, score: 3, cost: 6721, t2: 1, t3: 0 }),
+  row({ name: "Space_Farm", slot: "space", sol: 5, dl: 1, score: 2, cost: 6722, t2: 1, t3: 0 }),
+  row({ name: "Pirate_Base", slot: "space", sec: -4, w: 4, score: 3, cost: 6721, t2: 1, t3: 0 }),
+  row({ name: "Mining_Outpost", slot: "space", w: 4, sol: -2, score: 2, cost: 6723, t2: 1, t3: 0 }),
+  row({ name: "Relay_Station", slot: "space", sec: 1, dl: 1, score: 3, cost: 6721, t2: 1, t3: 0 }),
 
-  row({ name: "Military", slot: "space", sec: 7, cost: 10080, t2: -1, t3: 1, dependencies: ["Small_Military_Settlement", "Medium_Military_Settlement", "Large_Military_Settlement"] }),
-  row({ name: "Security_Station", slot: "space", sec: 9, sol: 3, dl: 3, cost: 10082, t2: -1, t3: 1, dependencies: ["Relay_Station"] }),
-  row({ name: "Government", slot: "space", sec: 2, sol: 7, dl: 3, cost: 10077, t2: -1, t3: 1 }),
-  row({ name: "Medical", slot: "space", tl: 3, sol: 5, cost: 10081, t2: -1, t3: 1 }),
-  row({ name: "Research_Station", slot: "space", tl: 8, dl: 3, cost: 10083, t2: -1, t3: 1, dependencies: ["Small_Scientific_Settlement", "Medium_Scientific_Settlement", "Large_Scientific_Settlement"] }),
-  row({ name: "Tourist", slot: "space", sec: -3, sol: 6, dl: 3, cost: 10087, t2: -1, t3: 1, dependencies: ["Small_Tourism_Settlement", "Medium_Tourism_Settlement", "Large_Tourism_Settlement"] }),
-  row({ name: "Space_Bar", slot: "space", sec: -2, sol: 3, w: 0, dl: 0, cost: 10076, t2: -1, t3: 1 }),
+  row({ name: "Military", slot: "space", sec: 7, score: 4, cost: 10080, t2: -1, t3: 1, dependencies: ["Small_Military_Settlement", "Medium_Military_Settlement", "Large_Military_Settlement"] }),
+  row({ name: "Security_Station", slot: "space", sec: 9, sol: 3, dl: 3, score: 3, cost: 10082, t2: -1, t3: 1, dependencies: ["Relay_Station"] }),
+  row({ name: "Government", slot: "space", sec: 2, sol: 7, dl: 3, score: 3, cost: 10077, t2: -1, t3: 1 }),
+  row({ name: "Medical", slot: "space", tl: 3, sol: 5, score: 4, cost: 10081, t2: -1, t3: 1 }),
+  row({ name: "Research_Station", slot: "space", tl: 8, dl: 3, score: 4, cost: 10083, t2: -1, t3: 1, dependencies: ["Small_Scientific_Settlement", "Medium_Scientific_Settlement", "Large_Scientific_Settlement"] }),
+  row({ name: "Tourist", slot: "space", sec: -3, sol: 6, dl: 3, score: 3, cost: 10087, t2: -1, t3: 1, dependencies: ["Small_Tourism_Settlement", "Medium_Tourism_Settlement", "Large_Tourism_Settlement"] }),
+  row({ name: "Space_Bar", slot: "space", sec: -2, sol: 3, w: 0, dl: 0, score: 4, cost: 10076, t2: -1, t3: 1 }),
 
-  //         NAME                            SLOT     IP MP SEC TL  W SoL DL   cost   T2      T3
-  row({ name: "Civilian_Planetary_Outpost", slot: "ground", ip: 2, mp: 1, sec: -2, sol: 3, cost: 36829, t2: 1, t3: 0 }),
-  row({ name: "Industrial_Planetary_Outpost", slot: "ground", ip: 1, mp: 1, sec: -1, w: 3, cost: 36829, t2: 1, t3: 0 }),
-  row({ name: "Scientific_Planetary_Outpost", slot: "ground", ip: 1, mp: 1, sec: -1, tl: 5, dl: 1, cost: 36829, t2: 1, t3: 0 }),
-  row({ name: "Planetary_Port", slot: "ground", ip: 10, mp: 10, sec: -3, tl: 5, w: 5, sol: 7, dl: 10, cost: 216030, t2: 0, t3: "port" }),
+  //         NAME                            SLOT     IP MP SEC TL  W SoL DL  SC   cost   T2      T3
+  row({ name: "Civilian_Planetary_Outpost", slot: "ground", ip: 2, mp: 1, sec: -2, sol: 3, score: 4, cost: 36829, t2: 1, t3: 0 }),
+  row({ name: "Industrial_Planetary_Outpost", slot: "ground", ip: 1, mp: 1, sec: -1, w: 3, score: 4, cost: 36829, t2: 1, t3: 0 }),
+  row({ name: "Scientific_Planetary_Outpost", slot: "ground", ip: 1, mp: 1, sec: -1, tl: 5, dl: 1, score: 4, cost: 36829, t2: 1, t3: 0 }),
+  row({ name: "Planetary_Port", slot: "ground", ip: 10, mp: 10, sec: -3, tl: 5, w: 5, sol: 7, dl: 10, score: 15, cost: 216030, t2: 0, t3: "port" }),
 
   // v3.4.1 fix: "All Hub surface facilities have +1 in initial and max population increase (was zero)".
-  row({ name: "Extraction_Hub", slot: "ground", ip: 1, mp: 1, w: 10, sol: -4, dl: 3, cost: 9893, t2: -1, t3: 1, dependencies: ["Small_Extraction_Settlement", "Medium_Extraction_Settlement", "Large_Extraction_Settlement"] }),
-  row({ name: "Civilian_Hub", slot: "ground", ip: 1, mp: 1, sec: -3, sol: 3, dl: 3, cost: 9772, t2: -1, t3: 1, dependencies: ["Small_Agricultural_Settlement", "Medium_Agricultural_Settlement", "Large_Agricultural_Settlement"] }),
-  row({ name: "Exploration_Hub", slot: "ground", ip: 1, mp: 1, sec: -1, tl: 7, dl: 3, cost: 9923, t2: -1, t3: 1, dependencies: ["Communication_Station"] }),
-  row({ name: "Outpost_Hub", slot: "ground", ip: 1, mp: 1, sec: -2, sol: 3, dl: 3, cost: 9198, t2: -1, t3: 1, dependencies: ["Space_Farm"] }),
-  row({ name: "Scientific_Hub", slot: "ground", ip: 1, mp: 1, tl: 10, cost: 9924, t2: -1, t3: 1 }),
-  row({ name: "Military_Hub", slot: "ground", ip: 1, mp: 1, sec: 10, cost: 9922, t2: -1, t3: 1, dependencies: ["Military"] }),
-  row({ name: "Refinery_Hub", slot: "ground", ip: 1, mp: 1, sec: -1, tl: 3, w: 5, sol: -2, dl: 7, cost: 9919, t2: -1, t3: 1 }),
-  row({ name: "High_Tech_Hub", slot: "ground", ip: 1, mp: 1, sec: -2, tl: 10, w: 3, cost: 9921, t2: -1, t3: 1 }),
-  row({ name: "Industrial_Hub", slot: "ground", ip: 1, mp: 1, tl: 3, w: 5, sol: -4, dl: 3, cost: 9753, t2: -1, t3: 1, dependencies: ["Mining_Outpost"] }),
+  row({ name: "Extraction_Hub", slot: "ground", ip: 1, mp: 1, w: 10, sol: -4, dl: 3, score: 5, cost: 9893, t2: -1, t3: 1, dependencies: ["Small_Extraction_Settlement", "Medium_Extraction_Settlement", "Large_Extraction_Settlement"] }),
+  row({ name: "Civilian_Hub", slot: "ground", ip: 1, mp: 1, sec: -3, sol: 3, dl: 3, score: 5, cost: 9772, t2: -1, t3: 1, dependencies: ["Small_Agricultural_Settlement", "Medium_Agricultural_Settlement", "Large_Agricultural_Settlement"] }),
+  row({ name: "Exploration_Hub", slot: "ground", ip: 1, mp: 1, sec: -1, tl: 7, dl: 3, score: 5, cost: 9923, t2: -1, t3: 1, dependencies: ["Communication_Station"] }),
+  row({ name: "Outpost_Hub", slot: "ground", ip: 1, mp: 1, sec: -2, sol: 3, dl: 3, score: 5, cost: 9198, t2: -1, t3: 1, dependencies: ["Space_Farm"] }),
+  row({ name: "Scientific_Hub", slot: "ground", ip: 1, mp: 1, tl: 10, score: 5, cost: 9924, t2: -1, t3: 1 }),
+  row({ name: "Military_Hub", slot: "ground", ip: 1, mp: 1, sec: 10, score: 5, cost: 9922, t2: -1, t3: 1, dependencies: ["Military"] }),
+  row({ name: "Refinery_Hub", slot: "ground", ip: 1, mp: 1, sec: -1, tl: 3, w: 5, sol: -2, dl: 7, score: 5, cost: 9919, t2: -1, t3: 1 }),
+  row({ name: "High_Tech_Hub", slot: "ground", ip: 1, mp: 1, sec: -2, tl: 10, w: 3, score: 5, cost: 9921, t2: -1, t3: 1 }),
+  row({ name: "Industrial_Hub", slot: "ground", ip: 1, mp: 1, tl: 3, w: 5, sol: -4, dl: 3, score: 5, cost: 9753, t2: -1, t3: 1, dependencies: ["Mining_Outpost"] }),
 
-  row({ name: "Small_Agricultural_Settlement", slot: "ground", ip: 1, mp: 1, sol: 3, cost: 2839, t2: 1 }),
-  row({ name: "Medium_Agricultural_Settlement", slot: "ground", ip: 1, mp: 1, sol: 7, cost: 5678, t2: 1 }),
-  row({ name: "Large_Agricultural_Settlement", slot: "ground", ip: 1, mp: 1, sol: 10, cost: 8517, t2: -1, t3: 2 }),
+  row({ name: "Small_Agricultural_Settlement", slot: "ground", ip: 1, mp: 1, sol: 3, score: 1, cost: 2839, t2: 1 }),
+  row({ name: "Medium_Agricultural_Settlement", slot: "ground", ip: 1, mp: 1, sol: 7, score: 2, cost: 5678, t2: 1 }),
+  row({ name: "Large_Agricultural_Settlement", slot: "ground", ip: 1, mp: 1, sol: 10, score: 4, cost: 8517, t2: -1, t3: 2 }),
 
-  row({ name: "Small_Extraction_Settlement", slot: "ground", ip: 1, mp: 1, w: 3, cost: 2845, t2: 1 }),
-  row({ name: "Medium_Extraction_Settlement", slot: "ground", ip: 1, mp: 1, w: 5, cost: 5690, t2: 1 }),
-  row({ name: "Large_Extraction_Settlement", slot: "ground", ip: 1, mp: 1, tl: 2, w: 8, sol: -2, cost: 8535, t2: -1, t3: 2 }),
+  row({ name: "Small_Extraction_Settlement", slot: "ground", ip: 1, mp: 1, w: 3, score: 1, cost: 2845, t2: 1 }),
+  row({ name: "Medium_Extraction_Settlement", slot: "ground", ip: 1, mp: 1, w: 5, score: 2, cost: 5690, t2: 1 }),
+  row({ name: "Large_Extraction_Settlement", slot: "ground", ip: 1, mp: 1, tl: 2, w: 8, sol: -2, score: 4, cost: 8535, t2: -1, t3: 2 }),
 
-  row({ name: "Small_Industrial_Settlement", slot: "ground", ip: 1, mp: 1, dl: 3, cost: 2845, t2: 1 }),
-  row({ name: "Medium_Industrial_Settlement", slot: "ground", ip: 1, mp: 1, dl: 6, cost: 5690, t2: 1 }),
-  row({ name: "Large_Industrial_Settlement", slot: "ground", ip: 1, mp: 1, dl: 9, w: 3, cost: 8535, t2: -1, t3: 2 }),
+  row({ name: "Small_Industrial_Settlement", slot: "ground", ip: 1, mp: 1, dl: 3, score: 1, cost: 2845, t2: 1 }),
+  row({ name: "Medium_Industrial_Settlement", slot: "ground", ip: 1, mp: 1, dl: 6, score: 2, cost: 5690, t2: 1 }),
+  row({ name: "Large_Industrial_Settlement", slot: "ground", ip: 1, mp: 1, dl: 9, w: 3, score: 4, cost: 8535, t2: -1, t3: 2 }),
 
-  row({ name: "Small_Military_Settlement", slot: "ground", ip: 1, mp: 1, sec: 2, cost: 2842, t2: 1 }),
-  row({ name: "Medium_Military_Settlement", slot: "ground", ip: 1, mp: 1, sec: 4, cost: 5684, t2: 1 }),
-  row({ name: "Large_Military_Settlement", slot: "ground", ip: 1, mp: 1, sec: 7, dl: 3, cost: 8526, t2: -1, t3: 2 }),
+  row({ name: "Small_Military_Settlement", slot: "ground", ip: 1, mp: 1, sec: 2, score: 1, cost: 2842, t2: 1 }),
+  row({ name: "Medium_Military_Settlement", slot: "ground", ip: 1, mp: 1, sec: 4, score: 2, cost: 5684, t2: 1 }),
+  row({ name: "Large_Military_Settlement", slot: "ground", ip: 1, mp: 1, sec: 7, dl: 3, score: 4, cost: 8526, t2: -1, t3: 2 }),
 
-  row({ name: "Small_Scientific_Settlement", slot: "ground", ip: 1, mp: 1, tl: 3, dl: 1, cost: 2841, t2: -1, t3: 1 }),
-  row({ name: "Medium_Scientific_Settlement", slot: "ground", ip: 1, mp: 1, tl: 7, dl: 1, cost: 5682, t2: -1, t3: 1 }),
-  row({ name: "Large_Scientific_Settlement", slot: "ground", ip: 1, mp: 1, tl: 10, dl: 3, cost: 8523, t2: -1, t3: 2 }),
+  row({ name: "Small_Scientific_Settlement", slot: "ground", ip: 1, mp: 1, tl: 3, dl: 1, score: 2, cost: 2841, t2: -1, t3: 1 }),
+  row({ name: "Medium_Scientific_Settlement", slot: "ground", ip: 1, mp: 1, tl: 7, dl: 1, score: 2, cost: 5682, t2: -1, t3: 1 }),
+  row({ name: "Large_Scientific_Settlement", slot: "ground", ip: 1, mp: 1, tl: 10, dl: 3, score: 4, cost: 8523, t2: -1, t3: 2 }),
 
-  row({ name: "Small_Tourism_Settlement", slot: "ground", ip: 1, mp: 1, sec: -1, w: 1, cost: 2846, t2: -1, t3: 1, dependencies: ["Satellite"] }),
-  row({ name: "Medium_Tourism_Settlement", slot: "ground", ip: 1, mp: 1, sec: -1, w: 3, cost: 5692, t2: -1, t3: 1, dependencies: ["Satellite"] }),
-  row({ name: "Large_Tourism_Settlement", slot: "ground", ip: 1, mp: 1, sec: -1, w: 5, cost: 8538, t2: -1, t3: 2, dependencies: ["Satellite"] }),
+  row({ name: "Small_Tourism_Settlement", slot: "ground", ip: 1, mp: 1, sec: -1, w: 1, score: 1, cost: 2846, t2: -1, t3: 1, dependencies: ["Satellite"] }),
+  row({ name: "Medium_Tourism_Settlement", slot: "ground", ip: 1, mp: 1, sec: -1, w: 3, score: 2, cost: 5692, t2: -1, t3: 1, dependencies: ["Satellite"] }),
+  row({ name: "Large_Tourism_Settlement", slot: "ground", ip: 1, mp: 1, sec: -1, w: 5, score: 4, cost: 8538, t2: -1, t3: 2, dependencies: ["Satellite"] }),
 ]);
 
 /** WARNING: "port" means two different things in this file. This predicate is narrow — "subject
@@ -241,19 +250,6 @@ export const SUBSEQUENT_FACILITY_REDUCTION: Partial<Record<Score, number>> = {
   tech_level: 0.25,
   wealth: 0.25,
 };
-
-/** system_score_(beta), per the DaftMav "Colonization Construction" spreadsheet. */
-export function computeCompoundScore(
-  _score: CompoundScore,
-  values: Partial<Record<BaseScore, number>>,
-): number {
-  return (
-    (values.security ?? 0) +
-    (values.tech_level ?? 0) +
-    (values.wealth ?? 0) +
-    (values.standard_of_living ?? 0)
-  );
-}
 
 export const ALL_DEPENDENCIES: string[][] = Array.from(
   new Set(

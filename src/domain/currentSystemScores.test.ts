@@ -1,6 +1,10 @@
+import { readFileSync, readdirSync } from "node:fs";
+import path from "node:path";
 import { describe, expect, it } from "vitest";
 import { ALL_SCORES } from "../data/buildings";
+import type { JournalSystem } from "../journal/parser";
 import { computeCurrentSystemScores } from "./currentSystemScores";
+import { derivePresentCounts, toSlotUsageBodies } from "./presentFacilities";
 
 describe("computeCurrentSystemScores", () => {
   it("returns all zeros for an empty system with no primary station", () => {
@@ -21,7 +25,7 @@ describe("computeCurrentSystemScores", () => {
     expect(scores.initial_population_increase).toBe(1); // not reweighted
     expect(scores.max_population_increase).toBe(1);
     expect(scores.construction_cost).toBe(18988); // not reweighted
-    expect(scores.system_score_beta).toBe(scores.security + scores.tech_level + scores.wealth + scores.standard_of_living);
+    expect(scores.system_score).toBe(3); // Commercial_Outpost's own real per-building score, not reweighted
     expect(scores.economy_synergy).toBe(0);
   });
 
@@ -41,7 +45,37 @@ describe("computeCurrentSystemScores", () => {
     expect(scores.development_level).toBe(4);
     expect(scores.initial_population_increase).toBe(3); // 1 + 2*1, not reweighted
     expect(scores.construction_cost).toBe(53723 + 2 * 18988); // not reweighted
-    expect(scores.system_score_beta).toBe(-5 + 2 + 9 + 12);
+    // Flat, unweighted sum of real per-building scores (Coriolis=8, Commercial_Outpost=3 each) — no
+    // FIRST_STATION_BONUS/SUBSEQUENT_FACILITY_REDUCTION applies to system_score (real-game-verified).
+    expect(scores.system_score).toBe(8 + 2 * 3);
     expect(scores.economy_synergy).toBe(0);
+  });
+});
+
+// Real-game-verified regression (2026-08-10): the user supplied real, verified weekly Architect
+// Dividend payout messages (in-game "points" readings) for these 4 real committed systems. Summing
+// this app's real per-building `system_score` (see data/buildings.ts's doc comment) across each
+// system's present facilities + primary station reproduces the real in-game points EXACTLY — see
+// CLAUDE.md's "Explicitly unverified/best-effort constants" section for the full derivation. This
+// is one of the strongest regression tests in this project — pin it.
+describe("computeCurrentSystemScores.system_score matches real in-game points, exactly", () => {
+  const JSONS_DIR = path.join(process.cwd(), "jsons");
+  const REAL_SYSTEM_SCORES: Record<string, number> = {
+    "swoilz-aw-c-d52.json": 125,
+    "swoilz-cd-e-c1-1.json": 45,
+    "swoilz-eg-i-b2-3.json": 75,
+    "wregoe-yl-w-b56-4.json": 3,
+  };
+
+  it.each(Object.entries(REAL_SYSTEM_SCORES))("%s -> system_score %i", (file, expected) => {
+    const system: JournalSystem = JSON.parse(readFileSync(path.join(JSONS_DIR, file), "utf-8"));
+    const presentCounts = derivePresentCounts(toSlotUsageBodies(system.bodies), { excludePrimary: true });
+    const scores = computeCurrentSystemScores(presentCounts, system.firstStationBuilding);
+    expect(scores.system_score).toBe(expected);
+  });
+
+  it("covers every real fixture currently committed to jsons/ (fails loudly if a new one is added without updating this table)", () => {
+    const files = readdirSync(JSONS_DIR).filter((f) => f.endsWith(".json"));
+    expect(files.sort()).toEqual(Object.keys(REAL_SYSTEM_SCORES).sort());
   });
 });

@@ -427,11 +427,11 @@ td {
   width: 14ch;
 }
 
-/* Separates the real, persistent system stats (above) from construction_cost/system_score_beta/
- * economy_synergy/economy_preference (below) — see the divider row's own comment in
- * ObjectivePanel.tsx for why construction_cost lands in the lower group. The divider row itself has
- * no left/right cell padding of its own (`td { padding: 4px 8px }` above would otherwise inset the
- * <hr> short of the table's real edges). */
+/* Separates the real, persistent system stats (above, ending with system_score) from
+ * construction_cost/economy_synergy/economy_preference (below) — see the divider row's own comment
+ * in ObjectivePanel.tsx for why construction_cost lands in the lower group. The divider row itself
+ * has no left/right cell padding of its own (`td { padding: 4px 8px }` above would otherwise inset
+ * the <hr> short of the table's real edges). */
 .score-constraints-table tr[aria-hidden="true"] td {
   padding: 4px 0;
 }

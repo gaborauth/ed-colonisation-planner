@@ -167,6 +167,30 @@ describe("plannerReducer", () => {
     expect(state.systemResourceLevel).toBe("major");
   });
 
+  it("load migrates the old 'system_score_beta' literal to 'system_score' in simpleScore/scoreMin/scoreMax", () => {
+    const oldPlan: PlannerFormState = {
+      ...INITIAL_FORM_STATE,
+      simpleScore: "system_score_beta" as PlannerFormState["simpleScore"],
+      scoreMin: { system_score_beta: 5 } as PlannerFormState["scoreMin"],
+      scoreMax: { system_score_beta: 50, security: 20 } as PlannerFormState["scoreMax"],
+    };
+    const state = plannerReducer(INITIAL_FORM_STATE, { type: "load", state: oldPlan });
+    expect(state.simpleScore).toBe("system_score");
+    expect(state.scoreMin).toEqual({ system_score: 5 });
+    expect(state.scoreMax).toEqual({ system_score: 50, security: 20 });
+  });
+
+  it("load leaves an already-current simpleScore/scoreMin/scoreMax untouched", () => {
+    const plan: PlannerFormState = {
+      ...INITIAL_FORM_STATE,
+      simpleScore: "system_score",
+      scoreMin: { system_score: 5 },
+    };
+    const state = plannerReducer(INITIAL_FORM_STATE, { type: "load", state: plan });
+    expect(state.simpleScore).toBe("system_score");
+    expect(state.scoreMin).toEqual({ system_score: 5 });
+  });
+
   it("reset restores the initial state", () => {
     const changed = plannerReducer(INITIAL_FORM_STATE, { type: "patch", patch: { allowCriminal: false } });
     expect(plannerReducer(changed, { type: "reset" })).toEqual(INITIAL_FORM_STATE);

@@ -5,11 +5,9 @@ import {
   ALL_DEPENDENCIES,
   ALL_SCORES,
   BASE_SCORES,
-  COMPOUND_SCORES,
   type Building,
   type Score,
   type SlotKind,
-  computeCompoundScore,
   getT2PortCost,
   getT3PortCost,
   isPort,
@@ -199,9 +197,6 @@ export class SystemState {
   private updateScores(building: Building, nb: number): void {
     for (const score of BASE_SCORES) {
       this.scores[score] += building[score] * nb;
-    }
-    for (const score of COMPOUND_SCORES) {
-      this.scores[score] = computeCompoundScore(score, this.scores);
     }
   }
 

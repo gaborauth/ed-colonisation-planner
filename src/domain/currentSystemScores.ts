@@ -2,7 +2,8 @@
 // right now," for the "Actual facilities in the system" panel's summary. Mirrors solve.ts's own
 // systemScores computation (same FIRST_STATION_BONUS/SUBSEQUENT_FACILITY_REDUCTION reweighting — a
 // real, always-applicable Dodec Update game rule, not something specific to the solver's own
-// optimization), but as a plain-number
+// optimization — `system_score` is deliberately NOT one of the reweighted keys, see its own doc
+// comment in `data/buildings.ts`), but as a plain-number
 // sum over already-present facilities instead of an LP expression over decision variables — there's
 // nothing to optimize for a fixed, already-built system, so no MILP is needed here at all.
 //
@@ -17,7 +18,6 @@ import {
   ALL_BUILDINGS,
   ALL_SCORES,
   BASE_SCORES,
-  computeCompoundScore,
   FIRST_STATION_BONUS,
   SUBSEQUENT_FACILITY_REDUCTION,
   type BaseScore,
@@ -65,9 +65,19 @@ export function computeCurrentSystemScores(
     const subsequentPart = raw[score] - firstPart;
     scores[score] = Math.round(firstPart * (1 + (bonus ?? 0)) + subsequentPart * (1 - (reduction ?? 0)));
   }
-  scores.system_score_beta = computeCompoundScore("system_score_beta", scores);
   scores.economy_synergy = 0;
 
   for (const score of ALL_SCORES) if (!(score in scores)) scores[score] = 0;
   return scores;
+}
+
+/** Best-effort, NOT verbatim-sourced — calibrated from exactly 4 real (system_score, weekly payout)
+ * pairs (2026-08-10, user-supplied, in-game-verified weekly Architect Dividend payout messages):
+ * ratio was 9993.9-9994.0 across a 30K-1.25M cr range. `system_score` itself IS exactly verified
+ * (see CLAUDE.md's "Explicitly unverified/best-effort constants" section); this multiplier is the
+ * one remaining approximate piece — more real data points would tighten it further. */
+export const ARCHITECT_DIVIDEND_CR_PER_POINT = 9994;
+
+export function estimateWeeklyArchitectDividend(systemScore: number): number {
+  return systemScore * ARCHITECT_DIVIDEND_CR_PER_POINT;
 }
