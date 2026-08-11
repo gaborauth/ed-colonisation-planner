@@ -1,3 +1,9 @@
+## [1.6.1](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.6.0...v1.6.1) (2026-08-11)
+
+### Bug Fixes
+
+* update tutorials ([ab4d7b0](https://github.com/gaborauth/ed-colonisation-planner/commit/ab4d7b09caa3ea3c3b3e71f39a29c45181f8f591))
+
 ## [1.6.0](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.5.1...v1.6.0) (2026-08-10)
 
 ### Features
