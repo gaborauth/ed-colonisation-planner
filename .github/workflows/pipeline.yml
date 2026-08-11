@@ -1,0 +1,96 @@
+name: Build, Release & Deploy
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+      - uses: actions/upload-artifact@v7
+        with:
+          name: dist
+          path: dist
+
+  # main: a real release — bumps the version, writes CHANGELOG.md, tags, pushes, publishes a GitHub
+  # release. Needs push access to a branch-protected `main`, so prefer a RELEASE_TOKEN PAT (repo
+  # secret) with bypass rights if the default GITHUB_TOKEN gets rejected by branch protection; falls
+  # back to GITHUB_TOKEN if no such secret is set.
+  #
+  # development: preview only — computes and logs what version would be released, validates commit
+  # messages against the conventionalcommits preset, never tags/publishes/commits anything
+  # (semantic-release's own --dry-run guarantee).
+  #
+  # Doesn't need `build`'s dist/ artifact — semantic-release never publishes it (see .releaserc.json,
+  # no assets/upload plugin references dist) — `needs: build` is purely a "don't release code that
+  # doesn't build" gate.
+  release:
+    needs: build
+    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/development'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: release-${{ github.ref_name }}
+      cancel-in-progress: false
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+
+      - name: Release
+        if: github.ref == 'refs/heads/main'
+        env:
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN || secrets.GITHUB_TOKEN }}
+        run: npx semantic-release
+
+      - name: Release dry run
+        if: github.ref == 'refs/heads/development'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: npx semantic-release --dry-run
+
+  deploy:
+    needs: build
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    concurrency:
+      group: pages
+      cancel-in-progress: true
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/download-artifact@v8
+        with:
+          name: dist
+          path: dist
+      - uses: actions/upload-pages-artifact@v5
+        with:
+          path: dist
+      - id: deployment
+        uses: actions/deploy-pages@v5

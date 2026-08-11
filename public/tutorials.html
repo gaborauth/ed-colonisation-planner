@@ -164,7 +164,7 @@
       <a class="back-link" href="index.html">&larr; Back to EDCPS</a>
       <h1>Tutorials</h1>
       <p class="subtitle">
-        Eight worked examples for turning a real planning goal into actual clicks in EDCPS — panel names and
+        Nine worked examples for turning a real planning goal into actual clicks in EDCPS — panel names and
         button/field labels below match the live app exactly. See also the project's
         <a href="https://github.com/gaborauth/ed-colonisation-planner" target="_blank" rel="noreferrer">README</a>
         and <a href="known-issues.html">Known issues</a>.
@@ -227,6 +227,7 @@
           <li><a href="#link-stacking">Stacking strong links to inflate one economy on your main port</a></li>
           <li><a href="#cmm-worked-example">Worked example: a Civilian Planetary Outpost + orbital Coriolis</a></li>
           <li><a href="#haul-cost-cap">Cap total haul cost while hitting minimum Tech/Wealth/Security targets</a></li>
+          <li><a href="#self-sufficiency">Let the solver plan a self-sufficient commodity/manufacturing base</a></li>
         </ol>
       </nav>
 
@@ -319,26 +320,35 @@
         <ol>
           <li><strong>Objective</strong> panel → expand <strong>Economy preferences</strong> (collapsed by default).</li>
           <li>
-            It's a grid: rows = Agriculture / Extraction / HighTech / Industrial / Refinery / Tourism / Military /
-            Terraforming / Colony, columns = <strong>Must / Want / Dunno / Don't want / Forbid</strong>.
+            It's a table: one row per economy (Agriculture / Extraction / HighTech / Industrial / Refinery /
+            Tourism / Military / Terraforming / Colony), each with a <strong>"No preference"</strong> checkbox and a
+            <strong>0-200 slider</strong> next to it. Leaving the box unchecked means unbiased (today's default).
+            Checking it enables the slider: <strong>0 = Forbid</strong> (the one hard value on the scale), 1-49 is
+            the <em>Avoid</em> band (a soft negative pull), 50 is neutral, 50-200 climbs through
+            <em>Wish</em> → <em>Boost</em> → <em>Ludicrous boost</em> (a soft positive pull, no hard "must build
+            this" state).
             <ul>
-              <li>Agriculture row → <strong>Want</strong> (or <strong>Must</strong> if it's non-negotiable)</li>
-              <li>Refinery row → <strong>Forbid</strong></li>
-              <li>Extraction row → <strong>Forbid</strong></li>
+              <li>Agriculture row → check the box, drag the slider into <strong>Boost</strong> or
+                <strong>Ludicrous boost</strong> (100-200) for a strong pull.</li>
+              <li>Refinery row → check the box, drag the slider to <strong>0 (Forbid)</strong>.</li>
+              <li>Extraction row → check the box, drag the slider to <strong>0 (Forbid)</strong>.</li>
             </ul>
           </li>
           <li>Solve.</li>
         </ol>
         <p class="note">
-          <strong>Caveats:</strong> Forbid is a hard exclusion — it zeroes out every (building, body) combo
-          carrying that economy. Generic ports stack multiple economies from the body they're built on (e.g. any
-          port on an Earth-like world always carries Agriculture <em>and</em> High Tech <em>and</em> Military
-          <em>and</em> Tourism together, non-selectably) — Forbidding one can rule out more building options on a
-          body than you expect. Want/Don't want are soft — they only actually bias the solve because the app's
-          default objective expression includes that term; if you changed presets in tutorial 2, this stops
-          mattering. Extraction gets added to a body's economy set just from having rings or geological signals —
-          Forbidding it can knock out otherwise-great ringed/geo bodies for other purposes too, so check which
-          bodies the solver avoided in the results.
+          <strong>Caveats:</strong> only the slider's <code>0</code> end is a hard exclusion — it zeroes out every
+          (building, body) combo carrying that economy. Generic ports stack multiple economies from the body
+          they're built on (e.g. any port on an Earth-like world always carries Agriculture <em>and</em> High Tech
+          <em>and</em> Military <em>and</em> Tourism together, non-selectably) — Forbidding one can rule out more
+          building options on a body than you expect. Everywhere above 0 is a soft, continuous coefficient — it
+          only actually biases the solve because the app's default objective expression includes the "economy
+          preference" term (letter <code>p</code>); if you changed presets in tutorial 2, this stops mattering.
+          There's no separate hard "must build this economy" state anymore — cranking a slider to 200 is still a
+          strong pull, not a guarantee, so an unsatisfiable requirement won't make the solve report infeasible the
+          way Forbid can. Extraction gets added to a body's economy set just from having rings or geological
+          signals — Forbidding it can knock out otherwise-great ringed/geo bodies for other purposes too, so check
+          which bodies the solver avoided in the results.
         </p>
       </section>
 
@@ -428,9 +438,9 @@
             too. Pick your body accordingly if you have options.
           </li>
           <li>
-            In <strong>Economy preferences</strong>, set that economy to <strong>Want</strong> (or
-            <strong>Must</strong>) so the solver actually leans toward building matching facilities there instead
-            of elsewhere.
+            In <strong>Economy preferences</strong>, check that economy's box and drag its slider into the
+            <strong>Boost</strong> or <strong>Ludicrous boost</strong> band (100-200) so the solver actually leans
+            toward building matching facilities there instead of elsewhere.
           </li>
           <li>
             Solve, then hover the <strong>"i" info icon</strong> on your primary port in
@@ -439,10 +449,13 @@
           </li>
         </ol>
         <p class="note">
-          <strong>Caveat:</strong> the solver's own objective term (<code>economy_synergy</code>) is an
+          <strong>Caveats:</strong> the solver's own objective term (<code>economy_synergy</code>) is an
           approximation of this — it can't solve the exact link graph inside the same optimization that's deciding
           the placements (that'd be circular). Always confirm the real number via the "i" info hover on Solved
-          system, not just the objective score.
+          system, not just the objective score. If the target economy is Extraction/Industrial/Refinery, also
+          check <strong>Actual facilities in the system</strong>'s <strong>System resource level</strong>
+          dropdown — it drives that same boost/decrease table and defaults to Pristine unless a scanned body in
+          the system reported a real reserve level.
         </p>
       </section>
 
@@ -469,8 +482,9 @@
             Colony economy.
           </li>
           <li>
-            In <strong>Economy preferences</strong>, set Extraction / Industrial / Refinery to <strong>Want</strong>
-            (needs the per-body import from <a href="#before-you-start">Before you start</a>), then Solve.
+            In <strong>Economy preferences</strong> (needs the per-body import from
+            <a href="#before-you-start">Before you start</a>), check the boxes for Extraction / Industrial /
+            Refinery and drag each slider into the <strong>Boost</strong> band (100+), then Solve.
           </li>
           <li>
             Verify via the Coriolis's <strong>"i" info icon</strong> in Solved system: Economy ratios should show
@@ -531,6 +545,63 @@
           first-station-bonus/subsequent-facility-reduction weighting this app already applies); Construction cost
           itself isn't a stat the game displays anywhere — it's this app's own running total of commodities
           hauled for the plan.
+        </p>
+      </section>
+
+      <section id="self-sufficiency">
+        <h2>9. Let the solver plan a self-sufficient commodity/manufacturing base</h2>
+        <p class="prereq">
+          <strong>Prereq:</strong> do the <a href="#before-you-start">common setup</a> above, including the
+          per-body import this time — <strong>Self-sufficiency</strong> stays greyed out without it (each combo
+          needs a real, currently-untouched body to target).
+        </p>
+        <span class="tldr">
+          <strong>TL;DR:</strong> <em>Objective</em> panel → <strong>Self-sufficiency</strong> section → tick
+          <strong>Commodity Hub</strong> and/or <strong>Manufacturing Hub</strong>, then Solve. The solver picks a
+          suitable empty body itself and schedules the build early in the plan.
+        </span>
+        <ol>
+          <li>
+            Open <strong>Objective</strong> → expand <strong>Self-sufficiency</strong> (right above Score
+            constraints; auto-expands on its own once at least one eligible body exists, so it may already be
+            open).
+          </li>
+          <li>
+            Two checkboxes, each with a live eligible-body count next to it:
+            <ul>
+              <li>
+                <strong>Commodity Hub</strong> — a <code>Civilian_Planetary_Outpost</code> on an untouched High
+                Metal Content body (with 2 Refinery Hubs) or an untouched clean Rocky body (no organics, no
+                geological signals, not terraformable). Maximizes local production of essential colonization
+                commodities and CMM Composite.
+              </li>
+              <li>
+                <strong>Manufacturing Hub</strong> — a <code>Scientific_Planetary_Outpost</code> plus 4 Refinery
+                Hubs on an untouched High Metal Content or clean Rocky body. Maximizes refinery capacity and
+                high-tech manufacturing.
+              </li>
+            </ul>
+            A checkbox is disabled (greyed out) whenever its own combo currently has zero eligible bodies in the
+            imported system.
+          </li>
+          <li>Tick whichever combo(s) you want, then click <strong>Solve for a system</strong>.</li>
+          <li>
+            Check <strong>Build order</strong> — the forced outpost and its Refinery Hubs land right at the front
+            of the sequence (not merely "somewhere in the plan"), and pay real construction cost/T2/T3 points like
+            any other planned build. Nothing in <strong>Actual facilities in the system</strong> changes just from
+            checking the box — it's a goal for the <em>next</em> solve, not a fact about what's already built.
+          </li>
+        </ol>
+        <p class="note">
+          <strong>Caveats:</strong> this is a player-reported heuristic, not an officially- or
+          community-sourced rule table like most of this app's other economy modeling — and the app has no
+          commodity-level knowledge at all, so it only knows the two ports' economy types, not whether the body
+          will actually yield the specific commodities you need in-game. The Refinery Hub counts (2 vs. 4) are the
+          user's own in-game "usually" observation, not a verbatim number. Body eligibility requires the body to be
+          completely untouched (no present facility on any slot) — a body with just the primary station's slot
+          synced onto it still counts as untouched for this purpose. Checking a box is a strong steer via a hard
+          MILP lower bound, not a soft nudge — if the system genuinely can't afford it (not enough T2/T3 budget or
+          ground slots), the whole solve reports infeasible rather than silently dropping the goal.
         </p>
       </section>
 
