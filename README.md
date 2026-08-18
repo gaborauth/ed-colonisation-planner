@@ -226,7 +226,7 @@ npx oxlint       # lint
 ```
 
 Deploys automatically to GitHub Pages on push to `main` via GitHub Actions
-(`.github/workflows/deploy.yml`).
+(`.github/workflows/pipeline.yml`'s `deploy` job).
 
 ### Branching and releases
 

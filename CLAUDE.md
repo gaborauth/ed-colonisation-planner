@@ -236,19 +236,20 @@ empty slot).
 
 Same commands as README.md's Development section (`npm install`/`dev`/`test`/`build`, `npx tsc -b`,
 `npx oxlint`). Branch flow, semantic-release mechanics, and Dependabot are also covered there —
-`.releaserc.json` / `.github/workflows/release.yml` implement it. See "Changelog / 'What's new'
-popup" below for how the `CHANGELOG.md` this generates is also consumed at runtime, not just
+`.releaserc.json` / `.github/workflows/pipeline.yml` implement it (a single workflow with `build`,
+`release`, and `deploy` jobs — `deploy.yml`/`release.yml` were two separate files until 2026-08-11,
+each independently re-running `npm ci`/`npm test`/`npm run build`; `release`/`deploy` now each
+declare `needs: build` and reuse its uploaded `dist/` artifact instead). See "Changelog / 'What's
+new' popup" below for how the `CHANGELOG.md` this generates is also consumed at runtime, not just
 written.
 
-**Known open risk, not yet verified**: `main` is branch-protected (PRs required to merge into it).
-The `@semantic-release/git` step needs to push a commit directly to `main` after a merge lands; if
-branch protection rejects a direct push from the default `GITHUB_TOKEN` (a likely outcome — the
-pushing identity is the `github-actions[bot]` app, which typically has no bypass), the release
-workflow's `Release` step will fail at the git-push stage. The workflow reads `secrets.RELEASE_TOKEN`
-first, falling back to `secrets.GITHUB_TOKEN`, so the fix (if this happens) is a fine-grained PAT
-belonging to an account with bypass rights, saved as the `RELEASE_TOKEN` repo secret — or a
-branch-protection bypass entry for `github-actions[bot]`. Only confirmable by watching a real run in
-Actions.
+**Branch-protection push risk — confirmed a non-issue in practice, 2026-08-18.** `main` is
+branch-protected (PRs required to merge into it), and the `@semantic-release/git` step needs to push
+a release commit directly to `main` after a merge lands — a real risk if branch protection ever
+rejected that push. Three real releases (v1.6.0, v1.6.1, v1.6.2) have each landed a
+`chore(release): x.y.z [skip ci]` commit authored by `semantic-release-bot`, confirming whatever
+token the workflow uses (`secrets.RELEASE_TOKEN`, falling back to `secrets.GITHUB_TOKEN`) already has
+the bypass rights it needs — no further setup required unless this starts failing.
 
 ## Changelog / "What's new" popup
 
