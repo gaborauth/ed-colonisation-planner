@@ -16,8 +16,6 @@ import {
   hasRings,
   hasVolcanism,
   isTerraformable,
-  TERRAFORMABLE_AGRICULTURE_BUG_LINK,
-  TERRAFORMABLE_AGRICULTURE_BUG_NOTE,
   type EconomyBreakdown,
 } from "../domain/economyOverrides";
 import type { MarketLinkLine, PortEconomyLine, SystemLinksResult } from "../domain/links";
@@ -318,11 +316,7 @@ function economyBreakdownTable(breakdown: EconomyBreakdown[]) {
  * whatever's actually built at this body, if anything — see `computeColonyEconomyBreakdown`), and
  * the strong-link boost/decrease modifiers ANY strong link at this body would receive (see
  * `computeStrongLinkBreakdown`) — the latter is body-driven only, same as the former, and doesn't
- * require a port/facility to actually be built here yet. A Terraformable body additionally gets a
- * one-line disclaimer + link to `public/known-issues.html` (see `TERRAFORMABLE_AGRICULTURE_BUG_NOTE`/
- * `TERRAFORMABLE_AGRICULTURE_BUG_LINK`) explaining why neither table below includes the +0.40
- * Agriculture boost the source tables document for it — kept short since the hover bubble doesn't
- * wrap text (`Tooltip.css`), full explanation lives on that separate page instead. */
+ * require a port/facility to actually be built here yet. */
 function bodyInfoContent(body: JournalBody, allBodies: JournalBody[]) {
   const basicInfoParts: string[] = [];
   const typeLabel = bodyTypeLabel(body);
@@ -364,14 +358,6 @@ function bodyInfoContent(body: JournalBody, allBodies: JournalBody[]) {
               {feature}
             </span>
           ))}
-        </div>
-      )}
-      {isTerraformable(body) && (
-        <div className="facility-body-info-disclaimer">
-          ⚠ {TERRAFORMABLE_AGRICULTURE_BUG_NOTE}{" "}
-          <a href={TERRAFORMABLE_AGRICULTURE_BUG_LINK} target="_blank" rel="noreferrer">
-            Known issues
-          </a>
         </div>
       )}
       {breakdown.length > 0 && (

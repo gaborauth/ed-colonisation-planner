@@ -61,6 +61,12 @@ describe("computeCurrentSystemScores", () => {
 describe("computeCurrentSystemScores.system_score matches real in-game points, exactly", () => {
   const JSONS_DIR = path.join(process.cwd(), "jsons");
   const REAL_SYSTEM_SCORES: Record<string, number> = {
+    // Committed 2026-08-18, before the terraformable-Agriculture test builds at A 1/A 3 (see
+    // CLAUDE.md's "Explicitly unverified/best-effort constants" section) — 40 is correct for THIS
+    // snapshot. The user's real weekly payout went 40 -> 42 (A 1 facilities finished) -> 44 (A 3
+    // facilities finished too); those later readings don't match this JSON's present-facility state,
+    // so they're not usable here without a matching re-export at each point.
+    "col-285-sector-si-j-c9-30.json": 40,
     "swoilz-aw-c-d52.json": 125,
     "swoilz-cd-e-c1-1.json": 45,
     "swoilz-eg-i-b2-3.json": 75,

@@ -340,15 +340,22 @@ an inference this project made itself, not something the source stated verbatim:
   only say boosts/decreases exist, never by how much. Cross-validated against several real reported
   in-game values (Agriculture 140%/100% with/without organics, Extraction/Industrial 140% from
   system resources) before landing, but still the kind of number this section exists to flag.
-- `TERRAFORMABLE_AGRICULTURE_BUG_NOTE` in `src/domain/economyOverrides.ts` — the official patch
-  notes and `EconomicEffects.ods` both list a Terraformable body as an Agriculture strong-link boost
-  condition, but real-game testing found it has no observable effect on Agriculture's actual value,
-  suspected to be a Frontier bug rather than a documentation error. Deliberately excluded from every
-  boost/decrease computation in that file so displayed values match observed game behavior, not the
-  patch notes; surfaced as a one-line disclaimer next to the body-info hover, linking to
-  `public/known-issues.html` (`TERRAFORMABLE_AGRICULTURE_BUG_LINK`) for the full explanation. Revert
-  by re-adding the `isTerraformable(body)` boost call at each of the three sites if Frontier ever
-  fixes this in-game.
+- **Terraformable's Agriculture strong-link boost was previously suspected to be a dead Frontier
+  bug — real-game-confirmed 2026-08-18 that it DOES fire, and the "no observable effect" claim was
+  wrong.** A matched real-game pair (`spansh-jsons/col-285-sector-si-j-c9-30-dump.json`: Hoey
+  Enterprise, a terraformable HMC world, vs. Chawla Point, an otherwise-matched non-terraformable
+  control — see backlog item 1's test plan in `TASKS.md`), each fitted with an identical
+  `Space_Farm` + generic Outpost pair, read Agriculture `0.9` at the terraformable body vs. `0.5` at
+  the control — an exact `+0.4` delta, the standard `BOOST_DECREASE_DELTA` magnitude. The
+  `isTerraformable(body)` boost call is restored at all three sites
+  (`computeBoostDecrease`/`computeColonyEconomyBreakdown`/`computeStrongLinkBreakdown` in
+  `src/domain/economyOverrides.ts`), and the now-obsolete `TERRAFORMABLE_AGRICULTURE_BUG_NOTE`/
+  `TERRAFORMABLE_AGRICULTURE_BUG_LINK` constants and their UI disclaimer
+  (`FacilityInfo.tsx`'s `bodyInfoContent`, `public/known-issues.html`'s
+  `#terraformable-agriculture-boost` section) are removed entirely. The same test also confirmed
+  `Space_Farm` genuinely carries Agriculture (both readings were nonzero) — `FACILITY_ECONOMY_GUESS`
+  in `src/data/buildings.ts` now maps `Space_Farm: ["Agriculture"]`, no longer in that file's
+  deliberately-unmapped list.
 - **Agriculture's "tidally locked to its star" strong-link decrease (README's verbatim boost/
   decrease table) does not actually fire in-game — real-game-confirmed 2026-08-04, removed from the
   implementation.** A real-game test (three matched moons of gas giants in
@@ -365,11 +372,10 @@ an inference this project made itself, not something the source stated verbatim:
   along with the "Tidally locked, chain broken" strikethrough UI treatment it existed to explain
   (`FacilityInfo.tsx`'s `bodyInfoContent`, `.tooltip-bubble s` CSS). **Deliberately NOT edited**:
   README's verbatim boost/decrease table still lists this rule (it's what the official patch notes
-  say, same "table = official source text, implementation may still diverge" precedent
-  `TERRAFORMABLE_AGRICULTURE_BUG_NOTE` above already established) — this bullet is the
-  implementation-side flag for that divergence instead of a UI disclaimer, since (unlike the
-  Terraformable case) there's no now-inert body attribute worth still labeling in the UI once the
-  decrease itself is gone.
+  say, same "table = official source text, implementation may still diverge" precedent this file's
+  other best-effort constants establish) — this bullet is the implementation-side flag for that
+  divergence instead of a UI disclaimer, since there's no now-inert body attribute worth still
+  labeling in the UI once the decrease itself is gone.
 - **The same real-game test also confirmed Rocky Ice DOES get the Agriculture strong-link decrease,
   same `-0.4` magnitude as an Icy body** (the third of the three test moons, isolating this from the
   tidal-lock-chain variable above, matched the predicted decreased value of `0.1` floored tier-1 rate

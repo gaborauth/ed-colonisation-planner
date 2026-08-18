@@ -119,29 +119,6 @@
         for the full feature list.
       </p>
 
-      <section id="terraformable-agriculture-boost">
-        <span class="status status-bug">Suspected game bug</span>
-        <h2>Terraformable's Agriculture strong-link boost isn't applied</h2>
-        <p>
-          The official Update 3 patch notes (and the community-sourced <code>EconomicEffects.ods</code> research
-          sheet) both list a Terraformable body as an Agriculture strong-link boost condition, worth +0.40 — the
-          same magnitude as every other boost/decrease condition in that table.
-        </p>
-        <p>
-          Real-game testing found no observable effect from this condition on Agriculture's actual value,
-          however. This is suspected to be a bug in the current game build rather than a documentation error, so
-          this planner deliberately does <em>not</em> apply it — every computed Agriculture value (strong-link
-          modifiers, economy ratios, the body hover's "Default economies"/"Strong links" tables) matches what the
-          game actually does today, not what the patch notes say it should do.
-        </p>
-        <p>
-          If Frontier fixes this in a future update, the boost should be re-added at its three call sites in
-          <code>src/domain/economyOverrides.ts</code> (<code>computeBoostDecrease</code>,
-          <code>computeColonyEconomyBreakdown</code>, <code>computeStrongLinkBreakdown</code>) — search for
-          <code>TERRAFORMABLE_AGRICULTURE_BUG_NOTE</code>.
-        </p>
-      </section>
-
       <section id="slot-estimate-heuristic">
         <span class="status status-guess">Best-effort guess</span>
         <h2>Journal → buildable slot count estimate</h2>
