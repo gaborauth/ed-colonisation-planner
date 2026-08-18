@@ -1,3 +1,9 @@
+## [1.6.2](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.6.1...v1.6.2) (2026-08-18)
+
+### Bug Fixes
+
+* terraformable agriculture bug ([5b5c038](https://github.com/gaborauth/ed-colonisation-planner/commit/5b5c0381daedbf827fae760bb2c2de2406b60395))
+
 ## [1.6.1](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.6.0...v1.6.1) (2026-08-11)
 
 ### Bug Fixes
