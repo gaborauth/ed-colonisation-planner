@@ -281,27 +281,6 @@ export interface BoostDecreaseResult {
  * which reuses this exact magnitude as its `baseMagnitude` rather than an unrelated constant. */
 export const BOOST_DECREASE_DELTA = 0.4;
 
-/** The official patch notes (and `EconomicEffects.ods`'s "Strong Link Modifiers" sheet) both list a
- * Terraformable body as an Agriculture strong-link boost condition — but real-game testing against
- * actual builds found it has no observable effect on Agriculture's value at all, suspected to be a
- * Frontier bug rather than a documentation error. Deliberately excluded from
- * every boost/decrease computation in this file (`computeBoostDecrease`,
- * `computeColonyEconomyBreakdown`, `computeStrongLinkBreakdown`) so displayed values match what the
- * game actually does, not what the patch notes say it should — trivial to re-enable (search this
- * constant's usages) if/when Frontier fixes it. Surfaced as a short UI disclaimer instead, right next
- * to the body-info hover's economy tables (see `SystemConfigPanel.tsx`'s `bodyInfoContent`), linking
- * to the full explanation on `public/known-issues.html` (`TERRAFORMABLE_AGRICULTURE_BUG_LINK` below)
- * rather than spelling it all out inline — the hover box uses a `white-space: nowrap` bubble
- * (`Tooltip.css`), so a long inline sentence would force it absurdly wide instead of wrapping. See
- * CLAUDE.md's "Explicitly unverified/best-effort constants" section. */
-export const TERRAFORMABLE_AGRICULTURE_BUG_NOTE = "Terraformable's Agriculture boost isn't applied (suspected game bug).";
-
-/** `public/known-issues.html`'s matching `id`, kept as one string constant so the two ends of the
- * link can't silently drift apart — see `TERRAFORMABLE_AGRICULTURE_BUG_NOTE` above. Relative (no
- * leading slash) so it resolves correctly under both the Vite dev server and the production build's
- * `/ed-colonisation-planner/` base path (`vite.config.ts`) without hardcoding either. */
-export const TERRAFORMABLE_AGRICULTURE_BUG_LINK = "known-issues.html#terraformable-agriculture-boost";
-
 /** Verbatim strong-link boost/decrease table. Only meaningful for strong links (per the source —
  * weak links are unaffected). `economiesToCheck` should be the set of economy types actually
  * present at the linked port/facility pair (its own overrides plus whatever's being delivered by
@@ -337,8 +316,10 @@ export function computeBoostDecrease(
       boost("Agriculture");
       reasons.push("Agriculture boosted: orbiting an Earth-like world");
     }
-    // Terraformable's +0.4 Agriculture boost is a real rule per the source tables, but deliberately
-    // NOT applied — see TERRAFORMABLE_AGRICULTURE_BUG_NOTE.
+    if (isTerraformable(body)) {
+      boost("Agriculture");
+      reasons.push("Agriculture boosted: terraformable body");
+    }
     if (organics === true) {
       boost("Agriculture");
       reasons.push("Agriculture boosted: on/orbiting a body with organics");
@@ -574,8 +555,7 @@ export function computeColonyEconomyBreakdown(body: JournalBody, allBodies: Jour
 
   if (has("Agriculture")) {
     if (isELW(body)) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: orbiting ELW");
-    // Terraformable's +0.4 Agriculture boost is deliberately not applied — see
-    // TERRAFORMABLE_AGRICULTURE_BUG_NOTE.
+    if (isTerraformable(body)) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: body is TERRAFORMABLE");
     if (organics === true) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: body has BIO");
     if (isIcyBody(body) || isRockyIce(body)) add("Agriculture", -BOOST_DECREASE_DELTA, "Debuff: body is ICY or ROCKY ICE");
   }
@@ -650,8 +630,7 @@ export function computeStrongLinkBreakdown(body: JournalBody, allBodies: Journal
   const volcanism = hasVolcanism(body);
 
   if (isELW(body)) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: orbiting ELW");
-  // Terraformable's +0.4 Agriculture boost is deliberately not applied — see
-  // TERRAFORMABLE_AGRICULTURE_BUG_NOTE.
+  if (isTerraformable(body)) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: body is TERRAFORMABLE");
   if (organics === true) add("Agriculture", BOOST_DECREASE_DELTA, "Buff: body has BIO");
   if (isIcyBody(body) || isRockyIce(body)) add("Agriculture", -BOOST_DECREASE_DELTA, "Debuff: body is ICY or ROCKY ICE");
 
