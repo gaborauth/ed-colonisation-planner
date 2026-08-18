@@ -514,8 +514,13 @@ export function getLinkContributionTier(name: string): 1 | 2 | 3 {
 // isn't, rather than guessed. Revise freely — this is exactly the kind of constant the
 // FIRST_STATION_BONUS/GROUND_SLOT_RADIUS_THRESHOLDS precedent calls for: named, commented, easy to
 // correct once confirmed in-game. Deliberately left unmapped (no confident naming signal):
-// Government, Medical, Communication_Station, Relay_Station, Pirate_Base, Outpost_Hub, Space_Farm.
+// Government, Medical, Communication_Station, Relay_Station, Pirate_Base, Outpost_Hub.
+// Space_Farm -> Agriculture is real-game-confirmed (2026-08-18): two matched Space_Farm + generic
+// Outpost pairs (Hoey Enterprise / Chawla Point, Col 285 Sector SI-J c9-30) both showed a nonzero
+// Agriculture StationEconomies line — see CLAUDE.md's "Explicitly unverified/best-effort constants"
+// section for the terraformable-boost confirmation this same test also settled.
 export const FACILITY_ECONOMY_GUESS: Partial<Record<string, EconomyType[]>> = {
+  Space_Farm: ["Agriculture"],
   Extraction_Hub: ["Extraction"],
   Small_Extraction_Settlement: ["Extraction"],
   Medium_Extraction_Settlement: ["Extraction"],

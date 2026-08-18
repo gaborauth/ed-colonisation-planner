@@ -1,0 +1,805 @@
+{
+  "starSystem": "Col 285 Sector SI-J c9-30",
+  "systemAddress": 8330525217498,
+  "bodies": [
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A",
+      "bodyId": 1,
+      "kind": "star",
+      "starType": "K",
+      "landable": false,
+      "surfaceTemperature": 4885,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B",
+      "bodyId": 2,
+      "kind": "star",
+      "starType": "M",
+      "landable": false,
+      "surfaceTemperature": 2762,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A 1",
+      "bodyId": 3,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 6.8613221189507465,
+      "surfaceTemperature": 224.322754,
+      "radius": 4269250,
+      "atmosphere": "Nitrogen",
+      "terraformState": "Terraformable",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A 2",
+      "bodyId": 4,
+      "kind": "planet",
+      "planetClass": "Water world",
+      "landable": false,
+      "surfaceGravity": 7.300877431192008,
+      "surfaceTemperature": 245.995316,
+      "radius": 4452627.5,
+      "atmosphere": "Nitrogen",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 4,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Commercial_Outpost",
+            "demolishable": false,
+            "variant": "Plutus",
+            "customName": "Petri Sanctuary",
+            "primary": true
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A 2 a",
+      "bodyId": 5,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 2.3910306639543193,
+      "surfaceTemperature": 177.370697,
+      "radius": 1931650.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 4
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A 3",
+      "bodyId": 6,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 5.522298908779444,
+      "surfaceTemperature": 145.698013,
+      "radius": 3557513.25,
+      "atmosphere": "Nitrogen",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A 4",
+      "bodyId": 7,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 7.376365737009282,
+      "surfaceTemperature": 372.280243,
+      "radius": 8193288,
+      "atmosphere": "Thick Methane-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Farm",
+            "demolishable": false,
+            "customName": "Herjulfsson Landing",
+            "variant": "Demeter"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A 5",
+      "bodyId": 8,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 4.490952717594579,
+      "surfaceTemperature": 108.516541,
+      "radius": 5752357,
+      "atmosphere": "Thick Argon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Minor Ammonia Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Security_Station",
+            "demolishable": false,
+            "customName": "Arrhenius Town",
+            "variant": "Dicaeosyne"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A 6",
+      "bodyId": 9,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 4.546917720199853,
+      "surfaceTemperature": 117.598282,
+      "radius": 5811245,
+      "atmosphere": "Thick Argon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Satellite",
+            "demolishable": false,
+            "customName": "Lopez-Gallego Vision",
+            "variant": "Hermes"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "customName": "Tavernier's Inheritance",
+            "variant": "Soter"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A 7",
+      "bodyId": 10,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 4.91268466595289,
+      "surfaceTemperature": 114.085419,
+      "radius": 6189449,
+      "atmosphere": "Methane-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Magma"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "customName": "Roosa Point",
+            "variant": "Pistis"
+          },
+          null
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 A 8",
+      "bodyId": 11,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 4.659305709064958,
+      "surfaceTemperature": 84.534958,
+      "radius": 5928679.5,
+      "atmosphere": "Thick Argon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Mining_Outpost",
+            "demolishable": false,
+            "customName": "Abasheli Reach",
+            "variant": "Euthenia"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 1",
+      "bodyId": 12,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 5.314843312883657,
+      "surfaceTemperature": 156.089432,
+      "radius": 5738132.5,
+      "atmosphere": "Thick Argon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Minor Carbon Dioxide Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 2",
+      "bodyId": 13,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 7.565407990078512,
+      "surfaceTemperature": 367.428131,
+      "radius": 7484190.5,
+      "atmosphere": "Thick Methane-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 2 a",
+      "bodyId": 14,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 1.85959163104925,
+      "surfaceTemperature": 76.653175,
+      "radius": 2929656.25,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 13
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 3",
+      "bodyId": 15,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 7.343814898750895,
+      "surfaceTemperature": 61.195652,
+      "radius": 8373478.499999999,
+      "atmosphere": "Neon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 3 a",
+      "bodyId": 16,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 2.0709860863668843,
+      "surfaceTemperature": 60.41357,
+      "radius": 3463937.75,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 15
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 4",
+      "bodyId": 17,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 5.925146531120633,
+      "surfaceTemperature": 75.463531,
+      "radius": 7179093,
+      "atmosphere": "Thick Nitrogen",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Minor Carbon Dioxide Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 5",
+      "bodyId": 18,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 8.759219382869379,
+      "surfaceTemperature": 46.504078,
+      "radius": 9564551,
+      "atmosphere": "Neon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 6",
+      "bodyId": 19,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 7.764677878122773,
+      "surfaceTemperature": 40.207832,
+      "radius": 8785555,
+      "atmosphere": "Neon-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 7",
+      "bodyId": 20,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 10.507744977872902,
+      "surfaceTemperature": 35.853539,
+      "radius": 10787079,
+      "atmosphere": "Helium",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 7 a",
+      "bodyId": 21,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 1.6617556918272691,
+      "surfaceTemperature": 35.040535,
+      "radius": 2829615,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 20
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Coriolis",
+            "demolishable": false,
+            "customName": "Burnham Prospect",
+            "variant": "Quad Truss"
+          },
+          {
+            "building": "Mining_Outpost",
+            "demolishable": false,
+            "customName": "Legendre Town",
+            "variant": "Phorcys"
+          },
+          null
+        ],
+        "ground": [
+          {
+            "building": "Large_Industrial_Settlement",
+            "demolishable": false,
+            "customName": "Denisenko Industrial Enterprise",
+            "variant": "Gaea"
+          },
+          {
+            "building": "Large_Scientific_Settlement",
+            "demolishable": false,
+            "customName": "Mbarga Genetics Lab",
+            "variant": "Chronos"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "Col 285 Sector SI-J c9-30 B 8",
+      "bodyId": 22,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": false,
+      "surfaceGravity": 8.528703609992865,
+      "surfaceTemperature": 31.007456,
+      "radius": 9389078,
+      "atmosphere": "Helium",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Relay_Station",
+            "demolishable": false,
+            "customName": "DeCoteau Prospect",
+            "variant": "Enodia"
+          }
+        ],
+        "ground": []
+      }
+    }
+  ],
+  "firstStationBuilding": "Commercial_Outpost",
+  "firstStationBodyId": 4,
+  "firstStationVariant": "Plutus",
+  "firstStationCustomName": "Petri Sanctuary"
+}

@@ -150,21 +150,21 @@ describe("computeBoostDecrease", () => {
 
   it("sums two independently-triggered boosts on the same economy into one +0.8 delta, not a capped +0.4", () => {
     // Earth-like world boosts Agriculture via BOTH "orbiting an ELW" and "on/orbiting a body with
-    // organics" — two distinct rows in the source table. (A third real row, "on/orbiting a
-    // terraformable body", exists in the source tables too, but is deliberately never applied here —
-    // see TERRAFORMABLE_AGRICULTURE_BUG_NOTE — so it can't be used for this stacking test.)
+    // organics" — two distinct rows in the source table.
     const body = makeBody({ planetClass: "Earthlike body", hasBiologicalSignals: true });
     const result = computeBoostDecrease(body, [body], ["Agriculture"]);
     expect(result.deltas.Agriculture).toBeCloseTo(0.8);
     expect(result.boosted).toEqual(["Agriculture"]); // Set membership unaffected, still just present
   });
 
-  it("never applies Terraformable's Agriculture boost (suspected in-game bug, deliberately excluded)", () => {
+  it("applies Terraformable's Agriculture boost (real-game-confirmed 2026-08-18)", () => {
     const body = makeBody({ planetClass: "Earthlike body", terraformState: "Terraformable" });
     const result = computeBoostDecrease(body, [body], ["Agriculture"]);
-    // Only the ELW boost applies (+0.4) — Terraformable would add a second +0.4 per the source
-    // tables, but that's excluded, so the total must stay at a single boost's worth.
-    expect(result.deltas.Agriculture).toBeCloseTo(0.4);
+    // Both the ELW boost and the Terraformable boost apply (+0.4 each) — a matched real-game pair
+    // (Hoey Enterprise, terraformable HMC world, vs. Chawla Point, not terraformable) showed exactly
+    // this +0.4 delta between an otherwise-identical Space_Farm + Outpost setup.
+    expect(result.deltas.Agriculture).toBeCloseTo(0.8);
+    expect(result.reasons.some((r) => r.includes("terraformable"))).toBe(true);
   });
 
   it("gives a single decrease condition a -0.4 delta", () => {
