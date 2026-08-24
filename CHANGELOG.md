@@ -1,3 +1,10 @@
+## [1.6.3](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.6.2...v1.6.3) (2026-08-24)
+
+### Bug Fixes
+
+* import Tellus from Raven Colonial ([6fde130](https://github.com/gaborauth/ed-colonisation-planner/commit/6fde130f1f9081d8e203e9fd0df7e406c6fb4647))
+* match Raven Colonials own star belt numbering scheme ([d44771e](https://github.com/gaborauth/ed-colonisation-planner/commit/d44771e9742428e537fc0e3d36cb060599e54a1a))
+
 ## [1.6.2](https://github.com/gaborauth/ed-colonisation-planner/compare/v1.6.1...v1.6.2) (2026-08-18)
 
 ### Bug Fixes
