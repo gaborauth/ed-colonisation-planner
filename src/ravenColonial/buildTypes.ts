@@ -22,21 +22,25 @@
 //   `data/buildings.ts` — mapped to this app's own Small/Medium/Large_Scientific_Settlement (which
 //   already feeds into Research_Station, matching Research Bio's real in-game role), since nothing
 //   else in the building list fits. Unverified.
-// - "tellus" is genuinely ambiguous in the source catalog itself — the exact same layout name is
-//   shared verbatim between Exploration Hub (its ONLY layout) and one of Industrial Hub's three
-//   layouts, and Raven Colonial's per-site export has no other field to disambiguate which one a
-//   real "tellus" site actually is. Mapped to Exploration_Hub here (without this, "tellus" would
-//   never resolve to Exploration_Hub at all, since Industrial Hub has two other unambiguous layouts
-//   of its own) — worth double-checking if a real import ever needs the other one of these two hub
-//   types instead.
+// - "tellus" WAS genuinely ambiguous in `colonization-costs2.json` (SrvSurvey's own catalog still
+//   lists a single shared "Tellus" layout name for both Exploration Hub's only layout and one of
+//   Industrial Hub's three) — but Raven Colonial itself has since resolved this by renaming its own
+//   buildType strings to `tellus_e` (Exploration Hub) and `tellus_i` (Industrial Hub), confirmed
+//   against `njthomson/RavenColonialWeb`'s `site-data.ts` 2026-08-24, so a real RC export's
+//   `buildType` is unambiguous going forward. Bare `tellus` is kept mapped to Industrial_Hub (not
+//   Exploration_Hub, the previous guess) to match that same source file's own `altTypes: ["tellus"]`
+//   entry on the Industrial Hub row (RC's own backward-compat alias for pre-rename exports) —
+//   correcting a real past import bug: a real Exploration Hub or Industrial Hub site from a current
+//   RC export was previously unrecognized entirely (bare "tellus" never appears in real current
+//   exports, only the old, since-superseded string).
 //
-// `variant` is matched against `BUILDING_VARIANTS` case/spacing-insensitively; 5 of 109 needed a
+// `variant` is matched against `BUILDING_VARIANTS` case/spacing-insensitively; 6 of 111 needed a
 // manual override where the names don't line up 1:1 (`apollo`/`artemis` -> "Orbis (Apollo)"/"Orbis
-// (Artemis)"; `dodec` -> "No Truss Dodo"; `tellus` -> "Tellus A"; `comus` -> "Comos", which looks
-// like a typo in `BUILDING_VARIANTS` itself but is matched as-is since that's the actual dropdown
-// option today). `asteroid` (Asteroid_Base) has no variant mapping — its `BUILDING_VARIANTS` list
-// (Ice/Metal/Rock) is the belt's resource type, not a construction layout, so Raven Colonial's
-// buildType has nothing to map it to.
+// (Artemis)"; `dodec` -> "No Truss Dodo"; `tellus_e`/`tellus`(legacy) -> "Tellus A"/"Tellus B"; `comus`
+// -> "Comos", which looks like a typo in `BUILDING_VARIANTS` itself but is matched as-is since
+// that's the actual dropdown option today). `asteroid` (Asteroid_Base) has no variant mapping — its
+// `BUILDING_VARIANTS` list (Ice/Metal/Rock) is the belt's resource type, not a construction layout,
+// so Raven Colonial's buildType has nothing to map it to.
 //
 // Known accuracy limitation: Raven Colonial's per-site `buildType` is a fixed identifier per
 // building CATEGORY, not necessarily the true in-game layout choice — e.g.
@@ -151,7 +155,9 @@ export const RC_BUILD_TYPE: Record<string, { building: string; slot: "space" | "
   silenus: { building: "Refinery_Hub", slot: "ground", variant: "Silenus" },
   soter: { building: "Communication_Station", slot: "space", variant: "Soter" },
   tartarus: { building: "Extraction_Hub", slot: "ground", variant: "Tartarus" },
-  tellus: { building: "Exploration_Hub", slot: "ground", variant: "Tellus A" },
+  tellus: { building: "Industrial_Hub", slot: "ground", variant: "Tellus B" }, // legacy pre-rename alias, see header comment
+  tellus_e: { building: "Exploration_Hub", slot: "ground", variant: "Tellus A" },
+  tellus_i: { building: "Industrial_Hub", slot: "ground", variant: "Tellus B" },
   tethys: { building: "Industrial_Planetary_Outpost", slot: "ground", variant: "Tethys" },
   vacuna: { building: "Military", slot: "space", variant: "Vacuna" },
   vesta: { building: "Civilian_Outpost", slot: "space", variant: "Vesta" },

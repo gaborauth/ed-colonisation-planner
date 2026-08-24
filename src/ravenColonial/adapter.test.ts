@@ -155,3 +155,67 @@ describe("Raven Colonial overlay: swoilz-aw-c-d52", () => {
     expect(solved.warnings).toEqual([]);
   }, 30000);
 });
+
+describe("Raven Colonial overlay: Tellus buildType disambiguation", () => {
+  // Raven Colonial's own buildType strings for the two Tellus hub layouts (once genuinely
+  // ambiguous between Exploration Hub and Industrial Hub, see buildTypes.ts's header comment) were
+  // renamed to "tellus_e"/"tellus_i" — a real RC export never emits bare "tellus" anymore, so both
+  // must resolve to their own distinct building, not the old shared guess.
+  const bodyAt = (bodyId: number): JournalBody => ({
+    bodyName: `Body ${bodyId}`,
+    bodyId,
+    kind: "planet",
+    landable: true,
+    parents: [],
+    rings: [],
+    raw: {},
+  });
+  // A third, unrelated "complete" site (bodyNum 2) is listed first so `pickPrimarySite` claims it
+  // as the primary station instead of either Tellus site — otherwise whichever Tellus site sorts
+  // first would be consumed as the primary and never seated as an ordinary ground facility at all.
+  const base: JournalSystem = { starSystem: "Test", systemAddress: 1, bodies: [bodyAt(0), bodyAt(1), bodyAt(2)] };
+  const rc: RcSystem = {
+    name: "Test",
+    id64: 1,
+    bodies: [],
+    slots: { "0": [0, 1], "1": [0, 1], "2": [1, -1] },
+    sites: [
+      { id: "0", name: "Primary", bodyNum: 2, buildType: "quad_truss", status: "complete" },
+      { id: "1", name: "Exploration Site", bodyNum: 0, buildType: "tellus_e", status: "complete" },
+      { id: "2", name: "Industrial Site", bodyNum: 1, buildType: "tellus_i", status: "complete" },
+    ],
+  };
+
+  it("maps tellus_e to Exploration_Hub and tellus_i to Industrial_Hub with no warnings", () => {
+    const { system, warnings } = applyRavenColonialOverlay(base, rc);
+
+    expect(warnings).toEqual([]);
+    const byId = new Map(system.bodies.map((b) => [b.bodyId, b]));
+    expect(byId.get(0)?.presentFacilities?.ground?.[0]).toMatchObject({
+      building: "Exploration_Hub",
+      variant: "Tellus A",
+    });
+    expect(byId.get(1)?.presentFacilities?.ground?.[0]).toMatchObject({
+      building: "Industrial_Hub",
+      variant: "Tellus B",
+    });
+  });
+
+  it("maps the legacy bare tellus buildType to Industrial_Hub, matching Raven Colonial's own altTypes alias", () => {
+    const legacyRc: RcSystem = {
+      ...rc,
+      sites: [
+        { id: "0", name: "Primary", bodyNum: 2, buildType: "quad_truss", status: "complete" },
+        { id: "1", name: "Legacy Site", bodyNum: 1, buildType: "tellus", status: "complete" },
+      ],
+    };
+    const { system, warnings } = applyRavenColonialOverlay(base, legacyRc);
+
+    expect(warnings).toEqual([]);
+    const byId = new Map(system.bodies.map((b) => [b.bodyId, b]));
+    expect(byId.get(1)?.presentFacilities?.ground?.[0]).toMatchObject({
+      building: "Industrial_Hub",
+      variant: "Tellus B",
+    });
+  });
+});
