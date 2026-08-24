@@ -9,6 +9,14 @@ updates:
       prefix: "chore"
       prefix-development: "chore"
       include: "scope"
+    ignore:
+      # v10 switched to a function-based template API (via @conventional-changelog/template)
+      # that conventional-changelog-writer@8.x (still Handlebars-based, pulled in transitively by
+      # @semantic-release/release-notes-generator@14.x) cannot render — produces a silently empty
+      # CHANGELOG.md release-notes body instead of erroring. Unpin once release-notes-generator
+      # depends on conventional-changelog-writer@9.x+.
+      - dependency-name: "conventional-changelog-conventionalcommits"
+        versions: [">=10.0.0"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
