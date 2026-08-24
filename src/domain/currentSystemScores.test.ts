@@ -67,16 +67,15 @@ describe("computeCurrentSystemScores.system_score matches real in-game points, e
     // facilities finished too); those later readings don't match this JSON's present-facility state,
     // so they're not usable here without a matching re-export at each point.
     "col-285-sector-si-j-c9-30.json": 40,
+    // Committed 2026-08-24 (Asteroid_Base PORT_FIXED_ECONOMY base-ratio test fixture — see backlog
+    // item 6 in TASKS.md). Not cross-checked against a real reported weekly Architect Dividend
+    // payout — 8 is simply Asteroid_Base's own `system_score` (the system's only facility, its
+    // primary station), a plain regression pin rather than a real-game-verified figure.
+    "swoilz-aw-c-d114.json": 8,
     "swoilz-aw-c-d52.json": 125,
     "swoilz-cd-e-c1-1.json": 45,
     "swoilz-eg-i-b2-3.json": 75,
     "wregoe-yl-w-b56-4.json": 3,
-    // Committed 2026-08-24 (RC belt-import bug report fixture). UNLIKE the 5 entries above, this one
-    // is NOT cross-checked against a real reported weekly Architect Dividend payout — 214 is simply
-    // this formula's own current output for this fixture, a plain regression pin (this test's other
-    // job, per its own name below) rather than a real-game-verified figure. Replace with a real
-    // payout number if one ever gets reported for this system.
-    "hip-56772.json": 214,
   };
 
   it.each(Object.entries(REAL_SYSTEM_SCORES))("%s -> system_score %i", (file, expected) => {

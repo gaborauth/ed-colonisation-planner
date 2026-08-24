@@ -1,0 +1,939 @@
+{
+  "starSystem": "Swoilz AW-C d114",
+  "systemAddress": 3927554640259,
+  "bodies": [
+    {
+      "bodyName": "Swoilz AW-C d114 A",
+      "bodyId": 1,
+      "kind": "star",
+      "starType": "K",
+      "landable": false,
+      "surfaceTemperature": 5154,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d114 A A Belt",
+          "ringClass": "Metal Rich",
+          "massMT": 704040000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B",
+      "bodyId": 2,
+      "kind": "star",
+      "starType": "M",
+      "landable": false,
+      "surfaceTemperature": 3645,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d114 B A Belt",
+          "ringClass": "Rocky",
+          "massMT": 87214000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 1",
+      "bodyId": 9,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 14.684173920842234,
+      "surfaceTemperature": 1244.769531,
+      "radius": 7556958.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Metallic Magma"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 2",
+      "bodyId": 10,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 10.98580491588151,
+      "surfaceTemperature": 743.044312,
+      "radius": 6163106,
+      "atmosphere": "Hot thick Carbon dioxide",
+      "terraformState": "Terraformable",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 0,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 3",
+      "bodyId": 11,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 16.401676623054943,
+      "surfaceTemperature": 220.222916,
+      "radius": 8087296,
+      "atmosphere": "Thick Nitrogen",
+      "terraformState": "Terraformable",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Metallic Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 4",
+      "bodyId": 12,
+      "kind": "planet",
+      "planetClass": "Gas giant with ammonia based life",
+      "landable": false,
+      "surfaceGravity": 11.538315196752364,
+      "surfaceTemperature": 123.105988,
+      "radius": 60788844,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d114 A 4 A Ring",
+          "ringClass": "Rocky",
+          "massMT": 487070000000
+        }
+      ],
+      "reserveLevel": "Pristine",
+      "raw": {},
+      "slots": {
+        "space": 3,
+        "ground": 0,
+        "asteroid": 1
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Asteroid_Base",
+            "demolishable": false,
+            "variant": "Metal",
+            "customName": "Asher's Reach",
+            "primary": true
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 4 a",
+      "bodyId": 14,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.3358290142398288,
+      "surfaceTemperature": 104.096542,
+      "radius": 546107.1875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 12
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Major Water Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 4 b",
+      "bodyId": 15,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.3125018467880087,
+      "surfaceTemperature": 103.78186,
+      "radius": 508559.4375,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 12
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 4 c",
+      "bodyId": 16,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.5107297720199852,
+      "surfaceTemperature": 103.11013,
+      "radius": 825590,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 12
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 4 d",
+      "bodyId": 17,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.4598145891862954,
+      "surfaceTemperature": 102.980141,
+      "radius": 744605.0625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 12
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 4 e",
+      "bodyId": 18,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.48301476117059244,
+      "surfaceTemperature": 102.729385,
+      "radius": 781544.125,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 12
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 5",
+      "bodyId": 19,
+      "kind": "planet",
+      "planetClass": "Sudarsky class I gas giant",
+      "landable": false,
+      "surfaceGravity": 7.306468231655964,
+      "surfaceTemperature": 97.035576,
+      "radius": 33589572,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 5 a",
+      "bodyId": 20,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.3004682762669518,
+      "surfaceTemperature": 86.727203,
+      "radius": 522741.46874999994,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 19
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 5 b",
+      "bodyId": 21,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.30823599903640275,
+      "surfaceTemperature": 86.670258,
+      "radius": 536114.1875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 19
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A 5 c",
+      "bodyId": 22,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.3590761845467524,
+      "surfaceTemperature": 86.627762,
+      "radius": 623449.4375,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 19
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 1",
+      "bodyId": 27,
+      "kind": "planet",
+      "planetClass": "Gas giant with water based life",
+      "landable": false,
+      "surfaceGravity": 59.192307422555295,
+      "surfaceTemperature": 234.469055,
+      "radius": 77490296,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d114 B 1 A Ring",
+          "ringClass": "Metallic",
+          "massMT": 90584000000
+        },
+        {
+          "name": "Swoilz AW-C d114 B 1 B Ring",
+          "ringClass": "Rocky",
+          "massMT": 2858100000000
+        }
+      ],
+      "reserveLevel": "Pristine",
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 1 a",
+      "bodyId": 30,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": false,
+      "surfaceGravity": 0.5813422518558173,
+      "surfaceTemperature": 123.173347,
+      "radius": 510734.375,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 27
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Rocky Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 1 b",
+      "bodyId": 31,
+      "kind": "planet",
+      "planetClass": "Rocky ice body",
+      "landable": true,
+      "surfaceGravity": 0.8462817961456105,
+      "surfaceTemperature": 102.291367,
+      "radius": 828621.8125,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 27
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 1 c",
+      "bodyId": 33,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 1.339572190578161,
+      "surfaceTemperature": 97.651627,
+      "radius": 2232339.25,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 32
+        },
+        {
+          "type": "Planet",
+          "bodyId": 27
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 3,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 1 d",
+      "bodyId": 34,
+      "kind": "planet",
+      "planetClass": "Rocky ice body",
+      "landable": true,
+      "surfaceGravity": 0.5565971350107062,
+      "surfaceTemperature": 97.651627,
+      "radius": 595134.625,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 32
+        },
+        {
+          "type": "Planet",
+          "bodyId": 27
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Major Rocky Magma"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 2",
+      "bodyId": 35,
+      "kind": "planet",
+      "planetClass": "Gas giant with water based life",
+      "landable": false,
+      "surfaceGravity": 38.3072718108851,
+      "surfaceTemperature": 158.624054,
+      "radius": 76403808,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d114 B 2 A Ring",
+          "ringClass": "Icy",
+          "massMT": 2198800000000
+        }
+      ],
+      "reserveLevel": "Pristine",
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 2 a",
+      "bodyId": 37,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 1.2383438034261227,
+      "surfaceTemperature": 90.010628,
+      "radius": 2074574.7500000002,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 35
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 2 b",
+      "bodyId": 38,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 1.312751147822982,
+      "surfaceTemperature": 85.156288,
+      "radius": 2192463.75,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 35
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Carbon Dioxide Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 3,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 2 c",
+      "bodyId": 40,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 1.5793046345110606,
+      "surfaceTemperature": 78.788277,
+      "radius": 2608357.25,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 39
+        },
+        {
+          "type": "Planet",
+          "bodyId": 35
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 2 d",
+      "bodyId": 41,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 1.4876409059957203,
+      "surfaceTemperature": 78.788277,
+      "radius": 2466468.75,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 39
+        },
+        {
+          "type": "Planet",
+          "bodyId": 35
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 0,
+        "ground": 2,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B 3",
+      "bodyId": 42,
+      "kind": "planet",
+      "planetClass": "Sudarsky class I gas giant",
+      "landable": false,
+      "surfaceGravity": 14.660798755103533,
+      "surfaceTemperature": 58.948032,
+      "radius": 21990890,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 A A Belt",
+      "bodyId": 100100,
+      "kind": "ring",
+      "landable": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d114 A A Belt",
+          "ringClass": "Metal Rich",
+          "massMT": 704040000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    },
+    {
+      "bodyName": "Swoilz AW-C d114 B A Belt",
+      "bodyId": 100200,
+      "kind": "ring",
+      "landable": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "Swoilz AW-C d114 B A Belt",
+          "ringClass": "Rocky",
+          "massMT": 87214000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    }
+  ],
+  "firstStationBuilding": "Asteroid_Base",
+  "firstStationBodyId": 12,
+  "firstStationVariant": "Metal",
+  "firstStationCustomName": "Asher's Reach"
+}
