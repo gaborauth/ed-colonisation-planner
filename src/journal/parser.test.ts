@@ -1,6 +1,18 @@
 import { describe, expect, it } from "vitest";
 import FIXTURE from "./fixtures/sample.jsonl?raw";
-import { compareBodyNames, parseJournalScans, type JournalBody } from "./parser";
+import { compareBodyNames, migrateRingBodyIds, parseJournalScans, withRingBodies, type JournalBody } from "./parser";
+
+function star(bodyId: number, beltNames: string[]): JournalBody {
+  return {
+    bodyName: `Star ${bodyId}`,
+    bodyId,
+    kind: "star",
+    landable: false,
+    parents: [],
+    rings: beltNames.map((name) => ({ name, ringClass: "Rocky", massMT: 1 })),
+    raw: {},
+  };
+}
 
 describe("parseJournalScans", () => {
   it("groups scanned bodies by system, keeping only real bodies (not belt-cluster fragments)", () => {
@@ -161,5 +173,98 @@ describe("compareBodyNames", () => {
     const names = ["Wyrd A 10", "Wyrd A 2", "Wyrd A 1"];
     const bodies = names.map((bodyName) => ({ bodyName }) as JournalBody);
     expect(bodies.sort(compareBodyNames).map((b) => b.bodyName)).toEqual(["Wyrd A 1", "Wyrd A 2", "Wyrd A 10"]);
+  });
+});
+
+describe("withRingBodies", () => {
+  it("numbers a single star's belts 100000/100001, matching Raven Colonial's own numbering for the same belts", () => {
+    const bodies = withRingBodies([star(0, ["A Belt", "B Belt"])]);
+    const rings = bodies.filter((b) => b.kind === "ring");
+    expect(rings.map((r) => [r.bodyName, r.bodyId])).toEqual([
+      ["A Belt", 100000],
+      ["B Belt", 100001],
+    ]);
+  });
+
+  it("uses a star's own real bodyId directly, not its ordinal position among the system's stars", () => {
+    // Real-data-confirmed 2026-08-24 against a real 2-star system (HIP 56772): star "B" (real
+    // Frontier bodyId 2, the system's 2nd star) has a belt whose real Raven Colonial `num` is
+    // 100200 (100000 + 100*2), NOT 100100 (which an earlier "0-based ordinal star index" guess in
+    // this function would have produced instead) — ruling that guess out for good.
+    const bodies = withRingBodies([star(1, []), star(2, ["A Belt"])]);
+    const ring = bodies.find((b) => b.kind === "ring");
+    expect(ring?.bodyId).toBe(100200);
+  });
+});
+
+describe("migrateRingBodyIds", () => {
+  it("is a no-op for a system with no old-scheme ring bodies", () => {
+    const bodies = withRingBodies([star(0, ["A Belt"])]);
+    const { bodies: migrated, idRemap } = migrateRingBodyIds(bodies);
+    expect(migrated).toBe(bodies);
+    expect(idRemap.size).toBe(0);
+  });
+
+  it("converts a pre-1.7.0 ring bodyId to the current scheme and carries over user edits by name", () => {
+    const oldRingBody: JournalBody = {
+      bodyName: "A Belt",
+      bodyId: 1_000_000, // pre-1.7.0 scheme: 1_000_000 + parentBodyId*100 + ringIndex
+      kind: "ring",
+      landable: false,
+      parents: [{ type: "Star", bodyId: 0 }],
+      rings: [{ name: "A Belt", ringClass: "Rocky", massMT: 1 }],
+      raw: {},
+      slots: { space: 1, ground: 0, asteroid: 1 },
+      presentFacilities: { space: [{ building: "Asteroid_Base", demolishable: false }], ground: [] },
+      blockedSlots: { space: [false], ground: [] },
+    };
+    const bodies = [star(0, ["A Belt"]), oldRingBody];
+
+    const { bodies: migrated, idRemap } = migrateRingBodyIds(bodies);
+
+    expect(idRemap.get(1_000_000)).toBe(100000);
+    const newRingBody = migrated.find((b) => b.kind === "ring")!;
+    expect(newRingBody.bodyId).toBe(100000);
+    expect(newRingBody.slots).toEqual(oldRingBody.slots);
+    expect(newRingBody.presentFacilities).toEqual(oldRingBody.presentFacilities);
+    expect(newRingBody.blockedSlots).toEqual(oldRingBody.blockedSlots);
+  });
+
+  it("matches the real multi-star system's own belt (jsons/swoilz-eg-i-b2-3.json: belt on star bodyId 3)", () => {
+    // Real fixture's belt sits on the star with real Frontier bodyId 3 -> 100000 + 3*100 + 0 =
+    // 100300, replacing the old scheme's 1_000_000 + 3*100 + 0 = 1_000_300.
+    const bodies = [star(2, []), star(3, ["B A Belt"]), star(4, [])];
+    const oldRingBody: JournalBody = {
+      bodyName: "B A Belt",
+      bodyId: 1_000_300,
+      kind: "ring",
+      landable: false,
+      parents: [{ type: "Star", bodyId: 3 }],
+      rings: [{ name: "B A Belt", ringClass: "Rocky", massMT: 1 }],
+      raw: {},
+    };
+
+    const { bodies: migrated, idRemap } = migrateRingBodyIds([...bodies, oldRingBody]);
+
+    expect(idRemap.get(1_000_300)).toBe(100300);
+    expect(migrated.find((b) => b.kind === "ring")?.bodyId).toBe(100300);
+  });
+
+  it("matches the real 2-star system's own belt (HIP 56772: belt on star B, real bodyId 2, Raven Colonial's own num is 100200)", () => {
+    const bodies = [star(1, []), star(2, ["B A Belt"])];
+    const oldRingBody: JournalBody = {
+      bodyName: "B A Belt",
+      bodyId: 1_000_200, // pre-1.7.0 scheme: 1_000_000 + 2*100 + 0
+      kind: "ring",
+      landable: false,
+      parents: [{ type: "Star", bodyId: 2 }],
+      rings: [{ name: "B A Belt", ringClass: "Metal Rich", massMT: 1 }],
+      raw: {},
+    };
+
+    const { bodies: migrated, idRemap } = migrateRingBodyIds([...bodies, oldRingBody]);
+
+    expect(idRemap.get(1_000_200)).toBe(100200);
+    expect(migrated.find((b) => b.kind === "ring")?.bodyId).toBe(100200);
   });
 });

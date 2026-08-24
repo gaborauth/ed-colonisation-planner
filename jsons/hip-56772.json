@@ -1,0 +1,3217 @@
+{
+  "starSystem": "HIP 56772",
+  "systemAddress": 44268790972,
+  "bodies": [
+    {
+      "bodyName": "HIP 56772 A",
+      "bodyId": 1,
+      "kind": "star",
+      "starType": "A",
+      "landable": false,
+      "surfaceTemperature": 10048,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Egan Landing"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Bradfield Gateway"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B",
+      "bodyId": 2,
+      "kind": "star",
+      "starType": "G",
+      "landable": false,
+      "surfaceTemperature": 5549,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "HIP 56772 B A Belt",
+          "ringClass": "Metal Rich",
+          "massMT": 22438000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Bar",
+            "demolishable": false,
+            "variant": "Bacchus",
+            "customName": "Harlin Vista"
+          },
+          null
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 1",
+      "bodyId": 3,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 11.756826398072768,
+      "surfaceTemperature": 584.169128,
+      "radius": 6492621,
+      "atmosphere": "Hot Sulphur dioxide",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Minor Silicate Vapour Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Mayr Gateway"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 2",
+      "bodyId": 4,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 12.274815910992116,
+      "surfaceTemperature": 1500.480713,
+      "radius": 6695902,
+      "atmosphere": "Hot thick Carbon dioxide",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Minor Silicate Vapour Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Tors Depot"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Bullialdus Hub"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 3",
+      "bodyId": 5,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 9.64789366602427,
+      "surfaceTemperature": 1087.525024,
+      "radius": 5608064,
+      "atmosphere": "Hot thick Carbon dioxide",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Rocky Magma"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Satellite",
+            "demolishable": false,
+            "variant": "Hermes",
+            "customName": "Kornblum Platform"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Eliot Gateway"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 4",
+      "bodyId": 6,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 9.032625624982149,
+      "surfaceTemperature": 922.137207,
+      "radius": 5331408.5,
+      "atmosphere": "Hot thick Carbon dioxide",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Rocky Magma"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Satellite",
+            "demolishable": false,
+            "variant": "Angelia",
+            "customName": "Duke's Folly"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Giger Reach"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 5",
+      "bodyId": 7,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 9.854045308458282,
+      "surfaceTemperature": 831.110596,
+      "radius": 5698795,
+      "atmosphere": "Hot thick Carbon dioxide",
+      "terraformState": "Terraformable",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Rocky Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Lunan Landing"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 6",
+      "bodyId": 8,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 12.640964843112098,
+      "surfaceTemperature": 1415.497192,
+      "radius": 6822572.5,
+      "atmosphere": "Hot thick Water",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Minor Metallic Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Satellite",
+            "demolishable": false,
+            "variant": "Angelia",
+            "customName": "Vaucouleurs Terminal"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 6 a",
+      "bodyId": 9,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 2.4024572561384745,
+      "surfaceTemperature": 233.464844,
+      "radius": 1942787.625,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 8
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Coriolis",
+            "demolishable": false,
+            "variant": "No Truss",
+            "customName": "Argelander City",
+            "primary": true
+          },
+          null
+        ],
+        "ground": [
+          {
+            "building": "Civilian_Planetary_Outpost",
+            "demolishable": false,
+            "variant": "Atropos",
+            "customName": "Nakayama Site"
+          },
+          {
+            "building": "Large_Industrial_Settlement",
+            "demolishable": false,
+            "variant": "Gaea",
+            "customName": "Collins Synthetics Complex"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 7",
+      "bodyId": 10,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 13.848620741791581,
+      "surfaceTemperature": 206.623596,
+      "radius": 7282908,
+      "atmosphere": "Nitrogen",
+      "terraformState": "Terraformable",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Minor Metallic Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Hoffman Depot"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 8",
+      "bodyId": 11,
+      "kind": "planet",
+      "planetClass": "Water world",
+      "landable": false,
+      "surfaceGravity": 13.26514156620268,
+      "surfaceTemperature": 245.950394,
+      "radius": 7070455.5,
+      "atmosphere": "Nitrogen",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Minor Metallic Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 9",
+      "bodyId": 12,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 18.456592282976448,
+      "surfaceTemperature": 447.45639,
+      "radius": 8685807,
+      "atmosphere": "Thick Methane-rich",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Silicate Vapour Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Cunningham Relay"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 A 9 a",
+      "bodyId": 13,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": false,
+      "surfaceGravity": 5.910800043147751,
+      "surfaceTemperature": 374.430328,
+      "radius": 4333543,
+      "atmosphere": "Thick Carbon dioxide",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 12
+        },
+        {
+          "type": "Star",
+          "bodyId": 1
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Kopal Terminal"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Owen Relay"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 1",
+      "bodyId": 25,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 8.566920246038539,
+      "surfaceTemperature": 992.096863,
+      "radius": 5115982.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Rocky Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Gens Beacon"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 2",
+      "bodyId": 26,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": true,
+      "surfaceGravity": 8.450011418522484,
+      "surfaceTemperature": 741.743591,
+      "radius": 5061063,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Lander Depot"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Noyce Relay"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 3",
+      "bodyId": 28,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 8.984541341113486,
+      "surfaceTemperature": 876.655029,
+      "radius": 5309409,
+      "atmosphere": "Hot thick Carbon dioxide",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 27
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Rocky Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Altshuller Relay"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 4",
+      "bodyId": 29,
+      "kind": "planet",
+      "planetClass": "High metal content body",
+      "landable": false,
+      "surfaceGravity": 7.199003067094927,
+      "surfaceTemperature": 481.090088,
+      "radius": 4451370.5,
+      "atmosphere": "Sulphur dioxide",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 27
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Jett Reach"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Pepys Enterprise"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 5",
+      "bodyId": 30,
+      "kind": "planet",
+      "planetClass": "Water world",
+      "landable": false,
+      "surfaceGravity": 10.51605568126336,
+      "surfaceTemperature": 373.284546,
+      "radius": 5941535,
+      "atmosphere": "Thick Ammonia",
+      "terraformState": "Terraformable",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Rocky Magma"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 5 a",
+      "bodyId": 31,
+      "kind": "planet",
+      "planetClass": "Rocky body",
+      "landable": true,
+      "surfaceGravity": 3.137618018201288,
+      "surfaceTemperature": 224.218475,
+      "radius": 2486191.25,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 30
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 3,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Coriolis",
+            "demolishable": false,
+            "variant": "No Truss",
+            "customName": "Heijningen Platform"
+          },
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Bosch Landing"
+          },
+          {
+            "building": "Satellite",
+            "demolishable": false,
+            "variant": "Angelia",
+            "customName": "Nasmyth Beacon"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Civilian_Planetary_Outpost",
+            "demolishable": false,
+            "variant": "Atropos",
+            "customName": "Min Exchange"
+          },
+          {
+            "building": "Large_Industrial_Settlement",
+            "demolishable": false,
+            "variant": "Gaea",
+            "customName": "Ashford Chemical"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 6",
+      "bodyId": 32,
+      "kind": "planet",
+      "planetClass": "Water world",
+      "landable": false,
+      "surfaceGravity": 20.572648760777987,
+      "surfaceTemperature": 477.155243,
+      "radius": 9363101,
+      "atmosphere": "Thick Carbon dioxide",
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "Major Silicate Vapour Geysers"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 7",
+      "bodyId": 33,
+      "kind": "planet",
+      "planetClass": "Sudarsky class I gas giant",
+      "landable": false,
+      "surfaceGravity": 13.60187054832266,
+      "surfaceTemperature": 133.85791,
+      "radius": 63977428,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "HIP 56772 B 7 A Ring",
+          "ringClass": "Metal Rich",
+          "massMT": 87030000000
+        },
+        {
+          "name": "HIP 56772 B 7 B Ring",
+          "ringClass": "Icy",
+          "massMT": 430750000000
+        }
+      ],
+      "reserveLevel": "Pristine",
+      "raw": {},
+      "slots": {
+        "space": 2,
+        "ground": 0,
+        "asteroid": 1
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Farm",
+            "demolishable": false,
+            "variant": "Demeter",
+            "customName": "Grego Sanctuary"
+          },
+          {
+            "building": "Space_Bar",
+            "demolishable": false,
+            "variant": "Bacchus",
+            "customName": "Hirayama Horizons"
+          },
+          null
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 7 a",
+      "bodyId": 37,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.41277626798715195,
+      "surfaceTemperature": 109.942558,
+      "radius": 670567.8125,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 36
+        },
+        {
+          "type": "Planet",
+          "bodyId": 33
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Farm",
+            "demolishable": false,
+            "variant": "Demeter",
+            "customName": "Pellegrino's Folly"
+          },
+          {
+            "building": "Space_Bar",
+            "demolishable": false,
+            "variant": "Bacchus",
+            "customName": "Lenoir Landing"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Tourism_Settlement",
+            "demolishable": false,
+            "variant": "Fufluns",
+            "customName": "Lymar Visitor Zone"
+          },
+          {
+            "building": "Large_Tourism_Settlement",
+            "demolishable": false,
+            "variant": "Fufluns",
+            "customName": "Salinas's Retreat"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 7 b",
+      "bodyId": 38,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.3905260620985013,
+      "surfaceTemperature": 109.942558,
+      "radius": 634898.5625,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 36
+        },
+        {
+          "type": "Planet",
+          "bodyId": 33
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": true,
+      "raw": {
+        "Volcanism": "Major Water Geysers"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 2,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Farm",
+            "demolishable": false,
+            "variant": "Demeter",
+            "customName": "Volta Horizons"
+          },
+          {
+            "building": "Space_Bar",
+            "demolishable": false,
+            "variant": "Bacchus",
+            "customName": "Suzuki Prospect"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Tourism_Settlement",
+            "demolishable": false,
+            "variant": "Fufluns",
+            "customName": "Rosewell Entertainment Resort"
+          },
+          null
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 7 c",
+      "bodyId": 39,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.43658741816559626,
+      "surfaceTemperature": 109.679428,
+      "radius": 708673.5,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 33
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Farm",
+            "demolishable": false,
+            "variant": "Demeter",
+            "customName": "Peary Platform"
+          },
+          {
+            "building": "Tourist",
+            "demolishable": false,
+            "variant": "Hedone",
+            "customName": "Bernds Sanctuary"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Tourism_Settlement",
+            "demolishable": false,
+            "variant": "Fufluns",
+            "customName": "Ferraro Hospitality Complex"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 7 d",
+      "bodyId": 40,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.4701002220913633,
+      "surfaceTemperature": 109.468422,
+      "radius": 762189.3125,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 33
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Large_Tourism_Settlement",
+            "demolishable": false,
+            "variant": "Fufluns",
+            "customName": "Hawkins Tourist Site"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 7 e",
+      "bodyId": 41,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.574202506673804,
+      "surfaceTemperature": 109.250359,
+      "radius": 927564.1875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 33
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Bar",
+            "demolishable": false,
+            "variant": "Bacchus",
+            "customName": "Willis Horizons"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Tourism_Settlement",
+            "demolishable": false,
+            "variant": "Fufluns",
+            "customName": "Takahashi Hospitality Resort"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 7 f",
+      "bodyId": 42,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.4961842911491794,
+      "surfaceTemperature": 109.076027,
+      "radius": 803751.3125,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 33
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Space_Bar",
+            "demolishable": false,
+            "variant": "Bacchus",
+            "customName": "Burman Vista"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Tourism_Settlement",
+            "demolishable": false,
+            "variant": "Fufluns",
+            "customName": "Auclair Tourist Haven"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 7 g",
+      "bodyId": 43,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.6700170870449683,
+      "surfaceTemperature": 108.987831,
+      "radius": 1078595.5,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 33
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Large_Tourism_Settlement",
+            "demolishable": false,
+            "variant": "Fufluns",
+            "customName": "Jarvis Leisure Site"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 7 h",
+      "bodyId": 44,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.7195023209136331,
+      "surfaceTemperature": 108.823898,
+      "radius": 1156151.75,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 33
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 0,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [],
+        "ground": [
+          {
+            "building": "Large_Tourism_Settlement",
+            "demolishable": false,
+            "variant": "Fufluns",
+            "customName": "Murakami Leisure Resort"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 8",
+      "bodyId": 45,
+      "kind": "planet",
+      "planetClass": "Sudarsky class I gas giant",
+      "landable": false,
+      "surfaceGravity": 16.902737740149938,
+      "surfaceTemperature": 104.25119,
+      "radius": 21542628,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Military_Outpost",
+            "demolishable": false,
+            "variant": "Nemesis",
+            "customName": "Heer Enterprise"
+          }
+        ],
+        "ground": []
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 8 a",
+      "bodyId": 46,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.43245956548893677,
+      "surfaceTemperature": 93.214409,
+      "radius": 749216.75,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Patrick Beacon"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Military_Settlement",
+            "demolishable": false,
+            "variant": "Minerva",
+            "customName": "Ngidi Military Garrison"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 8 b",
+      "bodyId": 47,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.4366104173447537,
+      "surfaceTemperature": 93.189163,
+      "radius": 756294.25,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 2,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Satellite",
+            "demolishable": false,
+            "variant": "Angelia",
+            "customName": "Okorafor Platform"
+          },
+          {
+            "building": "Military",
+            "demolishable": false,
+            "variant": "Alastor",
+            "customName": "Naboth's Pride"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Military_Settlement",
+            "demolishable": false,
+            "variant": "Minerva",
+            "customName": "Gonzalez Munitions Enterprise"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 8 c",
+      "bodyId": 48,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.34693861773733076,
+      "surfaceTemperature": 93.168495,
+      "radius": 602871.125,
+      "tidalLocked": false,
+      "parents": [
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Lukyanenko Reach"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Military_Settlement",
+            "demolishable": false,
+            "variant": "Minerva",
+            "customName": "Hah Outpost"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 8 d",
+      "bodyId": 50,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.36742288665239126,
+      "surfaceTemperature": 93.156464,
+      "radius": 638010.3125,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 49
+        },
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "SuuKyi Reach"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Military_Settlement",
+            "demolishable": false,
+            "variant": "Minerva",
+            "customName": "Wacera Arms Site"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B 8 e",
+      "bodyId": 51,
+      "kind": "planet",
+      "planetClass": "Icy body",
+      "landable": true,
+      "surfaceGravity": 0.33532303229835786,
+      "surfaceTemperature": 93.156464,
+      "radius": 582918.875,
+      "tidalLocked": true,
+      "parents": [
+        {
+          "type": "Null",
+          "bodyId": 49
+        },
+        {
+          "type": "Planet",
+          "bodyId": 45
+        },
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [],
+      "hasBiologicalSignals": false,
+      "hasGeologicalSignals": false,
+      "raw": {
+        "Volcanism": "No volcanism"
+      },
+      "slots": {
+        "space": 1,
+        "ground": 1,
+        "asteroid": 0
+      },
+      "presentFacilities": {
+        "space": [
+          {
+            "building": "Communication_Station",
+            "demolishable": false,
+            "variant": "Aletheia",
+            "customName": "Jensen Legacy"
+          }
+        ],
+        "ground": [
+          {
+            "building": "Large_Military_Settlement",
+            "demolishable": false,
+            "variant": "Minerva",
+            "customName": "Sakurai Command Outpost"
+          }
+        ]
+      }
+    },
+    {
+      "bodyName": "HIP 56772 B A Belt",
+      "bodyId": 1000200,
+      "kind": "ring",
+      "landable": false,
+      "parents": [
+        {
+          "type": "Star",
+          "bodyId": 2
+        },
+        {
+          "type": "Null",
+          "bodyId": 0
+        }
+      ],
+      "rings": [
+        {
+          "name": "HIP 56772 B A Belt",
+          "ringClass": "Metal Rich",
+          "massMT": 22438000000000
+        }
+      ],
+      "raw": {},
+      "slots": {
+        "space": 1,
+        "ground": 0,
+        "asteroid": 1
+      }
+    }
+  ],
+  "firstStationBuilding": "Coriolis",
+  "firstStationBodyId": 9,
+  "firstStationVariant": "No Truss",
+  "firstStationCustomName": "Argelander City",
+  "ravenColonialSkeleton": {
+    "v": 6,
+    "rev": 106,
+    "name": "HIP 56772",
+    "id64": 44268790972,
+    "architect": "JUSANA",
+    "pos": [
+      414.25,
+      217.6875,
+      123.1875
+    ],
+    "reserveLevel": "pristine",
+    "bodies": [
+      {
+        "name": "HIP 56772 A",
+        "num": 1,
+        "distLS": 0,
+        "parents": [
+          0
+        ],
+        "type": "st",
+        "subType": "A (Blue-White) Star",
+        "features": [],
+        "radius": -1,
+        "temp": 10048,
+        "gravity": -1
+      },
+      {
+        "name": "HIP 56772 B",
+        "num": 2,
+        "distLS": 307193.990435,
+        "parents": [
+          0
+        ],
+        "type": "st",
+        "subType": "G (White-Yellow) Star",
+        "features": [],
+        "radius": -1,
+        "temp": 5549,
+        "gravity": -1
+      },
+      {
+        "name": "HIP 56772 A 1",
+        "num": 3,
+        "distLS": 468.208193,
+        "parents": [
+          1,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 584.169128,
+        "gravity": 1.19886264912817
+      },
+      {
+        "name": "HIP 56772 A 2",
+        "num": 4,
+        "distLS": 622.775892,
+        "parents": [
+          1,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 1500.480713,
+        "gravity": 1.25168287957581
+      },
+      {
+        "name": "HIP 56772 A 3",
+        "num": 5,
+        "distLS": 929.566865,
+        "parents": [
+          1,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 1087.525024,
+        "gravity": 0.983811359233201
+      },
+      {
+        "name": "HIP 56772 A 4",
+        "num": 6,
+        "distLS": 1324.021897,
+        "parents": [
+          1,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 922.137207,
+        "gravity": 0.921071479555419
+      },
+      {
+        "name": "HIP 56772 A 5",
+        "num": 7,
+        "distLS": 1884.873326,
+        "parents": [
+          1,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "volcanism",
+          "terraformable",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 831.110596,
+        "gravity": 1.0048329764454
+      },
+      {
+        "name": "HIP 56772 A 6",
+        "num": 8,
+        "distLS": 2670.03319,
+        "parents": [
+          1,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 1415.497192,
+        "gravity": 1.28901967982054
+      },
+      {
+        "name": "HIP 56772 A 6 a",
+        "num": 9,
+        "distLS": 2674.140716,
+        "parents": [
+          8,
+          1,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "landable"
+        ],
+        "radius": -1,
+        "temp": 233.464844,
+        "gravity": 0.244982461507087
+      },
+      {
+        "name": "HIP 56772 A 7",
+        "num": 10,
+        "distLS": 3683.432517,
+        "parents": [
+          1,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "volcanism",
+          "terraformable",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 206.623596,
+        "gravity": 1.41216630977873
+      },
+      {
+        "name": "HIP 56772 A 8",
+        "num": 11,
+        "distLS": 4922.848863,
+        "parents": [
+          1,
+          0
+        ],
+        "type": "ww",
+        "subType": "Water world",
+        "features": [
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 245.950394,
+        "gravity": 1.35266799225043
+      },
+      {
+        "name": "HIP 56772 A 9",
+        "num": 12,
+        "distLS": 6800.206005,
+        "parents": [
+          1,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 447.45639,
+        "gravity": 1.88204863872744
+      },
+      {
+        "name": "HIP 56772 A 9 a",
+        "num": 13,
+        "distLS": 6785.691261,
+        "parents": [
+          12,
+          1,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 374.430328,
+        "gravity": 0.60273386356684
+      },
+      {
+        "name": "HIP 56772 B A Belt",
+        "num": 100200,
+        "distLS": 307197.4071320271,
+        "parents": [
+          2,
+          0
+        ],
+        "type": "ac",
+        "subType": "Metal Rich",
+        "features": [],
+        "radius": -1,
+        "temp": -1,
+        "gravity": -1
+      },
+      {
+        "name": "HIP 56772 B 1",
+        "num": 25,
+        "distLS": 307236.992996,
+        "parents": [
+          2,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "landable",
+          "geo",
+          "volcanism",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 992.096863,
+        "gravity": 0.873582747017436
+      },
+      {
+        "name": "HIP 56772 B 2",
+        "num": 26,
+        "distLS": 307241.416698,
+        "parents": [
+          2,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 741.743591,
+        "gravity": 0.8616613643316
+      },
+      {
+        "name": "HIP 56772 barycentre 27",
+        "num": 27,
+        "distLS": 0,
+        "parents": [],
+        "type": "bc",
+        "features": [],
+        "radius": -1,
+        "temp": -1,
+        "gravity": -1
+      },
+      {
+        "name": "HIP 56772 B 3",
+        "num": 28,
+        "distLS": 307465.921955,
+        "parents": [
+          27,
+          2,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 876.655029,
+        "gravity": 0.916168247170388
+      },
+      {
+        "name": "HIP 56772 B 4",
+        "num": 29,
+        "distLS": 307465.359106,
+        "parents": [
+          27,
+          2,
+          0
+        ],
+        "type": "hmc",
+        "subType": "High metal content world",
+        "features": [
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 481.090088,
+        "gravity": 0.734094014479453
+      },
+      {
+        "name": "HIP 56772 B 5",
+        "num": 30,
+        "distLS": 306550.723558,
+        "parents": [
+          2,
+          0
+        ],
+        "type": "ww",
+        "subType": "Water world",
+        "features": [
+          "volcanism",
+          "terraformable",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 373.284546,
+        "gravity": 1.07233924747629
+      },
+      {
+        "name": "HIP 56772 B 5 a",
+        "num": 31,
+        "distLS": 306552.015875,
+        "parents": [
+          30,
+          2,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 224.218475,
+        "gravity": 0.319947996329153
+      },
+      {
+        "name": "HIP 56772 B 6",
+        "num": 32,
+        "distLS": 308220.871657,
+        "parents": [
+          2,
+          0
+        ],
+        "type": "ww",
+        "subType": "Water world",
+        "features": [
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": -1,
+        "temp": 477.155243,
+        "gravity": 2.09782634852656
+      },
+      {
+        "name": "HIP 56772 B 7",
+        "num": 33,
+        "distLS": 304657.627581,
+        "parents": [
+          2,
+          0
+        ],
+        "type": "gg",
+        "subType": "Class I gas giant",
+        "features": [
+          "rings"
+        ],
+        "radius": -1,
+        "temp": 133.85791,
+        "gravity": 1.38700479249516
+      },
+      {
+        "name": "HIP 56772 barycentre 36",
+        "num": 36,
+        "distLS": 0,
+        "parents": [],
+        "type": "bc",
+        "features": [],
+        "radius": -1,
+        "temp": -1,
+        "gravity": -1
+      },
+      {
+        "name": "HIP 56772 B 7 a",
+        "num": 37,
+        "distLS": 304655.781449,
+        "parents": [
+          36,
+          33,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "geo",
+          "volcanism",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 109.942558,
+        "gravity": 0.0420914652799021
+      },
+      {
+        "name": "HIP 56772 B 7 b",
+        "num": 38,
+        "distLS": 304655.786575,
+        "parents": [
+          36,
+          33,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "geo",
+          "volcanism"
+        ],
+        "radius": -1,
+        "temp": 109.942558,
+        "gravity": 0.0398225757112267
+      },
+      {
+        "name": "HIP 56772 B 7 c",
+        "num": 39,
+        "distLS": 304654.129094,
+        "parents": [
+          33,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 109.679428,
+        "gravity": 0.0445195268685633
+      },
+      {
+        "name": "HIP 56772 B 7 d",
+        "num": 40,
+        "distLS": 304662.234328,
+        "parents": [
+          33,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 109.468422,
+        "gravity": 0.0479368818191088
+      },
+      {
+        "name": "HIP 56772 B 7 e",
+        "num": 41,
+        "distLS": 304661.218514,
+        "parents": [
+          33,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 109.250359,
+        "gravity": 0.0585523605587845
+      },
+      {
+        "name": "HIP 56772 B 7 f",
+        "num": 42,
+        "distLS": 304671.053926,
+        "parents": [
+          33,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable"
+        ],
+        "radius": -1,
+        "temp": 109.076027,
+        "gravity": 0.0505967166309779
+      },
+      {
+        "name": "HIP 56772 B 7 g",
+        "num": 43,
+        "distLS": 304668.21536,
+        "parents": [
+          33,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable"
+        ],
+        "radius": -1,
+        "temp": 108.987831,
+        "gravity": 0.0683227286631998
+      },
+      {
+        "name": "HIP 56772 B 7 h",
+        "num": 44,
+        "distLS": 304635.468393,
+        "parents": [
+          33,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable"
+        ],
+        "radius": -1,
+        "temp": 108.823898,
+        "gravity": 0.073368818191088
+      },
+      {
+        "name": "HIP 56772 B 8",
+        "num": 45,
+        "distLS": 305026.509737,
+        "parents": [
+          2,
+          0
+        ],
+        "type": "gg",
+        "subType": "Class I gas giant",
+        "features": [],
+        "radius": -1,
+        "temp": 104.25119,
+        "gravity": 1.72359957173448
+      },
+      {
+        "name": "HIP 56772 B 8 a",
+        "num": 46,
+        "distLS": 305024.615648,
+        "parents": [
+          45,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 93.214409,
+        "gravity": 0.0440986030386459
+      },
+      {
+        "name": "HIP 56772 B 8 b",
+        "num": 47,
+        "distLS": 305023.171679,
+        "parents": [
+          45,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 93.189163,
+        "gravity": 0.0445218721321505
+      },
+      {
+        "name": "HIP 56772 B 8 c",
+        "num": 48,
+        "distLS": 305019.465048,
+        "parents": [
+          45,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable"
+        ],
+        "radius": -1,
+        "temp": 93.168495,
+        "gravity": 0.0353778933414908
+      },
+      {
+        "name": "HIP 56772 barycentre 49",
+        "num": 49,
+        "distLS": 0,
+        "parents": [],
+        "type": "bc",
+        "features": [],
+        "radius": -1,
+        "temp": -1,
+        "gravity": -1
+      },
+      {
+        "name": "HIP 56772 B 8 d",
+        "num": 50,
+        "distLS": 305024.303932,
+        "parents": [
+          49,
+          45,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 93.156464,
+        "gravity": 0.0374667074538595
+      },
+      {
+        "name": "HIP 56772 B 8 e",
+        "num": 51,
+        "distLS": 305024.234817,
+        "parents": [
+          49,
+          45,
+          2,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": -1,
+        "temp": 93.156464,
+        "gravity": 0.0341934332619557
+      }
+    ],
+    "sites": [
+      {
+        "id": "8d69f0a0-b0c7-4204-9d3e-e92b63f02c15",
+        "name": "Argelander City",
+        "bodyNum": 9,
+        "buildType": "no_truss",
+        "status": "complete",
+        "buildId": "8d69f0a0-b0c7-4204-9d3e-e92b63f02c15"
+      },
+      {
+        "id": "x1775706951124",
+        "name": "Egan Landing",
+        "bodyNum": 1,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "e1563928-5ba6-4a92-8b13-1b4bf561d2d7",
+        "marketId": 3955008514
+      },
+      {
+        "id": "x1775706952789",
+        "name": "Bradfield Gateway",
+        "bodyNum": 1,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "811cd2aa-b0d6-4a35-92e3-4470ca698321",
+        "marketId": 3955038466
+      },
+      {
+        "id": "x1775706995216",
+        "name": "Mayr Gateway",
+        "bodyNum": 3,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "8235e5cc-b8b1-4321-b8a3-5e13f83dc19c",
+        "marketId": 3955042050
+      },
+      {
+        "id": "x1775706555492",
+        "name": "Nakayama Site",
+        "bodyNum": 9,
+        "buildType": "atropos",
+        "status": "complete",
+        "buildId": "0fb00095-ce04-4542-b13c-62e838e8ae12",
+        "marketId": 4358045443
+      },
+      {
+        "id": "x1777721504415",
+        "name": "Hunziker Reach",
+        "bodyNum": 9,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "61fb14bc-3520-45a7-95a1-9175fba55b74",
+        "marketId": 3955138306
+      },
+      {
+        "id": "x1775706998824",
+        "name": "Tors Depot",
+        "bodyNum": 4,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "9f5e36ad-84b2-4cfd-9341-6ba975379cf9",
+        "marketId": 3960801794
+      },
+      {
+        "id": "x1775706089543",
+        "name": "Collins Synthetics Complex",
+        "bodyNum": 9,
+        "buildType": "gaea",
+        "status": "complete",
+        "buildId": "22bdffa6-4d5f-4ec8-a98a-89aed3c0b43f",
+        "marketId": 4359568387
+      },
+      {
+        "id": "x1775706996064",
+        "name": "Bullialdus Hub",
+        "bodyNum": 4,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "6455f9a7-f1af-42c3-b19a-d299b4e895e6",
+        "marketId": 3960798466
+      },
+      {
+        "id": "x1775706999940",
+        "name": "Kornblum Platform",
+        "bodyNum": 5,
+        "buildType": "hermes",
+        "status": "complete",
+        "buildId": "685b53d8-305a-42e6-a4fc-4db8bb190872",
+        "marketId": 3961664002
+      },
+      {
+        "id": "x1775706996921",
+        "name": "Eliot Gateway",
+        "bodyNum": 5,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "a84fe8bc-0962-4cb4-920e-7b18d3c51f17",
+        "marketId": 3961665026
+      },
+      {
+        "id": "x1775707002650",
+        "name": "Duke's Folly",
+        "bodyNum": 6,
+        "buildType": "angelia",
+        "status": "complete",
+        "buildId": "37f57e78-04b7-45e7-bc2b-200b7b5362e9",
+        "marketId": 3961819138
+      },
+      {
+        "id": "x1775707001248",
+        "name": "Giger Reach",
+        "bodyNum": 6,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "406ffabd-cdc4-4b50-a5cf-f3e979743cb1",
+        "marketId": 3961816834
+      },
+      {
+        "id": "x1775707003684",
+        "name": "Lunan Landing",
+        "bodyNum": 7,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "ac85000c-472d-483d-8c7c-d41c272b0232",
+        "marketId": 3962066946
+      },
+      {
+        "id": "x1775707004802",
+        "name": "Vaucouleurs Terminal",
+        "bodyNum": 8,
+        "buildType": "angelia",
+        "status": "complete",
+        "buildId": "2a2be567-a7dd-47cb-9cba-2615b3429af7",
+        "marketId": 3962069250
+      },
+      {
+        "id": "x1775707134847",
+        "name": "Hoffman Depot",
+        "bodyNum": 10,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "f5d31396-8ec8-4801-bc6c-2daf8dbdadf5",
+        "marketId": 3962558722
+      },
+      {
+        "id": "x1775706432527",
+        "name": "Heijningen Platform",
+        "bodyNum": 31,
+        "buildType": "no_truss",
+        "status": "complete",
+        "buildId": "41b12fd9-20ee-46b7-aa77-6a41798cdd16",
+        "marketId": 3965526530
+      },
+      {
+        "id": "x1775706442495",
+        "name": "Min Exchange",
+        "bodyNum": 31,
+        "buildType": "atropos",
+        "status": "complete",
+        "buildId": "d5f0b438-a813-42db-a37f-8ac052608f06",
+        "marketId": 4361020931
+      },
+      {
+        "id": "x1775706476223",
+        "name": "Ashford Chemical",
+        "bodyNum": 31,
+        "buildType": "gaea",
+        "status": "complete",
+        "buildId": "bae3b883-82d6-4437-8c59-1206af99bf2d",
+        "marketId": 4361833475
+      },
+      {
+        "id": "x1775706707595",
+        "name": "Heer Enterprise",
+        "bodyNum": 45,
+        "buildType": "nemesis",
+        "status": "complete",
+        "buildId": "140df5a2-2676-4cad-861c-4aa685a20a94",
+        "marketId": 3952851202
+      },
+      {
+        "id": "x1775707219318",
+        "name": "Harlin Vista",
+        "bodyNum": 2,
+        "buildType": "bacchus",
+        "status": "complete",
+        "buildId": "2ae44682-4a2f-4e86-a1de-23f138ecf83e",
+        "marketId": 3964329474
+      },
+      {
+        "id": "x1775706670143",
+        "name": "Patrick Beacon",
+        "bodyNum": 46,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "0e4efd5c-779c-471e-b587-a182e1189000",
+        "marketId": 3953060354
+      },
+      {
+        "id": "x1775706668981",
+        "name": "Okorafor Platform",
+        "bodyNum": 47,
+        "buildType": "angelia",
+        "status": "complete",
+        "buildId": "5bc23168-6098-428c-89d9-6114bef5e311",
+        "marketId": 3953280770
+      },
+      {
+        "id": "x1775706641897",
+        "name": "Ngidi Military Garrison",
+        "bodyNum": 46,
+        "buildType": "minerva",
+        "status": "complete",
+        "buildId": "14033c5a-fd43-4b83-97ca-b58ace87146d",
+        "marketId": 4248724483
+      },
+      {
+        "id": "x1775706667997",
+        "name": "Lukyanenko Reach",
+        "bodyNum": 48,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "23004cf7-429d-4f6a-b9a6-277f4a9664a1",
+        "marketId": 3964835074
+      },
+      {
+        "id": "x1775706671093",
+        "name": "Naboth's Pride",
+        "bodyNum": 47,
+        "buildType": "alastor",
+        "status": "complete",
+        "buildId": "425ec775-75e8-4272-982e-e66cdb21bee9",
+        "marketId": 3964832002
+      },
+      {
+        "id": "x1775706666591",
+        "name": "SuuKyi Reach",
+        "bodyNum": 50,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "41cbfca2-a046-44d2-a30a-7d38080c03f8",
+        "marketId": 3962470914
+      },
+      {
+        "id": "x1775706664877",
+        "name": "Jensen Legacy",
+        "bodyNum": 51,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "30d9bbb2-6471-48ff-9019-d287a1e553e0",
+        "marketId": 3962474242
+      },
+      {
+        "id": "x1775707270316",
+        "name": "Bosch Landing",
+        "bodyNum": 31,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "c001d60b-3830-476f-aa0d-713b812886c4",
+        "marketId": 3962644738
+      },
+      {
+        "id": "x1775707223384",
+        "name": "Altshuller Relay",
+        "bodyNum": 28,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "57935bd2-28ad-4052-86ac-0fb9e90585cd",
+        "marketId": 3962645250
+      },
+      {
+        "id": "x1775707271342",
+        "name": "Nasmyth Beacon",
+        "bodyNum": 31,
+        "buildType": "angelia",
+        "status": "complete",
+        "buildId": "ad082a21-8dd6-4412-b0ca-111f5d309656",
+        "marketId": 3952763906
+      },
+      {
+        "id": "x1776052363587",
+        "name": "Gens Beacon",
+        "bodyNum": 25,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "2e26cdb1-fe09-4e27-aa30-3e85a1686d48",
+        "marketId": 3950913538
+      },
+      {
+        "id": "x1775707224437",
+        "name": "Jett Reach",
+        "bodyNum": 29,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "485b3176-c908-486b-92d1-4a1d3b839ed2",
+        "marketId": 3950898946
+      },
+      {
+        "id": "x1775707220563",
+        "name": "Pepys Enterprise",
+        "bodyNum": 29,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "8f14961e-5c89-464b-8939-2a0a937d83bc",
+        "marketId": 3950903554
+      },
+      {
+        "id": "x1775707222427",
+        "name": "Lander Depot",
+        "bodyNum": 26,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "9c0a66a2-787e-49dc-9f7d-234819bc9ed4",
+        "marketId": 3951295746
+      },
+      {
+        "id": "x1775707218263",
+        "name": "Noyce Relay",
+        "bodyNum": 26,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "5d2d8796-1d0a-4748-93b9-4a82b72247f4",
+        "marketId": 3951299330
+      },
+      {
+        "id": "x1775707136015",
+        "name": "Cunningham Relay",
+        "bodyNum": 12,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "319b4d0b-abf8-4684-b9ac-448ee22fefbd",
+        "marketId": 3954932738
+      },
+      {
+        "id": "x1775707137030",
+        "name": "Kopal Terminal",
+        "bodyNum": 13,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "70f93e71-c83d-48f1-b78e-0f6cde2e4257",
+        "marketId": 3954938626
+      },
+      {
+        "id": "x1775707138515",
+        "name": "Owen Relay",
+        "bodyNum": 13,
+        "buildType": "aletheia",
+        "status": "complete",
+        "buildId": "e65c11e3-d932-4d10-bc0c-7f4b5fda3bec",
+        "marketId": 3954940418
+      },
+      {
+        "id": "x1775706641181",
+        "name": "Gonzalez Munitions Enterprise",
+        "bodyNum": 47,
+        "buildType": "minerva",
+        "status": "complete",
+        "buildId": "345f7a61-dc4b-4554-88f6-c21c769f8c11",
+        "marketId": 4364654851
+      },
+      {
+        "id": "x1775706640468",
+        "name": "Hah Outpost",
+        "bodyNum": 48,
+        "buildType": "minerva",
+        "status": "complete",
+        "buildId": "5eb59559-4faa-4916-bdfa-843121e41ee0",
+        "marketId": 4364658179
+      },
+      {
+        "id": "x1775706639774",
+        "name": "Wacera Arms Site",
+        "bodyNum": 50,
+        "buildType": "minerva",
+        "status": "complete",
+        "buildId": "9d37ba33-2492-4254-8bda-26d10e212ba8",
+        "marketId": 4368429571
+      },
+      {
+        "id": "x1775706638884",
+        "name": "Sakurai Command Outpost",
+        "bodyNum": 51,
+        "buildType": "minerva",
+        "status": "complete",
+        "buildId": "0a99b1b9-21d9-4793-9d68-e1a3b034684c",
+        "marketId": 4368433411
+      },
+      {
+        "id": "x1775706916359",
+        "name": "Grego Sanctuary",
+        "bodyNum": 33,
+        "buildType": "demeter",
+        "status": "complete",
+        "buildId": "46153b14-4bca-45cb-ad89-400d067b0a9e",
+        "marketId": 3959308034
+      },
+      {
+        "id": "x1775706808216",
+        "name": "Volta Horizons",
+        "bodyNum": 38,
+        "buildType": "demeter",
+        "status": "complete",
+        "buildId": "4525eff4-b6e1-4520-8a3f-23afdf3cfe1c",
+        "marketId": 3959314434
+      },
+      {
+        "id": "x1775706810549",
+        "name": "Pellegrino's Folly",
+        "bodyNum": 37,
+        "buildType": "demeter",
+        "status": "complete",
+        "buildId": "865042b3-7e21-43af-b91d-4a686d3ac805",
+        "marketId": 3959309058
+      },
+      {
+        "id": "x1775706786884",
+        "name": "Peary Platform",
+        "bodyNum": 39,
+        "buildType": "demeter",
+        "status": "complete",
+        "buildId": "37519760-fdc3-4ec8-9aad-2d824ac1f789",
+        "marketId": 3959315202
+      },
+      {
+        "id": "x1775706914282",
+        "name": "Hirayama Horizons",
+        "bodyNum": 33,
+        "buildType": "bacchus",
+        "status": "complete",
+        "buildId": "ff132456-1553-47f5-ac00-0534394d577f",
+        "marketId": 3959307266
+      },
+      {
+        "id": "x1775706809563",
+        "name": "Suzuki Prospect",
+        "bodyNum": 38,
+        "buildType": "bacchus",
+        "status": "complete",
+        "buildId": "157e6abc-2fd9-486c-be0a-9b8f14936ea2",
+        "marketId": 3958611714
+      },
+      {
+        "id": "x1775706812616",
+        "name": "Lenoir Landing",
+        "bodyNum": 37,
+        "buildType": "bacchus",
+        "status": "complete",
+        "buildId": "167fd10b-2573-42d1-8fa4-b76fd57e9d95",
+        "marketId": 3958611458
+      },
+      {
+        "id": "x1775706784005",
+        "name": "Willis Horizons",
+        "bodyNum": 41,
+        "buildType": "bacchus",
+        "status": "complete",
+        "buildId": "77bb5e81-3b16-41f0-b572-857d33a38691",
+        "marketId": 3958644226
+      },
+      {
+        "id": "x1775706782271",
+        "name": "Burman Vista",
+        "bodyNum": 42,
+        "buildType": "bacchus",
+        "status": "complete",
+        "buildId": "ead4b92c-d7a9-4d37-b9ea-b4db32ae79c9",
+        "marketId": 3962169858
+      },
+      {
+        "id": "x1775706742423",
+        "name": "Rosewell Entertainment Resort",
+        "bodyNum": 38,
+        "buildType": "fufluns",
+        "status": "complete",
+        "buildId": "6675ccac-4e82-419e-8c05-cc17015224ee",
+        "marketId": 4373832451
+      },
+      {
+        "id": "x1775706784992",
+        "name": "Bernds Sanctuary",
+        "bodyNum": 39,
+        "buildType": "hedone",
+        "status": "complete",
+        "buildId": "da1721ef-36a1-4baf-9179-501d008e5597",
+        "marketId": 3960295938
+      },
+      {
+        "id": "x1775706743532",
+        "name": "Ferraro Hospitality Complex",
+        "bodyNum": 39,
+        "buildType": "fufluns",
+        "status": "complete",
+        "buildId": "26da947a-f078-4bbd-94bb-13218d012a3e",
+        "marketId": 4373830403
+      },
+      {
+        "id": "x1775706740865",
+        "name": "Thorne Gateway",
+        "bodyNum": 38,
+        "buildType": "tellus_e",
+        "status": "complete",
+        "buildId": "53b3965b-ffe1-445a-b759-f02f439aaa8f",
+        "marketId": 4373833475
+      },
+      {
+        "id": "x1775706739678",
+        "name": "Lymar Visitor Zone",
+        "bodyNum": 37,
+        "buildType": "fufluns",
+        "status": "complete",
+        "buildId": "687c1532-e89a-4e26-82ea-cdd77726c4cb",
+        "marketId": 4375916035
+      },
+      {
+        "id": "x1775706737456",
+        "name": "Salinas's Retreat",
+        "bodyNum": 37,
+        "buildType": "fufluns",
+        "status": "complete",
+        "buildId": "0e19ed90-64fd-49e6-9e6c-7c3eb6c3a416",
+        "marketId": 4375916547
+      },
+      {
+        "id": "x1775706745619",
+        "name": "Takahashi Hospitality Resort",
+        "bodyNum": 41,
+        "buildType": "fufluns",
+        "status": "complete",
+        "buildId": "85d879ef-9663-4e38-bb4e-b523905e1f6f",
+        "marketId": 4376839683
+      },
+      {
+        "id": "x1775706746621",
+        "name": "Auclair Tourist Haven",
+        "bodyNum": 42,
+        "buildType": "fufluns",
+        "status": "complete",
+        "buildId": "eca173c6-1dad-48fa-93bf-ddafc071323c",
+        "marketId": 4376838147
+      },
+      {
+        "id": "x1775706747647",
+        "name": "Jarvis Leisure Site",
+        "bodyNum": 43,
+        "buildType": "fufluns",
+        "status": "complete",
+        "buildId": "7259cdf8-1183-4220-be31-ff315a91d56a",
+        "marketId": 4376840195
+      },
+      {
+        "id": "x1775706748790",
+        "name": "Murakami Leisure Resort",
+        "bodyNum": 44,
+        "buildType": "fufluns",
+        "status": "complete",
+        "buildId": "1f346c22-b83a-439c-80fe-6f633d8ae2e0",
+        "marketId": 4376900611
+      },
+      {
+        "id": "x1775706744597",
+        "name": "Hawkins Tourist Site",
+        "bodyNum": 40,
+        "buildType": "fufluns",
+        "status": "complete",
+        "buildId": "f72b1b90-1e36-4bc8-a198-dccb48dd4934",
+        "marketId": 4376902915
+      },
+      {
+        "id": "x1775643794419",
+        "name": "Dyson Vision",
+        "bodyNum": 30,
+        "buildType": "dodec",
+        "status": "build",
+        "buildId": "552586e1-7e6d-4052-910b-23e7942f78fb"
+      },
+      {
+        "id": "x1775643800865",
+        "name": "Nagata Vision",
+        "bodyNum": 32,
+        "buildType": "dodec",
+        "status": "build",
+        "buildId": "cf238d91-02d5-48b9-a0e9-f99a898c0d56"
+      },
+      {
+        "id": "x1775706514852",
+        "name": "India Zulu",
+        "bodyNum": 100200,
+        "buildType": "asteroid",
+        "status": "plan"
+      },
+      {
+        "id": "x1775643780027",
+        "name": "Juliett Yankee",
+        "bodyNum": 11,
+        "buildType": "dodec",
+        "status": "plan"
+      }
+    ],
+    "deleteIDs": [],
+    "updateIDs": [],
+    "slots": {
+      "1": [
+        2,
+        -1
+      ],
+      "2": [
+        1,
+        -1
+      ],
+      "3": [
+        1,
+        -1
+      ],
+      "4": [
+        2,
+        -1
+      ],
+      "5": [
+        2,
+        -1
+      ],
+      "6": [
+        2,
+        -1
+      ],
+      "7": [
+        1,
+        -1
+      ],
+      "8": [
+        1,
+        -1
+      ],
+      "9": [
+        2,
+        2
+      ],
+      "10": [
+        1,
+        -1
+      ],
+      "11": [
+        1,
+        -1
+      ],
+      "12": [
+        1,
+        -1
+      ],
+      "13": [
+        2,
+        -1
+      ],
+      "25": [
+        1,
+        0
+      ],
+      "26": [
+        2,
+        0
+      ],
+      "28": [
+        1,
+        -1
+      ],
+      "29": [
+        2,
+        -1
+      ],
+      "30": [
+        1,
+        -1
+      ],
+      "31": [
+        3,
+        2
+      ],
+      "32": [
+        1,
+        -1
+      ],
+      "33": [
+        2,
+        -1
+      ],
+      "37": [
+        2,
+        2
+      ],
+      "38": [
+        2,
+        2
+      ],
+      "39": [
+        2,
+        1
+      ],
+      "40": [
+        0,
+        1
+      ],
+      "41": [
+        1,
+        1
+      ],
+      "42": [
+        1,
+        1
+      ],
+      "43": [
+        0,
+        1
+      ],
+      "44": [
+        0,
+        1
+      ],
+      "45": [
+        1,
+        -1
+      ],
+      "46": [
+        1,
+        1
+      ],
+      "47": [
+        2,
+        1
+      ],
+      "48": [
+        1,
+        1
+      ],
+      "50": [
+        1,
+        1
+      ],
+      "51": [
+        1,
+        1
+      ],
+      "100200": [
+        1,
+        -1
+      ]
+    },
+    "pop": {
+      "pop": 23844362,
+      "timeSpansh": "2026-06-07T11:01:21+00:00",
+      "timeSaved": "2026-06-14T10:46:01.9863526+00:00"
+    },
+    "open": false,
+    "savedNames": [],
+    "idxCalcLimit": 67
+  }
+}

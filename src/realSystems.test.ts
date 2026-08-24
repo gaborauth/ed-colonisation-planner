@@ -17,7 +17,7 @@ import { buildSolverInput } from "./App";
 import { computeSolvedSystemLinks } from "./domain/solvedLinks";
 import { computeSolvedPlacements } from "./domain/solvedPlacement";
 import { getOrderingFromResult } from "./domain/ordering";
-import type { JournalSystem } from "./journal/parser";
+import { migrateRingBodyIds, type JournalSystem } from "./journal/parser";
 import { solve } from "./solver/solve";
 import { INITIAL_FORM_STATE, type PlannerFormState } from "./state/plannerState";
 import { toPlanResult } from "./state/toPlanResult";
@@ -35,14 +35,23 @@ describe.each(systemFiles)("real system: %s", (file) => {
   const system: JournalSystem = JSON.parse(readFileSync(path.join(JSONS_DIR, file), "utf-8"));
 
   it("solves end-to-end with the app's default objective, never over-reports free capacity, and produces a valid build order + link topology", async () => {
+    // A committed fixture may still carry a pre-1.7.0 ring/belt bodyId (see journal/parser.ts's
+    // `migrateRingBodyIds`) — a real app session always migrates on load (`plannerState.ts`'s
+    // `"load"` case, `persistence/journalSystems.ts`'s `readStore`), so mirror that here rather
+    // than feeding a real solve stale IDs this app itself would never actually run with anymore.
+    const { bodies, idRemap } = migrateRingBodyIds(system.bodies);
+    const firstStationBodyId =
+      system.firstStationBodyId !== undefined
+        ? (idRemap.get(system.firstStationBodyId) ?? system.firstStationBodyId)
+        : system.firstStationBodyId;
     const formState: PlannerFormState = {
       ...INITIAL_FORM_STATE,
-      bodies: system.bodies,
+      bodies,
       starSystem: system.starSystem,
       systemAddress: system.systemAddress,
       systemConfigured: true,
       firstStationBuilding: system.firstStationBuilding ?? "",
-      firstStationBodyId: system.firstStationBodyId,
+      firstStationBodyId,
       firstStationVariant: system.firstStationVariant,
       firstStationCustomName: system.firstStationCustomName,
     };

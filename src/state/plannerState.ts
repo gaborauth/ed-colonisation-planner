@@ -7,7 +7,7 @@ import {
 } from "../domain/presentFacilities";
 import { systemResourceLevel, type ResourceLevel } from "../domain/economyOverrides";
 import type { SelfSufficiencyCombo } from "../domain/selfSufficiencyCombos";
-import type { JournalBody } from "../journal/parser";
+import { migrateRingBodyIds, type JournalBody } from "../journal/parser";
 import type { Direction, EconomyPreference, SlotAvailability, SolverResult } from "../solver/solve";
 
 // Exported (not just inlined into INITIAL_FORM_STATE below) so ObjectivePanel.tsx's "Default
@@ -319,7 +319,15 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
       // existed has `formState.bodies === undefined`. Default it to aggregate mode (`[]`) rather
       // than trusting the stale shape — `plans.ts`'s `readStore()` does no schema validation at
       // all, so this is consistent with that file's existing risk tolerance, not a new precedent.
-      const bodies = action.state.bodies ?? [];
+      // `migrateRingBodyIds` converts any pre-1.7.0 ring/belt bodyIds a saved plan still has to the
+      // current Raven Colonial-matching scheme (see its own doc comment) — a no-op for a plan that
+      // has none, so this can run unconditionally. `idRemap` also fixes up `firstStationBodyId`
+      // below, the only OTHER place a bodyId is persisted standalone outside a `JournalBody` itself.
+      const { bodies, idRemap: ringIdRemap } = migrateRingBodyIds(action.state.bodies ?? []);
+      const firstStationBodyId =
+        action.state.firstStationBodyId !== undefined
+          ? (ringIdRemap.get(action.state.firstStationBodyId) ?? action.state.firstStationBodyId)
+          : action.state.firstStationBodyId;
       // Same idea for `systemConfigured` (added after `bodies`): a plan saved before it existed
       // has real slot data but no flag — infer "already configured" from that data instead of
       // defaulting to locked, which would surprise anyone loading an otherwise-complete old plan.
@@ -356,6 +364,7 @@ function applyAction(state: PlannerFormState, action: PlannerAction): PlannerFor
       return {
         ...action.state,
         bodies,
+        firstStationBodyId,
         systemConfigured,
         systemAddress,
         starSystem,

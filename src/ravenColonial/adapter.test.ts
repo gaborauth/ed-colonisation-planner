@@ -25,6 +25,55 @@ const spanshRecord: SpanshDumpRecord = JSON.parse(
 ).system;
 const rcSystem: RcSystem = JSON.parse(readFileSync(path.join(process.cwd(), "rc-jsons", "swoilz-aw-c-d52.json"), "utf-8"));
 
+// swoilz-cd-e-c1-1: a real single-star system with two named star belts, used to regression-test
+// the bug this app's own bodyId scheme used to have against Raven Colonial's own belt numbering
+// (`100000 + 100*starIndex + beltIndex` — see journal/parser.ts's `ringBodyId`/`migrateRingBodyIds`
+// doc comments). `jsons/swoilz-cd-e-c1-1.json`'s own `ravenColonialSkeleton` is the real Raven
+// Colonial export for this exact system (its `slots` map has real "100000"/"100001" entries for
+// the two belts) — used directly here rather than a separate `rc-jsons/*.json` file.
+const beltSpanshRecord: SpanshDumpRecord = JSON.parse(
+  readFileSync(path.join(process.cwd(), "spansh-jsons", "swoilz-cd-e-c1-1-dump.json"), "utf-8"),
+).system;
+const beltRcSystem: RcSystem = (
+  JSON.parse(readFileSync(path.join(process.cwd(), "jsons", "swoilz-cd-e-c1-1.json"), "utf-8")) as JournalSystem
+).ravenColonialSkeleton as unknown as RcSystem;
+
+describe("Raven Colonial overlay: swoilz-cd-e-c1-1 (star belts)", () => {
+  it("picks up both belts' real slot counts with no warnings, at a bodyId matching Raven Colonial's own bodyNum", () => {
+    const base = spanshDumpToJournalSystem(beltSpanshRecord);
+    const { system, warnings } = applyRavenColonialOverlay(base, beltRcSystem);
+
+    expect(warnings).toEqual([]);
+    const belts = system.bodies.filter((b) => b.kind === "ring");
+    expect(belts.map((b) => [b.bodyName, b.bodyId, b.slots])).toEqual([
+      ["Swoilz CD-E c1-1 A Belt", 100000, { space: 1, ground: 0, asteroid: 1 }],
+      ["Swoilz CD-E c1-1 B Belt", 100001, { space: 1, ground: 0, asteroid: 1 }],
+    ]);
+  });
+
+  it("imports a real facility built at a belt instead of dropping it as an unknown body", () => {
+    const base = spanshDumpToJournalSystem(beltSpanshRecord);
+    const rcWithBeltSite: RcSystem = {
+      ...beltRcSystem,
+      sites: [
+        ...beltRcSystem.sites,
+        { id: "x1", name: "Belt Mining Rig", bodyNum: 100000, buildType: "asteroid", status: "complete" },
+      ],
+    };
+
+    const { system, warnings } = applyRavenColonialOverlay(base, rcWithBeltSite);
+
+    expect(warnings).toEqual([]);
+    const belt = system.bodies.find((b) => b.bodyId === 100000);
+    // Capacity is `slots.space + slots.asteroid` (2) — see adapter.ts's `buildFacilityArray` doc
+    // comment — so the second, still-empty position pads out as `null`.
+    expect(belt?.presentFacilities?.space).toEqual([
+      { building: "Asteroid_Base", demolishable: false, variant: undefined, customName: "Belt Mining Rig" },
+      null,
+    ]);
+  });
+});
+
 describe("Raven Colonial overlay: swoilz-aw-c-d52", () => {
   it("merges cleanly with no warnings and matches the real primary station", () => {
     const base = spanshDumpToJournalSystem(spanshRecord);
@@ -65,9 +114,10 @@ describe("Raven Colonial overlay: swoilz-aw-c-d52", () => {
     expect(system.firstStationBodyId).toBe(1);
     expect(system.firstStationBuilding).toBe("Coriolis");
     // The skipped-over planned site never gets seated as an ordinary facility either — it's simply
-    // not built, not "unrecognized"/an error, so no warning either.
+    // not built yet, not "unrecognized"/a data error, but still surfaced as a warning so a player
+    // knows why it's missing rather than wondering silently.
     expect(system.bodies.find((b) => b.bodyId === 0)?.presentFacilities).toBeUndefined();
-    expect(warnings).toEqual([]);
+    expect(warnings).toEqual([`"Not Built Yet" is not yet complete in Raven Colonial (status: "planned") — skipped.`]);
   });
 
   it("matches the real committed export's facilities and slots for every body except the two RC manually mis-entered ground counts", () => {
@@ -154,4 +204,68 @@ describe("Raven Colonial overlay: swoilz-aw-c-d52", () => {
     const solved = computeSolvedPlacements(formState.bodies, result, order);
     expect(solved.warnings).toEqual([]);
   }, 30000);
+});
+
+describe("Raven Colonial overlay: Tellus buildType disambiguation", () => {
+  // Raven Colonial's own buildType strings for the two Tellus hub layouts (once genuinely
+  // ambiguous between Exploration Hub and Industrial Hub, see buildTypes.ts's header comment) were
+  // renamed to "tellus_e"/"tellus_i" — a real RC export never emits bare "tellus" anymore, so both
+  // must resolve to their own distinct building, not the old shared guess.
+  const bodyAt = (bodyId: number): JournalBody => ({
+    bodyName: `Body ${bodyId}`,
+    bodyId,
+    kind: "planet",
+    landable: true,
+    parents: [],
+    rings: [],
+    raw: {},
+  });
+  // A third, unrelated "complete" site (bodyNum 2) is listed first so `pickPrimarySite` claims it
+  // as the primary station instead of either Tellus site — otherwise whichever Tellus site sorts
+  // first would be consumed as the primary and never seated as an ordinary ground facility at all.
+  const base: JournalSystem = { starSystem: "Test", systemAddress: 1, bodies: [bodyAt(0), bodyAt(1), bodyAt(2)] };
+  const rc: RcSystem = {
+    name: "Test",
+    id64: 1,
+    bodies: [],
+    slots: { "0": [0, 1], "1": [0, 1], "2": [1, -1] },
+    sites: [
+      { id: "0", name: "Primary", bodyNum: 2, buildType: "quad_truss", status: "complete" },
+      { id: "1", name: "Exploration Site", bodyNum: 0, buildType: "tellus_e", status: "complete" },
+      { id: "2", name: "Industrial Site", bodyNum: 1, buildType: "tellus_i", status: "complete" },
+    ],
+  };
+
+  it("maps tellus_e to Exploration_Hub and tellus_i to Industrial_Hub with no warnings", () => {
+    const { system, warnings } = applyRavenColonialOverlay(base, rc);
+
+    expect(warnings).toEqual([]);
+    const byId = new Map(system.bodies.map((b) => [b.bodyId, b]));
+    expect(byId.get(0)?.presentFacilities?.ground?.[0]).toMatchObject({
+      building: "Exploration_Hub",
+      variant: "Tellus A",
+    });
+    expect(byId.get(1)?.presentFacilities?.ground?.[0]).toMatchObject({
+      building: "Industrial_Hub",
+      variant: "Tellus B",
+    });
+  });
+
+  it("maps the legacy bare tellus buildType to Industrial_Hub, matching Raven Colonial's own altTypes alias", () => {
+    const legacyRc: RcSystem = {
+      ...rc,
+      sites: [
+        { id: "0", name: "Primary", bodyNum: 2, buildType: "quad_truss", status: "complete" },
+        { id: "1", name: "Legacy Site", bodyNum: 1, buildType: "tellus", status: "complete" },
+      ],
+    };
+    const { system, warnings } = applyRavenColonialOverlay(base, legacyRc);
+
+    expect(warnings).toEqual([]);
+    const byId = new Map(system.bodies.map((b) => [b.bodyId, b]));
+    expect(byId.get(1)?.presentFacilities?.ground?.[0]).toMatchObject({
+      building: "Industrial_Hub",
+      variant: "Tellus B",
+    });
+  });
 });
