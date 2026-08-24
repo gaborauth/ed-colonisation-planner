@@ -245,15 +245,33 @@ export function parseParents(parents: Record<string, number>[] | undefined): Jou
   });
 }
 
-const RING_BODY_ID_OFFSET = 1_000_000;
+const RING_BODY_ID_OFFSET = 100_000;
 
-/** Deterministic synthetic bodyId for a body's Nth ring/belt — offset well above any real Frontier
- * bodyId (small sequential integers per system) so it can never collide, and derived from the
- * parent's own bodyId + ring index so it stays stable across re-imports (needed for
+/** A pre-1.7.0 version of this app used a DIFFERENT synthetic-bodyId formula for ring/belt bodies
+ * (`1_000_000 + parentBodyId*100 + ringIndex`, a 10x-larger offset than the current formula below
+ * but otherwise the same shape) — see `migrateRingBodyIds` below for the one-time load-time
+ * conversion away from it. `>= OLD_RING_BODY_ID_FLOOR` reliably detects the old scheme: a real
+ * Frontier-assigned bodyId never gets remotely this large (small sequential integers per system),
+ * and the current scheme's own range (`100_000 + starBodyId*100 + beltIndex`) only reaches this
+ * floor if a star's own real bodyId were >= 9,000 — not realistic for any real system. */
+const OLD_RING_BODY_ID_FLOOR = 1_000_000;
+
+/** Deterministic synthetic bodyId for a star's Nth ring/belt — matches Raven Colonial's own virtual
+ * numbering for the same belts (`100000 + 100*starBodyId + beltIndex`, real-data-confirmed
+ * 2026-08-24 against TWO independent real multi-belt systems, incl. a real 2-star system where the
+ * belt on star "B" — real Frontier bodyId 2 — has Raven Colonial's own `num: 100200`, ruling out an
+ * earlier "0-based ordinal position among the system's stars" guess this function briefly used,
+ * which would have produced 100100 for that same belt) rather than an arbitrary offset of our own,
+ * so a real Raven Colonial export's `bodyNum` for a belt already equals this app's own `bodyId` for
+ * it with no separate translation layer needed on import/export. `starBodyId` is the star's own
+ * REAL Frontier bodyId, used directly — same shape as the pre-1.7.0 formula this superseded, just a
+ * smaller offset (see `OLD_RING_BODY_ID_FLOOR`'s doc comment). Offset well above any real Frontier
+ * bodyId (small sequential integers per system) so it can never collide with one, and derived from
+ * the parent's own bodyId + ring index so it stays stable across re-imports (needed for
  * `JournalImportPanel`'s `mergeBySystemAddress`, which preserves a user's manually-edited slots by
  * matching `bodyId`). */
-function ringBodyId(parentBodyId: number, ringIndex: number): number {
-  return RING_BODY_ID_OFFSET + parentBodyId * 100 + ringIndex;
+function ringBodyId(starBodyId: number, ringIndex: number): number {
+  return RING_BODY_ID_OFFSET + starBodyId * 100 + ringIndex;
 }
 
 /** A STAR's own asteroid belt is, in-game, its own separate constructible location with its own
@@ -300,6 +318,42 @@ export function withRingBodies(bodies: JournalBody[]): JournalBody[] {
     });
   }
   return ringBodies.length > 0 ? [...bodies, ...ringBodies] : bodies;
+}
+
+/** One-time load-time conversion away from the pre-1.7.0 ring-bodyId scheme (see
+ * `OLD_RING_BODY_ID_FLOOR`'s doc comment) — every OTHER consumer of `JournalBody`/`JournalSystem`
+ * keys off `kind === "ring"`, never the numeric `bodyId` itself, so this is the only place that
+ * needs to know the old scheme ever existed. No-ops (returns `bodies` unchanged, empty `idRemap`)
+ * when nothing needs migrating, so every call site can run this unconditionally on load rather than
+ * needing its own "is this stale?" check first.
+ *
+ * Regenerates ring bodies from scratch via `withRingBodies` (off the star bodies' own untouched
+ * `rings` arrays) rather than arithmetically converting each old bodyId, then re-attaches whatever
+ * the user had edited on the OLD ring body — `slots`/`presentFacilities`/`blockedSlots`, the only
+ * fields `JournalImportPanel`'s `mergeBySystemAddress` itself preserves across a re-import — matched
+ * by `bodyName` (a belt's real name, unaffected by the numbering-scheme change, unlike its bodyId).
+ *
+ * Returns `idRemap` (old bodyId -> new bodyId) alongside the migrated bodies so a caller can also
+ * fix up the one other place a bodyId can be persisted standalone, outside any `JournalBody` itself:
+ * `firstStationBodyId` (`PlannerFormState`/`JournalSystem`), for the rare case a primary station
+ * was set at a belt. */
+export function migrateRingBodyIds(bodies: JournalBody[]): { bodies: JournalBody[]; idRemap: Map<number, number> } {
+  const oldRingBodies = bodies.filter((b) => b.kind === "ring" && b.bodyId >= OLD_RING_BODY_ID_FLOOR);
+  if (oldRingBodies.length === 0) return { bodies, idRemap: new Map() };
+
+  const nonRingBodies = bodies.filter((b) => b.kind !== "ring");
+  const freshRingBodies = withRingBodies(nonRingBodies).filter((b) => b.kind === "ring");
+  const oldByName = new Map(oldRingBodies.map((b) => [b.bodyName, b]));
+  const idRemap = new Map<number, number>();
+
+  const migratedRingBodies = freshRingBodies.map((fresh) => {
+    const old = oldByName.get(fresh.bodyName);
+    if (!old) return fresh; // no prior saved edits for this belt (e.g. a name mismatch) — nothing to carry over
+    idRemap.set(old.bodyId, fresh.bodyId);
+    return { ...fresh, slots: old.slots, presentFacilities: old.presentFacilities, blockedSlots: old.blockedSlots };
+  });
+
+  return { bodies: [...nonRingBodies, ...migratedRingBodies], idRemap };
 }
 
 /** First pass over the file: collects every `FSSBodySignals` event into a `(SystemAddress, BodyID)`

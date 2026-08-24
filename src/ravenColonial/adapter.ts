@@ -90,7 +90,14 @@ export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): 
   // single padded array below.
   const grouped = new Map<string, RcSite[]>();
   for (const site of remainingSites) {
-    if (site.status !== "complete") continue; // no "planned"/in-progress concept in this app
+    // No "planned"/in-progress concept in this app — only a `"complete"` site is a real, already-
+    // built facility. Warn rather than silently drop: a `"plan"`/`"build"`/`"demolish"` site is a
+    // real, deliberate Raven Colonial state (not a data error like the two cases below), but a
+    // player checking why a facility they expected didn't show up here has no other way to find out.
+    if (site.status !== "complete") {
+      warnings.push(`"${site.name}" is not yet complete in Raven Colonial (status: "${site.status}") — skipped.`);
+      continue;
+    }
     const def = RC_BUILD_TYPE[site.buildType];
     if (!def) {
       warnings.push(`Unrecognized Raven Colonial build type "${site.buildType}" for "${site.name}" — skipped.`);

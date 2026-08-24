@@ -27,7 +27,7 @@
       "slots": {
         "space": 2,
         "ground": 0,
-        "asteroid": 0
+        "asteroid": 1
       }
     },
     {
@@ -481,7 +481,7 @@
           {
             "building": "Small_Agricultural_Settlement",
             "demolishable": false,
-            "customName": "Colley Nutrition Centre",
+            "customName": "Winkler Horticultural Biosphere",
             "variant": "Consus"
           },
           null
@@ -1030,5 +1030,777 @@
   "firstStationBuilding": "Coriolis",
   "firstStationBodyId": 48,
   "firstStationVariant": "Quad Truss",
-  "firstStationCustomName": "Burger Prospect"
+  "firstStationCustomName": "Burger Prospect",
+  "ravenColonialSkeleton": {
+    "v": 6,
+    "rev": 15,
+    "name": "Swoilz CD-E c1-1",
+    "id64": 359200166666,
+    "architect": "Frank O'Yanko",
+    "pos": [
+      276.625,
+      -50.25,
+      263.03125
+    ],
+    "reserveLevel": "pristine",
+    "bodies": [
+      {
+        "name": "Swoilz CD-E c1-1",
+        "num": 0,
+        "distLS": 0,
+        "parents": [],
+        "type": "st",
+        "subType": "K (Yellow-Orange) Star",
+        "features": [],
+        "radius": -1,
+        "temp": 4582,
+        "gravity": -1
+      },
+      {
+        "name": "Swoilz CD-E c1-1 barycentre 18",
+        "num": 18,
+        "distLS": 0,
+        "parents": [],
+        "type": "bc",
+        "features": [],
+        "radius": -1,
+        "temp": -1,
+        "gravity": -1
+      },
+      {
+        "name": "Swoilz CD-E c1-1 A Belt",
+        "num": 100000,
+        "distLS": 3.1660236095732603,
+        "parents": [
+          0
+        ],
+        "type": "ac",
+        "subType": "Rocky",
+        "features": [],
+        "radius": -1,
+        "temp": -1,
+        "gravity": -1
+      },
+      {
+        "name": "Swoilz CD-E c1-1 B Belt",
+        "num": 100001,
+        "distLS": 10.419208077609477,
+        "parents": [
+          0
+        ],
+        "type": "ac",
+        "subType": "Metallic",
+        "features": [],
+        "radius": -1,
+        "temp": -1,
+        "gravity": -1
+      },
+      {
+        "name": "Swoilz CD-E c1-1 1",
+        "num": 19,
+        "distLS": 1063.910861,
+        "parents": [
+          18,
+          0
+        ],
+        "type": "gg",
+        "subType": "Class III gas giant",
+        "features": [
+          "rings",
+          "tidal"
+        ],
+        "radius": 73209.768,
+        "temp": 574.241089,
+        "gravity": 16.1014890384419
+      },
+      {
+        "name": "Swoilz CD-E c1-1 1 a",
+        "num": 21,
+        "distLS": 1061.921841,
+        "parents": [
+          19,
+          18,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "landable",
+          "geo",
+          "volcanism",
+          "tidal"
+        ],
+        "radius": 1331.54275,
+        "temp": 238.272995,
+        "gravity": 0.158313041704905
+      },
+      {
+        "name": "Swoilz CD-E c1-1 2",
+        "num": 22,
+        "distLS": 1040.934769,
+        "parents": [
+          18,
+          0
+        ],
+        "type": "gg",
+        "subType": "Class III gas giant",
+        "features": [
+          "rings"
+        ],
+        "radius": 69329.552,
+        "temp": 771.319641,
+        "gravity": 24.4178189048639
+      },
+      {
+        "name": "Swoilz CD-E c1-1 2 a",
+        "num": 25,
+        "distLS": 1043.132796,
+        "parents": [
+          22,
+          18,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "volcanism",
+          "tidal",
+          "atmosphere"
+        ],
+        "radius": 1160.448,
+        "temp": 966.336853,
+        "gravity": 0.137248292036301
+      },
+      {
+        "name": "Swoilz CD-E c1-1 2 b",
+        "num": 26,
+        "distLS": 1043.385601,
+        "parents": [
+          22,
+          18,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "volcanism",
+          "tidal"
+        ],
+        "radius": 1037.67675,
+        "temp": 250.590775,
+        "gravity": 0.122258386866524
+      },
+      {
+        "name": "Swoilz CD-E c1-1 2 c",
+        "num": 27,
+        "distLS": 1038.919293,
+        "parents": [
+          22,
+          18,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 1400.595375,
+        "temp": 231.708344,
+        "gravity": 0.166938717242786
+      },
+      {
+        "name": "Swoilz CD-E c1-1 2 d",
+        "num": 28,
+        "distLS": 1048.178867,
+        "parents": [
+          22,
+          18,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 1345.26325,
+        "temp": 209.302094,
+        "gravity": 0.160053329254614
+      },
+      {
+        "name": "Swoilz CD-E c1-1 3",
+        "num": 29,
+        "distLS": 1407.495353,
+        "parents": [
+          0
+        ],
+        "type": "gg",
+        "subType": "Class III gas giant",
+        "features": [
+          "rings"
+        ],
+        "radius": 72364.232,
+        "temp": 580.036377,
+        "gravity": 17.833869277047
+      },
+      {
+        "name": "Swoilz CD-E c1-1 3 a",
+        "num": 31,
+        "distLS": 1406.593253,
+        "parents": [
+          29,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 956.0025,
+        "temp": 176.095016,
+        "gravity": 0.112346487203018
+      },
+      {
+        "name": "Swoilz CD-E c1-1 3 b",
+        "num": 32,
+        "distLS": 1399.861892,
+        "parents": [
+          29,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "landable",
+          "bio",
+          "tidal",
+          "atmosphere"
+        ],
+        "radius": 962.196875,
+        "temp": 178.897049,
+        "gravity": 0.113095645967166
+      },
+      {
+        "name": "Swoilz CD-E c1-1 3 c",
+        "num": 33,
+        "distLS": 1392.588995,
+        "parents": [
+          29,
+          0
+        ],
+        "type": "rb",
+        "subType": "Rocky body",
+        "features": [
+          "landable",
+          "bio",
+          "tidal",
+          "atmosphere"
+        ],
+        "radius": 927.0189375,
+        "temp": 169.180359,
+        "gravity": 0.108844906699296
+      },
+      {
+        "name": "Swoilz CD-E c1-1 3 d",
+        "num": 34,
+        "distLS": 1423.648689,
+        "parents": [
+          29,
+          0
+        ],
+        "type": "ri",
+        "subType": "Rocky Ice world",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 1536.944625,
+        "temp": 122.160324,
+        "gravity": 0.126739165901907
+      },
+      {
+        "name": "Swoilz CD-E c1-1 3 e",
+        "num": 35,
+        "distLS": 1418.99666,
+        "parents": [
+          29,
+          0
+        ],
+        "type": "ri",
+        "subType": "Rocky Ice world",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 1460.347875,
+        "temp": 116.904411,
+        "gravity": 0.120164168451106
+      },
+      {
+        "name": "Swoilz CD-E c1-1 4",
+        "num": 37,
+        "distLS": 1996.554761,
+        "parents": [
+          0
+        ],
+        "type": "gg",
+        "subType": "Class I gas giant",
+        "features": [
+          "rings"
+        ],
+        "radius": 68347.944,
+        "temp": 120.414696,
+        "gravity": 2.51734995411441
+      },
+      {
+        "name": "Swoilz CD-E c1-1 4 a",
+        "num": 40,
+        "distLS": 1997.17225,
+        "parents": [
+          37,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "geo",
+          "volcanism"
+        ],
+        "radius": 1355.096125,
+        "temp": 86.459503,
+        "gravity": 0.0812175996737025
+      },
+      {
+        "name": "Swoilz CD-E c1-1 4 b",
+        "num": 41,
+        "distLS": 1995.120066,
+        "parents": [
+          37,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "geo",
+          "volcanism",
+          "tidal"
+        ],
+        "radius": 1248.59175,
+        "temp": 83.664627,
+        "gravity": 0.0744522280004079
+      },
+      {
+        "name": "Swoilz CD-E c1-1 4 c",
+        "num": 42,
+        "distLS": 1996.348889,
+        "parents": [
+          37,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 1292.745875,
+        "temp": 82.810585,
+        "gravity": 0.0771646782910166
+      },
+      {
+        "name": "Swoilz CD-E c1-1 4 d",
+        "num": 43,
+        "distLS": 1996.955041,
+        "parents": [
+          37,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 1194.61475,
+        "temp": 81.806396,
+        "gravity": 0.07114448863057
+      },
+      {
+        "name": "Swoilz CD-E c1-1 4 e",
+        "num": 44,
+        "distLS": 2001.978942,
+        "parents": [
+          37,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 2233.24,
+        "temp": 80.529144,
+        "gravity": 0.13647619047619
+      },
+      {
+        "name": "Swoilz CD-E c1-1 4 f",
+        "num": 45,
+        "distLS": 2004.116519,
+        "parents": [
+          37,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 1455.439375,
+        "temp": 79.673927,
+        "gravity": 0.0872123993066177
+      },
+      {
+        "name": "Swoilz CD-E c1-1 4 g",
+        "num": 46,
+        "distLS": 2009.70499,
+        "parents": [
+          37,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "tidal"
+        ],
+        "radius": 1605.562875,
+        "temp": 79.223228,
+        "gravity": 0.0965596002855103
+      },
+      {
+        "name": "Swoilz CD-E c1-1 4 h",
+        "num": 48,
+        "distLS": 2025.20328,
+        "parents": [
+          37,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "bio",
+          "atmosphere"
+        ],
+        "radius": 3517.75025,
+        "temp": 78.543579,
+        "gravity": 0.214821657999388
+      },
+      {
+        "name": "Swoilz CD-E c1-1 5",
+        "num": 55,
+        "distLS": 2865.307219,
+        "parents": [
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "rings",
+          "volcanism",
+          "atmosphere"
+        ],
+        "radius": 17469.152,
+        "temp": 66.801071,
+        "gravity": 1.86368624451922
+      },
+      {
+        "name": "Swoilz CD-E c1-1 5 a",
+        "num": 57,
+        "distLS": 2865.331219,
+        "parents": [
+          55,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "bio",
+          "tidal",
+          "atmosphere"
+        ],
+        "radius": 546.4470625,
+        "temp": 89.518044,
+        "gravity": 0.0320778015703069
+      },
+      {
+        "name": "Swoilz CD-E c1-1 5 b",
+        "num": 59,
+        "distLS": 2882.851153,
+        "parents": [
+          55,
+          0
+        ],
+        "type": "ib",
+        "subType": "Icy body",
+        "features": [
+          "landable",
+          "rings",
+          "atmosphere"
+        ],
+        "radius": 5184.4285,
+        "temp": 64.208778,
+        "gravity": 0.333248597940247
+      }
+    ],
+    "sites": [
+      {
+        "id": "&4234127875",
+        "name": "Burger Prospect",
+        "bodyNum": 48,
+        "buildType": "quad_truss",
+        "status": "complete",
+        "marketId": 4234127875
+      },
+      {
+        "id": "&4214119171",
+        "name": "Venegas Cultivation Hub",
+        "bodyNum": 21,
+        "buildType": "consus",
+        "status": "complete",
+        "marketId": 4214119171
+      },
+      {
+        "id": "&4213670403",
+        "name": "Winkler Horticultural Biosphere",
+        "bodyNum": 34,
+        "buildType": "consus",
+        "status": "complete",
+        "marketId": 4213670403
+      },
+      {
+        "id": "&4211385859",
+        "name": "Colley Nutrition Centre",
+        "bodyNum": 31,
+        "buildType": "consus",
+        "status": "complete",
+        "marketId": 4211385859
+      },
+      {
+        "id": "&4244817411",
+        "name": "Sankoh Command Point",
+        "bodyNum": 45,
+        "buildType": "polemos",
+        "status": "complete",
+        "marketId": 4244817411
+      },
+      {
+        "id": "&4244814595",
+        "name": "Morfett-Jones's Castings",
+        "bodyNum": 46,
+        "buildType": "meteope",
+        "status": "complete",
+        "marketId": 4244814595
+      },
+      {
+        "id": "&4244813059",
+        "name": "Thompson's Creations",
+        "bodyNum": 46,
+        "buildType": "meteope",
+        "status": "complete",
+        "marketId": 4244813059
+      },
+      {
+        "id": "&4245672963",
+        "name": "Miranda Research Assembly",
+        "bodyNum": 48,
+        "buildType": "chronos",
+        "status": "complete",
+        "marketId": 4245672963
+      },
+      {
+        "id": "&4245675267",
+        "name": "Prieto Biological Centre",
+        "bodyNum": 48,
+        "buildType": "chronos",
+        "status": "complete",
+        "marketId": 4245675267
+      },
+      {
+        "id": "&4245679875",
+        "name": "Petrenko Manufacturing Hub",
+        "bodyNum": 48,
+        "buildType": "gaea",
+        "status": "complete",
+        "marketId": 4245679875
+      },
+      {
+        "id": "&4247508995",
+        "name": "Agu Genetics Institution",
+        "bodyNum": 48,
+        "buildType": "chronos",
+        "status": "complete",
+        "marketId": 4247508995
+      },
+      {
+        "id": "&4247357187",
+        "name": "Curbeam Enterprise",
+        "bodyNum": 45,
+        "buildType": "nemesis",
+        "status": "complete",
+        "marketId": 4247357187
+      },
+      {
+        "id": "&4380817923",
+        "name": "Hyakutake Horizons",
+        "bodyNum": 31,
+        "buildType": "plutus",
+        "status": "complete",
+        "marketId": 4380817923
+      },
+      {
+        "id": "&4381476867",
+        "name": "Lagerkvist Horizons",
+        "bodyNum": 34,
+        "buildType": "plutus",
+        "status": "complete",
+        "marketId": 4381476867
+      },
+      {
+        "id": "&4381549059",
+        "name": "Potagos's Folly",
+        "bodyNum": 21,
+        "buildType": "plutus",
+        "status": "complete",
+        "marketId": 4381549059
+      }
+    ],
+    "deleteIDs": [],
+    "updateIDs": [],
+    "slots": {
+      "0": [
+        2,
+        -1
+      ],
+      "19": [
+        2,
+        -1
+      ],
+      "21": [
+        1,
+        2
+      ],
+      "22": [
+        1,
+        -1
+      ],
+      "25": [
+        1,
+        -1
+      ],
+      "26": [
+        2,
+        -1
+      ],
+      "27": [
+        3,
+        1
+      ],
+      "28": [
+        1,
+        1
+      ],
+      "29": [
+        3,
+        -1
+      ],
+      "31": [
+        3,
+        1
+      ],
+      "32": [
+        2,
+        3
+      ],
+      "33": [
+        1,
+        3
+      ],
+      "34": [
+        2,
+        2
+      ],
+      "35": [
+        2,
+        1
+      ],
+      "37": [
+        1,
+        -1
+      ],
+      "40": [
+        1,
+        2
+      ],
+      "41": [
+        0,
+        2
+      ],
+      "42": [
+        0,
+        1
+      ],
+      "43": [
+        0,
+        1
+      ],
+      "44": [
+        3,
+        2
+      ],
+      "45": [
+        2,
+        1
+      ],
+      "46": [
+        0,
+        2
+      ],
+      "48": [
+        2,
+        4
+      ],
+      "55": [
+        1,
+        -1
+      ],
+      "57": [
+        2,
+        3
+      ],
+      "59": [
+        1,
+        5
+      ],
+      "100000": [
+        1,
+        -1
+      ],
+      "100001": [
+        1,
+        -1
+      ]
+    },
+    "pop": null,
+    "open": false,
+    "savedNames": [],
+    "idxCalcLimit": 15
+  }
 }

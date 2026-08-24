@@ -7,9 +7,15 @@
 
 export interface RcBody {
   name: string;
-  /** This system's own small, real Frontier `bodyId` — same convention as this app's Spansh
-   * adapter's `id64`/`bodyId` (the main star is always `num: 0`, matching a real Journal upload of
-   * the same system). */
+  /** This system's own small, real Frontier `bodyId` for an ordinary body — same convention as
+   * this app's Spansh adapter's `id64`/`bodyId` (the main star is always `num: 0`, matching a real
+   * Journal upload of the same system). For a star's own named belt (`type: "ac"`, "asteroid
+   * cluster" in Raven Colonial's own vocabulary), which has no real Frontier bodyId at all, this is
+   * instead Raven Colonial's own virtual numbering (`100000 + 100*starBodyId + beltIndex`, using the
+   * parent star's own real Frontier bodyId directly — real-data-confirmed 2026-08-24) — this
+   * app's own synthetic ring-body `bodyId` (`journal/parser.ts`'s `ringBodyId`) deliberately matches
+   * that exact scheme, so a belt's `num` here already equals this app's own `bodyId` for it with no
+   * separate translation needed. */
   num: number;
   type: string;
   subType?: string;
