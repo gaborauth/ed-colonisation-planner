@@ -25,6 +25,55 @@ const spanshRecord: SpanshDumpRecord = JSON.parse(
 ).system;
 const rcSystem: RcSystem = JSON.parse(readFileSync(path.join(process.cwd(), "rc-jsons", "swoilz-aw-c-d52.json"), "utf-8"));
 
+// swoilz-cd-e-c1-1: a real single-star system with two named star belts, used to regression-test
+// the bug this app's own bodyId scheme used to have against Raven Colonial's own belt numbering
+// (`100000 + 100*starIndex + beltIndex` — see journal/parser.ts's `ringBodyId`/`migrateRingBodyIds`
+// doc comments). `jsons/swoilz-cd-e-c1-1.json`'s own `ravenColonialSkeleton` is the real Raven
+// Colonial export for this exact system (its `slots` map has real "100000"/"100001" entries for
+// the two belts) — used directly here rather than a separate `rc-jsons/*.json` file.
+const beltSpanshRecord: SpanshDumpRecord = JSON.parse(
+  readFileSync(path.join(process.cwd(), "spansh-jsons", "swoilz-cd-e-c1-1-dump.json"), "utf-8"),
+).system;
+const beltRcSystem: RcSystem = (
+  JSON.parse(readFileSync(path.join(process.cwd(), "jsons", "swoilz-cd-e-c1-1.json"), "utf-8")) as JournalSystem
+).ravenColonialSkeleton as unknown as RcSystem;
+
+describe("Raven Colonial overlay: swoilz-cd-e-c1-1 (star belts)", () => {
+  it("picks up both belts' real slot counts with no warnings, at a bodyId matching Raven Colonial's own bodyNum", () => {
+    const base = spanshDumpToJournalSystem(beltSpanshRecord);
+    const { system, warnings } = applyRavenColonialOverlay(base, beltRcSystem);
+
+    expect(warnings).toEqual([]);
+    const belts = system.bodies.filter((b) => b.kind === "ring");
+    expect(belts.map((b) => [b.bodyName, b.bodyId, b.slots])).toEqual([
+      ["Swoilz CD-E c1-1 A Belt", 100000, { space: 1, ground: 0, asteroid: 1 }],
+      ["Swoilz CD-E c1-1 B Belt", 100001, { space: 1, ground: 0, asteroid: 1 }],
+    ]);
+  });
+
+  it("imports a real facility built at a belt instead of dropping it as an unknown body", () => {
+    const base = spanshDumpToJournalSystem(beltSpanshRecord);
+    const rcWithBeltSite: RcSystem = {
+      ...beltRcSystem,
+      sites: [
+        ...beltRcSystem.sites,
+        { id: "x1", name: "Belt Mining Rig", bodyNum: 100000, buildType: "asteroid", status: "complete" },
+      ],
+    };
+
+    const { system, warnings } = applyRavenColonialOverlay(base, rcWithBeltSite);
+
+    expect(warnings).toEqual([]);
+    const belt = system.bodies.find((b) => b.bodyId === 100000);
+    // Capacity is `slots.space + slots.asteroid` (2) — see adapter.ts's `buildFacilityArray` doc
+    // comment — so the second, still-empty position pads out as `null`.
+    expect(belt?.presentFacilities?.space).toEqual([
+      { building: "Asteroid_Base", demolishable: false, variant: undefined, customName: "Belt Mining Rig" },
+      null,
+    ]);
+  });
+});
+
 describe("Raven Colonial overlay: swoilz-aw-c-d52", () => {
   it("merges cleanly with no warnings and matches the real primary station", () => {
     const base = spanshDumpToJournalSystem(spanshRecord);
@@ -65,9 +114,10 @@ describe("Raven Colonial overlay: swoilz-aw-c-d52", () => {
     expect(system.firstStationBodyId).toBe(1);
     expect(system.firstStationBuilding).toBe("Coriolis");
     // The skipped-over planned site never gets seated as an ordinary facility either — it's simply
-    // not built, not "unrecognized"/an error, so no warning either.
+    // not built yet, not "unrecognized"/a data error, but still surfaced as a warning so a player
+    // knows why it's missing rather than wondering silently.
     expect(system.bodies.find((b) => b.bodyId === 0)?.presentFacilities).toBeUndefined();
-    expect(warnings).toEqual([]);
+    expect(warnings).toEqual([`"Not Built Yet" is not yet complete in Raven Colonial (status: "planned") — skipped.`]);
   });
 
   it("matches the real committed export's facilities and slots for every body except the two RC manually mis-entered ground counts", () => {

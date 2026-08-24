@@ -71,6 +71,12 @@ describe("computeCurrentSystemScores.system_score matches real in-game points, e
     "swoilz-cd-e-c1-1.json": 45,
     "swoilz-eg-i-b2-3.json": 75,
     "wregoe-yl-w-b56-4.json": 3,
+    // Committed 2026-08-24 (RC belt-import bug report fixture). UNLIKE the 5 entries above, this one
+    // is NOT cross-checked against a real reported weekly Architect Dividend payout — 214 is simply
+    // this formula's own current output for this fixture, a plain regression pin (this test's other
+    // job, per its own name below) rather than a real-game-verified figure. Replace with a real
+    // payout number if one ever gets reported for this system.
+    "hip-56772.json": 214,
   };
 
   it.each(Object.entries(REAL_SYSTEM_SCORES))("%s -> system_score %i", (file, expected) => {

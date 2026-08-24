@@ -191,6 +191,41 @@ describe("plannerReducer", () => {
     expect(state.scoreMin).toEqual({ system_score: 5 });
   });
 
+  it("load migrates a pre-1.7.0 ring bodyId to the current scheme and remaps firstStationBodyId when the primary was set at a belt", () => {
+    const oldStar: JournalBody = {
+      bodyName: "Test",
+      bodyId: 0,
+      kind: "star",
+      landable: false,
+      parents: [],
+      rings: [{ name: "A Belt", ringClass: "Rocky", massMT: 1 }],
+      raw: {},
+    };
+    const oldRingBody: JournalBody = {
+      bodyName: "A Belt",
+      bodyId: 1_000_000,
+      kind: "ring",
+      landable: false,
+      parents: [{ type: "Star", bodyId: 0 }],
+      rings: [{ name: "A Belt", ringClass: "Rocky", massMT: 1 }],
+      raw: {},
+      slots: { space: 1, ground: 0, asteroid: 1 },
+    };
+    const oldPlan: PlannerFormState = {
+      ...INITIAL_FORM_STATE,
+      bodies: [oldStar, oldRingBody],
+      firstStationBuilding: "Asteroid_Base",
+      firstStationBodyId: 1_000_000,
+    };
+
+    const state = plannerReducer(INITIAL_FORM_STATE, { type: "load", state: oldPlan });
+
+    const migratedRing = state.bodies.find((b) => b.kind === "ring");
+    expect(migratedRing?.bodyId).toBe(100000);
+    expect(migratedRing?.slots).toEqual({ space: 1, ground: 0, asteroid: 1 });
+    expect(state.firstStationBodyId).toBe(100000);
+  });
+
   it("reset restores the initial state", () => {
     const changed = plannerReducer(INITIAL_FORM_STATE, { type: "patch", patch: { allowCriminal: false } });
     expect(plannerReducer(changed, { type: "reset" })).toEqual(INITIAL_FORM_STATE);
