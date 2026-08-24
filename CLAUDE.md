@@ -357,6 +357,14 @@ an inference this project made itself, not something the source stated verbatim:
   `Space_Farm` genuinely carries Agriculture (both readings were nonzero) — `FACILITY_ECONOMY_GUESS`
   in `src/data/buildings.ts` now maps `Space_Farm: ["Agriculture"]`, no longer in that file's
   deliberately-unmapped list.
+- **`Relay_Station` DOES carry a High Tech strong link — real-game-confirmed 2026-08-24 (backlog
+  item 5's test plan in `TASKS.md`).** A generic `Commercial_Outpost` built alongside an existing
+  `Relay_Station` at `Swoilz EG-I b2-3 C 1` (`jsons/swoilz-eg-i-b2-3.json`, an Icy body whose own
+  Colony-override economy is Industrial only) read a real `StationEconomies` HighTech proportion of
+  `0.4` once construction finished on its next weekly tick — the standard strong-link tier-1 rate,
+  attributable only to the Relay Station (the reading's other nonzero lines come from the system's
+  other, unrelated facilities). `FACILITY_ECONOMY_GUESS` in `src/data/buildings.ts` now maps
+  `Relay_Station: ["HighTech"]`, no longer in that file's deliberately-unmapped list.
 - **Agriculture's "tidally locked to its star" strong-link decrease (README's verbatim boost/
   decrease table) does not actually fire in-game — real-game-confirmed 2026-08-04, removed from the
   implementation.** A real-game test (three matched moons of gas giants in
