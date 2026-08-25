@@ -185,6 +185,24 @@ for (const [buildType, def] of Object.entries(RC_BUILD_TYPE)) {
   }
 }
 
+// Raven Colonial appends a trailing "?" to a `buildType` string when that site's layout was
+// auto-detected from Journal economy data rather than manually confirmed in-game by whoever's
+// tracking the project — the same underlying layout guess, just not yet confirmed. Real committed
+// exports carry this on both `"plan"` sites (`rc-jsons/swoilz-aw-c-d52-planned.json`, e.g. "bia?",
+// "annona?", "dodec?" — filtered out earlier by adapter.ts's own `status !== "complete"` check
+// regardless) and on real `"complete"` sites, which is the case this lookup exists for: stripped
+// before the table lookup so an already-built site with an unconfirmed layout guess still resolves
+// instead of being reported as an unrecognized build type.
+function stripUnconfirmedMarker(buildType: string): string {
+  return buildType.endsWith("?") ? buildType.slice(0, -1) : buildType;
+}
+
+/** Looks up a Raven Colonial `buildType` string, tolerating the trailing "?" RC uses to mark an
+ * unconfirmed (auto-detected, not yet manually confirmed in-game) layout guess. */
+export function lookupRcBuildType(buildType: string): (typeof RC_BUILD_TYPE)[string] | undefined {
+  return RC_BUILD_TYPE[stripUnconfirmedMarker(buildType)];
+}
+
 /** `undefined` only when `building` isn't in `RC_BUILD_TYPE` at all — shouldn't happen in practice
  * (the forward table covers all 54 buildings in `data/buildings.ts`), but never thrown; callers
  * surface it as a warning instead (see `export.ts`). */

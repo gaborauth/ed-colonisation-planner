@@ -941,6 +941,16 @@ select.toolbar-summary-system {
   color: var(--text-dim);
 }
 
+/* A non-blocking notice that still needs the reader's attention (e.g. a Raven Colonial import used
+ * an unconfirmed layout guess) — between .hint (nothing to act on) and the default danger styling
+ * (a real failure) in severity. Reuses --tier2-yellow rather than introducing a new color, same
+ * yellow already used for tier-2 badges elsewhere. */
+.status-banner.warning {
+  border-color: var(--tier2-yellow);
+  background: rgba(255, 212, 59, 0.12);
+  color: var(--tier2-yellow);
+}
+
 /* Generic blocking-modal shell — used by SolverStatusDialog.tsx (the solve's "solving"/"error"
  * states) and LiveDemoHintDialog.tsx (the post-"Live Demo" orientation hint). Above the cookie
  * consent banner's z-index (100), since a solve can legitimately run before that banner's choice

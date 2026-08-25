@@ -334,6 +334,14 @@ an inference this project made itself, not something the source stated verbatim:
   take the body-derived economy like generic ports, confirmed in-game). Known gap:
   `Criminal_Outpost`'s sheet economy is "Contraband," not one of this app's 9 `EconomyType` values at
   all — left out of this table, falling through to the Colony-default approximation.
+- **A `PORT_FIXED_ECONOMY` building's own displayed economy ratio starts at a flat 1.0 (100%)
+  base — real-game-confirmed 2026-08-24 for the 4 space-side entries.** `Military_Outpost`
+  (`Military 1.000000`), `Scientific_Outpost` (`HighTech 1.000000`), `Asteroid_Base` (`Extraction
+  1.400000` = `1.0` base + the Pristine-resource Extraction boost), and `Industrial_Outpost`
+  (`Industrial 1.400000` = `1.0` base + the Major/Pristine-resource Industrial boost) each matched
+  `domain/economyOverrides.ts`'s existing `computeEconomyRatios` formula exactly, with no leftover
+  unexplained delta — no code change needed for any of them. `Scientific_Planetary_Outpost`/
+  `Industrial_Planetary_Outpost` (ground) remain unconfirmed — see backlog item 6 in `TASKS.md`.
 - `BOOST_DECREASE_DELTA`/`ECONOMY_RATIO_FLOOR_PERCENT` in `src/domain/economyOverrides.ts` (the
   System facilities panel's per-facility "Economy ratios" hover) — the ±40-percentage-point-per-
   condition and 10% floor magnitudes are community-sourced (`EconomicEffects.ods`'s "Lookups -
