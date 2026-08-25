@@ -148,6 +148,10 @@ export function JournalImportPanel({
   const [rcLoading, setRcLoading] = useState(false);
   const [rcError, setRcError] = useState<string | null>(null);
   const [rcWarnings, setRcWarnings] = useState<string[]>([]);
+  // Sites whose Raven Colonial buildType carried a trailing "?" (an auto-detected layout guess,
+  // not yet manually confirmed in-game) — imported using the guess either way, but surfaced as a
+  // distinct, lower-severity notice rather than lumped into rcWarnings (see adapter.ts).
+  const [rcUnconfirmed, setRcUnconfirmed] = useState<string[]>([]);
   const [rcImported, setRcImported] = useState(false);
 
   useEffect(() => {
@@ -264,6 +268,7 @@ export function JournalImportPanel({
     setRcLoading(true);
     setRcError(null);
     setRcWarnings([]);
+    setRcUnconfirmed([]);
     setRcImported(false);
     try {
       const text = await file.text();
@@ -273,9 +278,10 @@ export function JournalImportPanel({
       } catch {
         throw new Error("That doesn't look like a valid JSON file.");
       }
-      const { system, warnings } = applyRavenColonialOverlay(selected, rc);
+      const { system, warnings, unconfirmed } = applyRavenColonialOverlay(selected, rc);
       setSystems((prev) => prev.map((s) => (s.systemAddress !== selected.systemAddress ? s : system)));
       setRcWarnings(warnings);
+      setRcUnconfirmed(unconfirmed);
       setRcImported(true);
       setApplied(false);
     } catch (e) {
@@ -646,6 +652,13 @@ export function JournalImportPanel({
                   {rcWarnings.length > 0 && (
                     <div className="status-banner">
                       {rcWarnings.map((w) => (
+                        <div key={w}>{w}</div>
+                      ))}
+                    </div>
+                  )}
+                  {rcUnconfirmed.length > 0 && (
+                    <div className="status-banner warning">
+                      {rcUnconfirmed.map((w) => (
                         <div key={w}>{w}</div>
                       ))}
                     </div>

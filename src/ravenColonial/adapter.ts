@@ -15,7 +15,7 @@
 // from its own import source. A full "import a system directly from Raven Colonial with no prior
 // Spansh/Journal step" path would need that data too and isn't implemented.
 import type { JournalBody, JournalSystem, PresentFacilitySlot } from "../journal/parser";
-import { RC_BUILD_TYPE } from "./buildTypes";
+import { lookupRcBuildType } from "./buildTypes";
 import type { RcSite, RcSystem } from "./types";
 
 export interface RavenColonialOverlayResult {
@@ -24,6 +24,13 @@ export interface RavenColonialOverlayResult {
    * present in the currently loaded system, etc. Never thrown; the overlay always applies whatever
    * it safely can and reports the rest here instead. */
   warnings: string[];
+  /** A real, built (`status: "complete"`) site whose `buildType` carried Raven Colonial's trailing
+   * "?" — the layout was auto-detected from Journal economy data, not yet manually confirmed
+   * in-game. The overlay still applies the guessed building/variant (see `buildTypes.ts`'s
+   * `lookupRcBuildType`), but surfaces it here as a distinct, lower-severity notice rather than
+   * lumping it into `warnings` — nothing failed to import, the guess itself just isn't confirmed
+   * yet and may change once it is. */
+  unconfirmed: string[];
 }
 
 function computeAsteroidSlot(body: JournalBody): number {
@@ -42,6 +49,7 @@ function pickPrimarySite(sites: RcSite[]): RcSite | undefined {
 
 export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): RavenColonialOverlayResult {
   const warnings: string[] = [];
+  const unconfirmed: string[] = [];
   const bodies = system.bodies.map((b) => ({ ...b })); // shallow per-body copy, overlay writes into these
   const byId = new Map<number, JournalBody>(bodies.map((b) => [b.bodyId, b]));
 
@@ -72,7 +80,7 @@ export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): 
   const primarySite = pickPrimarySite(rc.sites);
   const remainingSites = primarySite ? rc.sites.filter((s) => s !== primarySite) : rc.sites;
   if (primarySite) {
-    const def = RC_BUILD_TYPE[primarySite.buildType];
+    const def = lookupRcBuildType(primarySite.buildType);
     if (!def) {
       warnings.push(`Unrecognized Raven Colonial build type "${primarySite.buildType}" for the primary station "${primarySite.name}" — primary station left unchanged.`);
     } else {
@@ -83,6 +91,9 @@ export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): 
       // match the true in-game layout. The old variant (if any) belonged to whatever building was
       // previously the primary, so it's replaced either way, not just cleared.
       firstStationVariant = def.variant;
+      if (primarySite.buildType.endsWith("?")) {
+        unconfirmed.push(`Primary station "${primarySite.name}" is an unconfirmed Raven Colonial guess (${def.building}) — not yet manually confirmed in-game.`);
+      }
     }
   }
 
@@ -98,7 +109,7 @@ export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): 
       warnings.push(`"${site.name}" is not yet complete in Raven Colonial (status: "${site.status}") — skipped.`);
       continue;
     }
-    const def = RC_BUILD_TYPE[site.buildType];
+    const def = lookupRcBuildType(site.buildType);
     if (!def) {
       warnings.push(`Unrecognized Raven Colonial build type "${site.buildType}" for "${site.name}" — skipped.`);
       continue;
@@ -107,6 +118,9 @@ export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): 
     if (!body) {
       warnings.push(`"${site.name}" is on body #${site.bodyNum}, which isn't in the currently loaded system — skipped.`);
       continue;
+    }
+    if (site.buildType.endsWith("?")) {
+      unconfirmed.push(`"${site.name}" is an unconfirmed Raven Colonial guess (${def.building}) — not yet manually confirmed in-game.`);
     }
     const key = `${site.bodyNum}:${def.slot}`;
     const list = grouped.get(key) ?? [];
@@ -122,7 +136,7 @@ export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): 
     if (sites.length === 0) return [];
     const arr: (PresentFacilitySlot | null)[] = new Array(Math.max(capacity, sites.length)).fill(null);
     sites.forEach((site, i) => {
-      const def = RC_BUILD_TYPE[site.buildType]!;
+      const def = lookupRcBuildType(site.buildType)!;
       arr[i] = { building: def.building, demolishable: false, variant: def.variant, customName: site.name };
     });
     return arr;
@@ -158,5 +172,6 @@ export function applyRavenColonialOverlay(system: JournalSystem, rc: RcSystem): 
       ravenColonialSkeleton: rc as unknown as Record<string, unknown>,
     },
     warnings,
+    unconfirmed,
   };
 }

@@ -120,6 +120,41 @@ describe("Raven Colonial overlay: swoilz-aw-c-d52", () => {
     expect(warnings).toEqual([`"Not Built Yet" is not yet complete in Raven Colonial (status: "planned") — skipped.`]);
   });
 
+  it("resolves a trailing '?' (Raven Colonial's own unconfirmed-guess marker) instead of reporting it as an unrecognized build type", () => {
+    const bodyAt = (bodyId: number): JournalBody => ({
+      bodyName: `Body ${bodyId}`,
+      bodyId,
+      kind: "star",
+      landable: false,
+      parents: [],
+      rings: [],
+      raw: {},
+    });
+    const base: JournalSystem = { starSystem: "Test", systemAddress: 1, bodies: [bodyAt(0), bodyAt(1)] };
+    const rc: RcSystem = {
+      name: "Test",
+      id64: 1,
+      bodies: [],
+      slots: { "0": [1, -1], "1": [1, -1] },
+      sites: [
+        { id: "1", name: "Primary Guess", bodyNum: 0, buildType: "quad_truss?", status: "complete" },
+        { id: "2", name: "Second Guess", bodyNum: 1, buildType: "enodia?", status: "complete" },
+      ],
+    };
+
+    const { system, warnings, unconfirmed } = applyRavenColonialOverlay(base, rc);
+
+    expect(warnings).toEqual([]);
+    expect(system.firstStationBuilding).toBe("Coriolis");
+    expect(system.bodies.find((b) => b.bodyId === 1)?.presentFacilities?.space).toEqual([
+      { building: "Relay_Station", demolishable: false, variant: "Enodia", customName: "Second Guess" },
+    ]);
+    expect(unconfirmed).toEqual([
+      `Primary station "Primary Guess" is an unconfirmed Raven Colonial guess (Coriolis) — not yet manually confirmed in-game.`,
+      `"Second Guess" is an unconfirmed Raven Colonial guess (Relay_Station) — not yet manually confirmed in-game.`,
+    ]);
+  });
+
   it("matches the real committed export's facilities and slots for every body except the two RC manually mis-entered ground counts", () => {
     const base = spanshDumpToJournalSystem(spanshRecord);
     const { system } = applyRavenColonialOverlay(base, rcSystem);
